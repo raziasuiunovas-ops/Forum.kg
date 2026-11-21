@@ -6,6 +6,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { SessionService } from '@/lib/services/session.service'
+import { clearCsrfToken } from '@/lib/security/csrf'
+import { writeSecurityAuditEvent } from '@/lib/security/audit-logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,14 +26,25 @@ export async function POST(request: NextRequest) {
       path: '/api/v1/auth',
     })
 
+    // Clear CSRF token
+    await clearCsrfToken()
+
+    writeSecurityAuditEvent({
+      eventType: 'LOGOUT', result: 'success', request,
+      reason: 'logout_completed', statusCode: 200,
+    })
+
     return NextResponse.json(
       {
         success: true,
       },
       { status: 200 }
     )
-  } catch (error) {
-    console.error('Error in logout:', error)
+  } catch {
+    writeSecurityAuditEvent({
+      eventType: 'API_ERROR', result: 'error', request,
+      reason: 'logout_api_failure', statusCode: 500,
+    })
 
     // Even on error, clear cookies for client safety
     const cookieStore = await cookies()
@@ -40,6 +53,9 @@ export async function POST(request: NextRequest) {
       name: 'refresh',
       path: '/api/v1/auth',
     })
+
+    // Clear CSRF token
+    await clearCsrfToken()
 
     return NextResponse.json(
       {

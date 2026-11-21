@@ -21,6 +21,14 @@ import { verifyRefreshToken, createRefreshToken } from '@/lib/auth/session'
 import { createAuthError } from '@/lib/auth/errors'
 
 /**
+ * Prisma transaction client type for use in transactional operations
+ */
+type TransactionClient = Omit<
+  typeof prisma,
+  '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
+>
+
+/**
  * Session metadata for creation
  */
 export interface SessionMetadata {
@@ -61,28 +69,37 @@ export class SessionService {
    * 
    * @param userId - User ID
    * @param metadata - Optional session metadata (userAgent, ipAddress)
+   * @param tx - Optional Prisma transaction client (for transactional operations)
    * @returns Session data with new refresh token
    */
   static async createSession(
     userId: string,
-    metadata: SessionMetadata = {}
+    metadata: SessionMetadata = {},
+    tx?: TransactionClient
   ): Promise<SessionData> {
     const refreshToken = createRefreshToken(userId)
     const refreshTokenHash = hashToken(refreshToken)
     const sessionFamilyId = randomUUID()
     const expiresAt = new Date(Date.now() + SESSION_EXPIRY_MS)
 
-    const session = await prisma.session.create({
-      data: {
-        userId,
-        refreshTokenHash,
-        sessionFamilyId,
-        generationNumber: 0,
-        expiresAt,
-        userAgent: metadata.userAgent,
-        ipAddress: metadata.ipAddress,
-      },
-    })
+    const create = async (client: TransactionClient) => {
+      await this._lockUserSessions(client, userId)
+
+      return client.session.create({
+        data: {
+          userId,
+          refreshTokenHash,
+          sessionFamilyId,
+          generationNumber: 0,
+          expiresAt,
+          userAgent: metadata.userAgent,
+          ipAddress: metadata.ipAddress,
+        },
+      })
+    }
+
+    // A transaction-scoped advisory lock must share the transaction with the insert.
+    const session = tx ? await create(tx) : await prisma.$transaction(create)
 
     return {
       sessionId: session.id,
@@ -104,7 +121,7 @@ export class SessionService {
    * 6. Revoke old session with reason ROTATED
    * 7. Return new refresh token
    * 
-   * If reuse detected: revoke entire session family in separate transaction
+ * If reuse is detected: revoke the entire session family in the refresh transaction
    * 
    * @param currentRefreshToken - Current refresh token from cookie
    * @param metadata - Optional session metadata
@@ -161,11 +178,15 @@ export class SessionService {
     tokenHash: string,
     metadata: SessionMetadata
   ): Promise<SessionData> {
-    // Use Serializable isolation + SELECT FOR UPDATE for concurrent safety
-    return await prisma.$transaction(
+    // Serialize all session mutations for this user before locking session rows.
+    // ReadCommitted gives each statement a fresh snapshot after an advisory-lock wait.
+    const outcome = await prisma.$transaction(
       async (tx) => {
+        await this._lockUserSessions(tx, userId)
+
         // Step 2: Find and LOCK current session by token hash
-        // SELECT FOR UPDATE prevents concurrent transactions from reading/modifying this row
+        // The user lock serializes service mutations; this row lock also protects
+        // against writers that do not use SessionService.
         const sessions = await tx.$queryRaw<Array<{
           id: string
           userId: string
@@ -192,12 +213,7 @@ export class SessionService {
 
         const currentSession = sessions[0]
 
-        // Acquire advisory lock on session family to prevent race with family revocation
-        // Lock number is derived from sessionFamilyId hash
-        const familyLockId = this._getFamilyLockId(currentSession.sessionFamilyId)
-        await tx.$executeRaw`SELECT pg_advisory_xact_lock(${familyLockId})`
-
-        // Check if family has been revoked (after acquiring lock)
+        // Check if family has been revoked (after acquiring the user lock)
         const activeFamilyMembers = await tx.session.count({
           where: {
             sessionFamilyId: currentSession.sessionFamilyId,
@@ -237,12 +253,24 @@ export class SessionService {
 
         if (allChildren.length > 0) {
           // This session was rotated - using it again is REUSE
-          // Revoke family in separate committed transaction
-          await this._revokeFamilyCommitted(currentSession.sessionFamilyId)
-          throw createAuthError('INVALID_TOKEN', {
-            reason: 'token_reuse_detected',
-            sessionFamilyId: currentSession.sessionFamilyId,
+          // Revoke in this transaction and return a sentinel. Throwing here would
+          // roll back the security update; the caller throws after commit instead.
+          await tx.session.updateMany({
+            where: {
+              userId,
+              sessionFamilyId: currentSession.sessionFamilyId,
+              revokedAt: null,
+            },
+            data: {
+              revokedAt: now,
+              revokedReason: 'SUSPICIOUS_ACTIVITY',
+            },
           })
+
+          return {
+            kind: 'reuse' as const,
+            sessionFamilyId: currentSession.sessionFamilyId,
+          }
         }
 
         // Additional check: if session is already revoked for any reason, deny
@@ -282,67 +310,54 @@ export class SessionService {
 
         // Step 7: Return new session data
         return {
-          sessionId: newSession.id,
-          userId: newSession.userId,
-          refreshToken: newRefreshToken,
-          expiresAt: newSession.expiresAt,
+          kind: 'success' as const,
+          sessionData: {
+            sessionId: newSession.id,
+            userId: newSession.userId,
+            refreshToken: newRefreshToken,
+            expiresAt: newSession.expiresAt,
+          },
         }
       },
       {
-        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
         timeout: 10000, // 10 seconds
       }
     )
-  }
 
-  /**
-   * Generate consistent lock ID from session family UUID
-   * PostgreSQL advisory locks use bigint, so we hash UUID to number
-   */
-  private static _getFamilyLockId(sessionFamilyId: string): number {
-    // Simple hash: take first 8 bytes of UUID and convert to number
-    // Remove dashes and take first 15 hex chars (to fit in JS safe integer)
-    const hex = sessionFamilyId.replace(/-/g, '').substring(0, 15)
-    return parseInt(hex, 16)
-  }
-
-  /**
-   * Revoke entire session family in separate committed transaction
-   * 
-   * This prevents rollback from canceling security revocations.
-   * Called when token reuse is detected.
-   * 
-   * NOTE: Does NOT acquire advisory lock - assumes caller already holds it
-   * or revocation happens outside refresh flow (e.g. admin action).
-   */
-  private static async _revokeFamilyCommitted(sessionFamilyId: string): Promise<void> {
-    await prisma.$transaction(async (tx) => {
-      // Revoke all active sessions in family
-      // Do NOT acquire lock here - would cause self-deadlock if called from _attemptRefresh
-      await tx.session.updateMany({
-        where: {
-          sessionFamilyId,
-          revokedAt: null,
-        },
-        data: {
-          revokedAt: new Date(),
-          revokedReason: 'SUSPICIOUS_ACTIVITY',
-        },
+    if (outcome.kind === 'reuse') {
+      throw createAuthError('INVALID_TOKEN', {
+        reason: 'token_reuse_detected',
+        sessionFamilyId: outcome.sessionFamilyId,
       })
-    })
+    }
+
+    return outcome.sessionData
+  }
+
+  /**
+   * Serialize every session mutation for one user with a transaction-scoped
+   * PostgreSQL lock. Hashing stays in PostgreSQL to avoid JS bigint precision loss.
+   */
+  private static async _lockUserSessions(
+    tx: TransactionClient,
+    userId: string
+  ): Promise<void> {
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${userId}, 0))`
   }
 
   /**
    * Logout - revoke single session
-   * Uses advisory lock to prevent race with concurrent refresh
+   * Uses the per-user advisory lock to prevent races with concurrent refresh
    * 
    * @param refreshToken - Current refresh token
    * @returns true if session was revoked, false if not found
    */
   static async logout(refreshToken: string): Promise<boolean> {
     // Verify JWT first
+    let userId: string
     try {
-      verifyRefreshToken(refreshToken)
+      userId = verifyRefreshToken(refreshToken).userId
     } catch (error) {
       // Token invalid or expired - consider it already logged out
       return false
@@ -350,27 +365,26 @@ export class SessionService {
 
     const tokenHash = hashToken(refreshToken)
 
-    // Use transaction with advisory lock for synchronization
+    // Use the same user lock as refresh. If refresh wins first, revoke its new
+    // child; if logout wins first, the following refresh observes the revocation.
     const result = await prisma.$transaction(async (tx) => {
-      // Find session to get familyId for locking
+      await this._lockUserSessions(tx, userId)
+
       const session = await tx.session.findUnique({
         where: { refreshTokenHash: tokenHash },
-        select: { sessionFamilyId: true },
+        select: { userId: true, sessionFamilyId: true },
       })
 
-      if (!session) {
+      if (!session || session.userId !== userId) {
         return 0
       }
 
-      // Acquire family lock to prevent concurrent refresh
-      const familyLockId = this._getFamilyLockId(session.sessionFamilyId)
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(${familyLockId})`
-
-      // Revoke the session
+      // A refresh token represents this device family across rotations.
       const updateResult = await tx.session.updateMany({
         where: {
-          refreshTokenHash: tokenHash,
-          revokedAt: null, // Only revoke if not already revoked
+          userId,
+          sessionFamilyId: session.sessionFamilyId,
+          revokedAt: null,
         },
         data: {
           revokedAt: new Date(),
@@ -386,53 +400,30 @@ export class SessionService {
 
   /**
    * Logout all devices - revoke all sessions for user
-   * Uses advisory locks for each family to prevent race with concurrent refresh
+   * Uses the per-user advisory lock to prevent races with concurrent refresh
    * 
    * @param userId - User ID
    * @returns Number of sessions revoked
    */
   static async logoutAll(userId: string): Promise<number> {
-    // Get all unique session families for this user
-    const families = await prisma.session.findMany({
-      where: {
-        userId,
-        revokedAt: null,
-      },
-      select: {
-        sessionFamilyId: true,
-      },
-      distinct: ['sessionFamilyId'],
-    })
+    // One lock and one transaction make Logout All atomic. createSession and
+    // refresh use this same lock, so there is no family-list snapshot to go stale.
+    return prisma.$transaction(async (tx) => {
+      await this._lockUserSessions(tx, userId)
 
-    let totalRevoked = 0
-
-    // Revoke each family with proper locking
-    for (const { sessionFamilyId } of families) {
-      const revoked = await prisma.$transaction(async (tx) => {
-        // Acquire family lock
-        const familyLockId = this._getFamilyLockId(sessionFamilyId)
-        await tx.$executeRaw`SELECT pg_advisory_xact_lock(${familyLockId})`
-
-        // Revoke all sessions in this family for this user
-        const result = await tx.session.updateMany({
-          where: {
-            userId,
-            sessionFamilyId,
-            revokedAt: null,
-          },
-          data: {
-            revokedAt: new Date(),
-            revokedReason: 'LOGOUT_ALL',
-          },
-        })
-
-        return result.count
+      const result = await tx.session.updateMany({
+        where: {
+          userId,
+          revokedAt: null,
+        },
+        data: {
+          revokedAt: new Date(),
+          revokedReason: 'LOGOUT_ALL',
+        },
       })
 
-      totalRevoked += revoked
-    }
-
-    return totalRevoked
+      return result.count
+    })
   }
 
   /**

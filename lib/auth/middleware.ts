@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getCurrentSession, createAuthError, AuthenticatedUser } from './index'
 import { UserRole } from '@prisma/client'
+import { writeSecurityAuditEvent } from '@/lib/security/audit-logger'
 
 /**
  * Authenticated request context
@@ -101,10 +102,12 @@ export async function requireAuth(
 
     // Session belongs to different user (should never happen, security check)
     if (dbSession.userId !== session.userId) {
-      console.error('SECURITY VIOLATION: Session userId mismatch', {
-        jwtUserId: session.userId,
-        dbUserId: dbSession.userId,
-        sessionId: session.sessionId,
+      writeSecurityAuditEvent({
+        eventType: 'SUSPICIOUS_REQUEST',
+        result: 'denied',
+        request,
+        reason: 'session_user_mismatch',
+        statusCode: 401,
       })
       return NextResponse.json(
         {
@@ -160,8 +163,14 @@ export async function requireAuth(
         status: user.status,
       },
     }
-  } catch (error) {
-    console.error('Auth middleware error:', error)
+  } catch {
+    writeSecurityAuditEvent({
+      eventType: 'API_ERROR',
+      result: 'error',
+      request,
+      reason: 'auth_middleware_failure',
+      statusCode: 500,
+    })
     return NextResponse.json(
       {
         error: {
@@ -195,6 +204,14 @@ export async function requireRole(
   const { user } = authResult
 
   if (!allowedRoles.includes(user.role)) {
+    writeSecurityAuditEvent({
+      eventType: 'ACCESS_DENIED',
+      result: 'denied',
+      request,
+      userId: user.userId,
+      reason: 'insufficient_role',
+      statusCode: 403,
+    })
     return NextResponse.json(
       {
         error: {

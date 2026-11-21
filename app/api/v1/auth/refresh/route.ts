@@ -14,6 +14,7 @@ import {
   AuthError,
 } from '@/lib/auth'
 import { SessionService } from '@/lib/services/session.service'
+import { writeSecurityAuditEvent } from '@/lib/security/audit-logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,6 +23,10 @@ export async function POST(request: NextRequest) {
     const refreshCookie = cookieStore.get('refresh')
 
     if (!refreshCookie?.value) {
+      writeSecurityAuditEvent({
+        eventType: 'AUTH_FAILURE', result: 'failure', request,
+        reason: 'missing_refresh_token', statusCode: 401,
+      })
       return NextResponse.json(
         {
           error: {
@@ -47,6 +52,19 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       // Handle auth errors
       if (error instanceof AuthError) {
+        if (error.details?.reason === 'token_reuse_detected') {
+          writeSecurityAuditEvent({
+            eventType: 'REFRESH_TOKEN_REUSE', result: 'denied', request,
+            reason: 'token_reuse_detected', statusCode: error.statusCode,
+          })
+        }
+        writeSecurityAuditEvent({
+          eventType: 'AUTH_FAILURE', result: 'failure', request,
+          reason: error.details?.reason === 'token_reuse_detected'
+            ? 'token_reuse_detected'
+            : 'refresh_rejected',
+          statusCode: error.statusCode,
+        })
         // Clear cookies on token errors
         cookieStore.delete('session')
         cookieStore.delete({
@@ -86,6 +104,10 @@ export async function POST(request: NextRequest) {
     })
 
     if (!user) {
+      writeSecurityAuditEvent({
+        eventType: 'AUTH_FAILURE', result: 'failure', request,
+        reason: 'refresh_user_not_found', statusCode: 401,
+      })
       return NextResponse.json(
         {
           error: {
@@ -99,6 +121,10 @@ export async function POST(request: NextRequest) {
 
     // Check if user is suspended
     if (user.status === 'SUSPENDED') {
+      writeSecurityAuditEvent({
+        eventType: 'ACCESS_DENIED', result: 'denied', request,
+        userId: user.id, reason: 'account_suspended', statusCode: 403,
+      })
       return NextResponse.json(
         {
           error: {
@@ -145,14 +171,22 @@ export async function POST(request: NextRequest) {
       maxAge: SESSION_CONFIG.REFRESH_COOKIE_MAX_AGE,
     })
 
+    writeSecurityAuditEvent({
+      eventType: 'REFRESH_SUCCESS', result: 'success', request,
+      userId: user.id, reason: 'refresh_rotated', statusCode: 200,
+    })
+
     return NextResponse.json(
       {
         success: true,
       },
       { status: 200 }
     )
-  } catch (error) {
-    console.error('Error in refresh:', error)
+  } catch {
+    writeSecurityAuditEvent({
+      eventType: 'API_ERROR', result: 'error', request,
+      reason: 'refresh_api_failure', statusCode: 500,
+    })
 
     return NextResponse.json(
       {

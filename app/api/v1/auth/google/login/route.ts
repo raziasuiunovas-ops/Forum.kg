@@ -11,6 +11,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { writeSecurityAuditEvent } from '@/lib/security/audit-logger'
 
 export async function GET(request: NextRequest) {
   try {
@@ -37,8 +38,11 @@ export async function GET(request: NextRequest) {
       },
       { status: 501 }
     )
-  } catch (error) {
-    console.error('Error in Google login:', error)
+  } catch {
+    writeSecurityAuditEvent({
+      eventType: 'API_ERROR', result: 'error', request,
+      reason: 'oauth_login_api_failure', statusCode: 500,
+    })
 
     return NextResponse.json(
       {

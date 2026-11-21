@@ -48,7 +48,7 @@ export const otpPurposeSchema = z.nativeEnum(OtpPurpose, {
 export const requestOtpSchema = z.object({
   phone: phoneSchema,
   purpose: otpPurposeSchema,
-})
+}).strict() // Reject unknown fields
 
 export type RequestOtpInput = z.infer<typeof requestOtpSchema>
 
@@ -58,7 +58,7 @@ export type RequestOtpInput = z.infer<typeof requestOtpSchema>
 export const verifyOtpSchema = z.object({
   challengeId: uuidSchema,
   code: otpCodeSchema,
-})
+}).strict() // Reject unknown fields
 
 export type VerifyOtpInput = z.infer<typeof verifyOtpSchema>
 
@@ -78,11 +78,12 @@ export const userNameSchema = z.object({
 
 /**
  * Google OAuth callback validation
+ * Query parameters from GET /api/v1/auth/google/callback
  */
 export const googleCallbackSchema = z.object({
   code: z.string().min(1, 'Отсутствует код авторизации'),
   state: z.string().optional(),
-})
+}).strict()
 
 export type GoogleCallbackInput = z.infer<typeof googleCallbackSchema>
 

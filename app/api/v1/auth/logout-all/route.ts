@@ -5,33 +5,25 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { requireSession } from '@/lib/auth/session'
+import { requireAuth } from '@/lib/auth/middleware'
 import { SessionService } from '@/lib/services/session.service'
-import { AuthError } from '@/lib/auth/errors'
+import { clearCsrfToken } from '@/lib/security/csrf'
+import { writeSecurityAuditEvent } from '@/lib/security/audit-logger'
 
 export async function POST(request: NextRequest) {
   try {
-    // Require authentication to get userId
-    let session
-    try {
-      session = await requireSession()
-    } catch (error) {
-      if (error instanceof AuthError) {
-        return NextResponse.json(
-          {
-            error: {
-              code: error.code,
-              message: error.message,
-            },
-          },
-          { status: error.statusCode }
-        )
-      }
-      throw error
+    // Require the access token's database-backed session to still be active.
+    const authResult = await requireAuth(request)
+    if (authResult instanceof NextResponse) {
+      writeSecurityAuditEvent({
+        eventType: 'ACCESS_DENIED', result: 'denied', request,
+        reason: 'logout_all_auth_required', statusCode: authResult.status,
+      })
+      return authResult
     }
 
     // Revoke all sessions for this user
-    const revokedCount = await SessionService.logoutAll(session.userId)
+    const revokedCount = await SessionService.logoutAll(authResult.user.userId)
 
     // Clear cookies for current device
     const cookieStore = await cookies()
@@ -41,6 +33,14 @@ export async function POST(request: NextRequest) {
       path: '/api/v1/auth',
     })
 
+    // Clear CSRF token
+    await clearCsrfToken()
+
+    writeSecurityAuditEvent({
+      eventType: 'LOGOUT_ALL', result: 'success', request,
+      userId: authResult.user.userId, reason: 'all_sessions_revoked', statusCode: 200,
+    })
+
     return NextResponse.json(
       {
         success: true,
@@ -48,8 +48,11 @@ export async function POST(request: NextRequest) {
       },
       { status: 200 }
     )
-  } catch (error) {
-    console.error('Error in logout-all:', error)
+  } catch {
+    writeSecurityAuditEvent({
+      eventType: 'API_ERROR', result: 'error', request,
+      reason: 'logout_all_api_failure', statusCode: 500,
+    })
 
     // Even on error, clear cookies for client safety
     const cookieStore = await cookies()
@@ -58,6 +61,9 @@ export async function POST(request: NextRequest) {
       name: 'refresh',
       path: '/api/v1/auth',
     })
+
+    // Clear CSRF token
+    await clearCsrfToken()
 
     return NextResponse.json(
       {

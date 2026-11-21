@@ -7,6 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "typecheck": "tsc --noEmit --incremental false",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "tsc --project tsconfig.test.json && node --test .test-dist/tests/unit/date.test.js .test-dist/tests/unit/phone.test.js .test-dist/tests/unit/validation.test.js .test-dist/tests/unit/api-rate-limit.test.js .test-dist/tests/unit/security-audit-logger.test.js",
+    "test:integration": "node scripts/run-integration-tests.cjs",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:studio": "prisma studio"

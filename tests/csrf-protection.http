@@ -1,0 +1,129 @@
+### CSRF Protection Tests for FORUM.KG
+### Tests cookie-based CSRF protection
+
+@baseUrl = http://localhost:3002
+@phone = +996555200300
+
+### Test 1: Get CSRF token (should succeed)
+# @name getCsrfToken
+GET {{baseUrl}}/api/v1/auth/csrf-token
+
+### Extract CSRF token from response
+@csrfToken = {{getCsrfToken.response.body.csrfToken}}
+
+### Test 2: POST without CSRF token (should fail with 403)
+POST {{baseUrl}}/api/v1/auth/phone/request-otp
+Content-Type: application/json
+
+{
+  "phone": "{{phone}}",
+  "purpose": "LOGIN"
+}
+
+### Expected: 403 CSRF_TOKEN_INVALID
+
+### Test 3: POST with CSRF token in header (should succeed)
+POST {{baseUrl}}/api/v1/auth/phone/request-otp
+Content-Type: application/json
+X-CSRF-Token: {{csrfToken}}
+
+{
+  "phone": "{{phone}}",
+  "purpose": "LOGIN"
+}
+
+### Expected: 200 OK with challengeId
+
+### Test 4: POST with wrong CSRF token (should fail with 403)
+POST {{baseUrl}}/api/v1/auth/phone/request-otp
+Content-Type: application/json
+X-CSRF-Token: wrong-token-12345678901234567890123456789012
+
+{
+  "phone": "{{phone}}",
+  "purpose": "LOGIN"
+}
+
+### Expected: 403 CSRF_TOKEN_INVALID
+
+### Test 5: GET request without CSRF token (should succeed - safe method)
+GET {{baseUrl}}/api/v1/auth/session
+
+### Expected: 401 UNAUTHORIZED (no CSRF error, just not authenticated)
+
+### Test 6: POST with cross-origin (should fail)
+POST {{baseUrl}}/api/v1/auth/phone/request-otp
+Content-Type: application/json
+Origin: https://evil-site.com
+X-CSRF-Token: {{csrfToken}}
+
+{
+  "phone": "{{phone}}",
+  "purpose": "LOGIN"
+}
+
+### Expected: 403 CSRF_TOKEN_INVALID (Origin validation fails)
+
+### Test 7: Complete OTP flow with CSRF
+# 7.1 Get CSRF token
+# @name getToken
+GET {{baseUrl}}/api/v1/auth/csrf-token
+
+@token = {{getToken.response.body.csrfToken}}
+
+# 7.2 Request OTP with CSRF token
+# @name requestOTP
+POST {{baseUrl}}/api/v1/auth/phone/request-otp
+Content-Type: application/json
+X-CSRF-Token: {{token}}
+
+{
+  "phone": "+996555200301",
+  "purpose": "LOGIN"
+}
+
+@challengeId = {{requestOTP.response.body.challengeId}}
+
+# 7.3 Verify OTP (need to get actual code from DB)
+# POST {{baseUrl}}/api/v1/auth/phone/verify-otp
+# Content-Type: application/json
+# X-CSRF-Token: {{token}}
+#
+# {
+#   "challengeId": "{{challengeId}}",
+#   "code": "123456"
+# }
+
+### Test 8: Logout with CSRF token
+# First need to be authenticated, then:
+# POST {{baseUrl}}/api/v1/auth/logout
+# X-CSRF-Token: {{token}}
+
+### Expected: 200 OK, CSRF token cleared
+
+### Test 9: Test CSRF token after logout (should get new token)
+# GET {{baseUrl}}/api/v1/auth/csrf-token
+### Expected: 200 OK with new token (different from previous)
+
+### Test 10: Multiple concurrent requests with same token
+# All should succeed if token is valid
+POST {{baseUrl}}/api/v1/auth/phone/request-otp
+Content-Type: application/json
+X-CSRF-Token: {{csrfToken}}
+
+{
+  "phone": "+996555200302",
+  "purpose": "LOGIN"
+}
+
+###
+POST {{baseUrl}}/api/v1/auth/phone/request-otp
+Content-Type: application/json
+X-CSRF-Token: {{csrfToken}}
+
+{
+  "phone": "+996555200303",
+  "purpose": "LOGIN"
+}
+
+### Both should succeed - CSRF token is reusable within session

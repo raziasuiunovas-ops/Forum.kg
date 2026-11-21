@@ -14,3 +14,8 @@ export * from './errorHandler'
 
 // Common schemas
 export * from './schemas/common'
+
+// Entity schemas
+export * from './schemas/user'
+export * from './schemas/post'
+export * from './schemas/event'

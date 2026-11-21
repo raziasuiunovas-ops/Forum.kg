@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { safeJsonParse } from '@/lib/api'
 import {
   requestOtpSchema,
   validateRequestBody,
@@ -17,6 +18,7 @@ import {
   VALIDATION_ERRORS,
   OTP_ERRORS,
 } from '@/lib/auth'
+import { writeSecurityAuditEvent } from '@/lib/security/audit-logger'
 
 export async function POST(request: NextRequest) {
   // Retry configuration for Serializable isolation conflicts
@@ -60,38 +62,51 @@ export async function POST(request: NextRequest) {
 
 async function attemptOTPRequest(request: NextRequest) {
   try {
-    // Parse and validate request body
-    const body = await request.json()
-    const validation = validateRequestBody(requestOtpSchema, body)
-
-    if (!validation.success) {
+    // Parse and validate request body using safeJsonParse to catch malformed JSON
+    const body = await safeJsonParse<unknown>(request)
+    
+    if (body === null) {
       return NextResponse.json(
         {
           error: {
             code: 'VALIDATION_ERROR',
-            message: 'Ошибка валидации данных',
-            details: formatValidationErrors(validation.errors),
+            message: 'Тело запроса не может быть пустым',
           },
         },
         { status: 422 }
       )
     }
 
-    const { phone, purpose } = validation.data
+  const validation = validateRequestBody(requestOtpSchema, body)
 
-    // Normalize phone number to E.164 format
-    const normalizedPhone = normalizePhone(phone)
-    if (!normalizedPhone) {
-      return NextResponse.json(
-        {
-          error: {
-            code: VALIDATION_ERRORS.INVALID_PHONE.code,
-            message: VALIDATION_ERRORS.INVALID_PHONE.message,
-          },
+  if (!validation.success) {
+    return NextResponse.json(
+      {
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Ошибка валидации данных',
+          details: formatValidationErrors(validation.errors),
         },
-        { status: 422 }
-      )
-    }
+      },
+      { status: 422 }
+    )
+  }
+
+  const { phone, purpose } = validation.data
+
+  // Normalize phone number to E.164 format
+  const normalizedPhone = normalizePhone(phone)
+  if (!normalizedPhone) {
+    return NextResponse.json(
+      {
+        error: {
+          code: VALIDATION_ERRORS.INVALID_PHONE.code,
+          message: VALIDATION_ERRORS.INVALID_PHONE.message,
+        },
+      },
+      { status: 422 }
+    )
+  }
 
     // Use transaction with Serializable isolation to prevent race conditions:
     // 1. Check rate limiting (atomic with Serializable isolation)
@@ -165,6 +180,13 @@ async function attemptOTPRequest(request: NextRequest) {
     )
 
     // Return challenge ID and expiry
+    writeSecurityAuditEvent({
+      eventType: 'OTP_REQUEST',
+      result: 'success',
+      request,
+      reason: 'challenge_created',
+      statusCode: 200,
+    })
     return NextResponse.json(
       {
         challengeId: challenge.id,
@@ -173,12 +195,38 @@ async function attemptOTPRequest(request: NextRequest) {
       { status: 200 }
     )
   } catch (error) {
-    console.error('Error in request-otp:', error)
+    // Handle ValidationError from safeJsonParse or Zod
+    if (error && typeof error === 'object' && 'name' in error && error.name === 'ValidationError') {
+      const validationError = error as { message?: string }
+      return NextResponse.json(
+        {
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: validationError.message || 'Некорректный JSON в теле запроса',
+          },
+        },
+        { status: 422 }
+      )
+    }
 
     // Handle rate limit error from transaction
     if (error && typeof error === 'object' && 'code' in error) {
       const authError = error as { code: string; message: string }
       if (authError.code === 'RATE_LIMIT_EXCEEDED') {
+        writeSecurityAuditEvent({
+          eventType: 'OTP_REQUEST',
+          result: 'denied',
+          request,
+          reason: 'otp_request_rate_limit',
+          statusCode: 429,
+        })
+        writeSecurityAuditEvent({
+          eventType: 'RATE_LIMIT_EXCEEDED',
+          result: 'denied',
+          request,
+          reason: 'otp_phone_limit',
+          statusCode: 429,
+        })
         return NextResponse.json(
           {
             error: {
@@ -194,6 +242,13 @@ async function attemptOTPRequest(request: NextRequest) {
       }
     }
 
+    writeSecurityAuditEvent({
+      eventType: 'API_ERROR',
+      result: 'error',
+      request,
+      reason: 'otp_request_failure',
+      statusCode: 500,
+    })
     return NextResponse.json(
       {
         error: {
@@ -205,3 +260,4 @@ async function attemptOTPRequest(request: NextRequest) {
     )
   }
 }
+

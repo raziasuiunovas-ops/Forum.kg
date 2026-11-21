@@ -5,28 +5,23 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { getCurrentSession, createAuthError } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth/middleware'
+import { writeSecurityAuditEvent } from '@/lib/security/audit-logger'
 
 export async function GET(request: NextRequest) {
   try {
-    // Get current session from cookie
-    const session = await getCurrentSession()
-
-    if (!session) {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'Требуется авторизация',
-          },
-        },
-        { status: 401 }
-      )
+    // Require authentication with full DB validation
+    const authResult = await requireAuth(request)
+    
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
-    // Fetch user from database
-    const user = await prisma.user.findUnique({
-      where: { id: session.userId },
+    const { user } = authResult
+
+    // Fetch full user profile from database
+    const userProfile = await prisma.user.findUnique({
+      where: { id: user.userId },
       select: {
         id: true,
         firstName: true,
@@ -43,7 +38,7 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    if (!user) {
+    if (!userProfile) {
       return NextResponse.json(
         {
           error: {
@@ -55,41 +50,31 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Check if user is suspended
-    if (user.status === 'SUSPENDED') {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'ACCOUNT_SUSPENDED',
-            message: 'Аккаунт заблокирован',
-          },
-        },
-        { status: 403 }
-      )
-    }
-
     // Return user profile
     return NextResponse.json(
       {
         user: {
-          id: user.id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          phone: user.phone,
-          phoneVerifiedAt: user.phoneVerifiedAt?.toISOString(),
-          email: user.email,
-          role: user.role,
-          status: user.status,
-          preferredLocale: user.preferredLocale,
-          announcementsPushEnabled: user.announcementsPushEnabled,
-          createdAt: user.createdAt.toISOString(),
-          updatedAt: user.updatedAt.toISOString(),
+          id: userProfile.id,
+          firstName: userProfile.firstName,
+          lastName: userProfile.lastName,
+          phone: userProfile.phone,
+          phoneVerifiedAt: userProfile.phoneVerifiedAt?.toISOString(),
+          email: userProfile.email,
+          role: userProfile.role,
+          status: userProfile.status,
+          preferredLocale: userProfile.preferredLocale,
+          announcementsPushEnabled: userProfile.announcementsPushEnabled,
+          createdAt: userProfile.createdAt.toISOString(),
+          updatedAt: userProfile.updatedAt.toISOString(),
         },
       },
       { status: 200 }
     )
-  } catch (error) {
-    console.error('Error in get session:', error)
+  } catch {
+    writeSecurityAuditEvent({
+      eventType: 'API_ERROR', result: 'error', request,
+      reason: 'session_api_failure', statusCode: 500,
+    })
 
     return NextResponse.json(
       {

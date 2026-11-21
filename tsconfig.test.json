@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    },
+    "rootDir": ".",
+    "outDir": ".test-dist",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "types": ["node"],
+    "noEmitOnError": true,
+    "incremental": false
+  },
+  "include": [
+    "tests/unit/**/*.test.ts",
+    "tests/integration/**/*.test.ts",
+    "app/api/v1/health/__tests__/health.test.ts"
+  ]
+}
