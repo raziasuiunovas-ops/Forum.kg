@@ -682,7 +682,36 @@ C. Both
 
 ---
 
-### 13.4 Finik Integration Details
+### 13.5 Admin Refund Management Endpoints
+
+**Status:** ⚠️ OPEN DECISION
+
+**Question:** Should MVP include admin endpoints for viewing refund history?
+
+**Context:**
+- Refund policy not finalized (manual vs automatic)
+- `Refund` model exists in Prisma Schema
+- Current API has `POST /api/v1/payments/{paymentId}/refund` for initiating refunds
+- Missing: endpoints for viewing refund list and details
+
+**Proposed Endpoints:**
+- `GET /api/v1/admin/refunds` → List all refunds (filtered, paginated)
+- `GET /api/v1/admin/refunds/{refundId}` → Refund details
+
+**Options:**
+A. Add refund viewing endpoints in MVP
+B. Defer to post-MVP (refunds tracked in DB, viewed via admin panel UI or direct DB queries)
+
+**Can implement without decision:**
+- ✅ Refund tracking in database
+- ✅ Refund initiation endpoint
+- ❌ Admin refund list/details API endpoints
+
+**Recommendation:** Option B (defer to post-MVP). Refunds are rare events, can be managed through direct DB access initially.
+
+---
+
+### 13.6 Finik Integration Details
 
 **Status:** 🔴 BLOCKED_BY_PROVIDER_DOCUMENTATION
 
@@ -711,7 +740,7 @@ C. Both
 
 ---
 
-### 13.5 Google OAuth Credentials
+### 13.7 Google OAuth Credentials
 
 **Status:** ⚠️ NOT PROVIDED
 
@@ -732,7 +761,7 @@ C. Both
 
 ---
 
-### 13.6 Session Implementation
+### 13.8 Session Implementation
 
 **Status:** ⚠️ NEEDS DECISION
 
@@ -746,7 +775,7 @@ C. Both
 
 ---
 
-### 13.7 Participant Name Correction
+### 13.9 Participant Name Correction
 
 **Status:** ⚠️ OPEN DECISION per TS Spec Section 23.7
 
