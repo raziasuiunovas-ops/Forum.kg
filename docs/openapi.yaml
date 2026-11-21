@@ -1,0 +1,3653 @@
+﻿openapi: 3.0.3
+info:
+  title: FORUM.KG Backend API
+  description: |
+    Backend API for FORUM.KG - Event Ticketing Platform for Kyrgyzstan
+    
+    ## Architecture
+    - **Backend:** Next.js 15 API Routes
+    - **Database:** PostgreSQL (Neon) via Prisma 5.22
+    - **Models:** 25 Prisma models, 21 enums
+    - **Languages:** Russian (default), Kyrgyz, English
+    
+    ## Base URL
+    - Development: `http://localhost:3000`
+    - Production: `https://forum.kg` (or configured domain)
+    
+    ## Authentication
+    - Session-based (cookies)
+    - Optional: Bearer token for mobile/external clients
+    
+    ## API Documentation
+    See `docs/API_CONTRACTS_DECISIONS.md` for architectural decisions,
+    data formats, security requirements, and open decisions.
+    
+  version: 1.0.0
+  contact:
+    name: FORUM.KG API Support
+    email: api@forum.kg
+  license:
+    name: Proprietary
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Development server
+  - url: https://forum.kg/api/v1
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: Google OAuth, Phone OTP, session management
+  - name: Profile
+    description: User profile and account management
+  - name: Users
+    description: User management (admin)
+  - name: Forums
+    description: Forum/event management
+  - name: Ticket Categories
+    description: Ticket category management
+  - name: Orders
+    description: Order creation and management
+  - name: Payments
+    description: Payment processing and webhooks
+  - name: Tickets
+    description: Ticket retrieval and QR display
+  - name: Check-in
+    description: QR code validation and check-in
+  - name: Cancellations
+    description: Cancellation requests and approvals
+  - name: Notifications
+    description: User notifications
+  - name: Telegram
+    description: Telegram bot integration
+  - name: Admin
+    description: Admin panel operations
+  - name: Settings
+    description: Site settings and configuration
+  - name: Integrations
+    description: Integration health monitoring
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: session
+      description: Session cookie (HttpOnly, Secure)
+    
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for mobile/external clients
+
+  schemas:
+    # ========================================
+    # Common Schemas
+    # ========================================
+    
+    UUID:
+      type: string
+      format: uuid
+      example: "550e8400-e29b-41d4-a716-446655440000"
+    
+    DateTime:
+      type: string
+      format: date-time
+      description: ISO 8601 UTC timestamp
+      example: "2026-11-19T15:30:00.000Z"
+    
+    Locale:
+      type: string
+      enum: [RU, KY, EN]
+      description: Language/locale (Prisma enum)
+      example: RU
+    
+    Currency:
+      type: string
+      enum: [KGS]
+      default: KGS
+      description: Currency code
+    
+    MoneyAmount:
+      type: object
+      required:
+        - amountMinor
+        - currency
+      properties:
+        amountMinor:
+          type: integer
+          description: Amount in minor units (tyiyn for KGS, 100 tyiyn = 1 KGS)
+          example: 50000
+        currency:
+          $ref: '#/components/schemas/Currency'
+        amountDisplay:
+          type: string
+          description: Human-readable amount (optional)
+          example: "500.00 KGS"
+    
+    # ========================================
+    # Error Schemas
+    # ========================================
+    
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              description: Machine-readable error code (UPPER_SNAKE_CASE)
+              example: CAPACITY_EXCEEDED
+            message:
+              type: string
+              description: Human-readable, localized error message
+              example: "РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ Р±РёР»РµС‚РѕРІ"
+            details:
+              type: object
+              description: Additional error context
+              additionalProperties: true
+    
+    ValidationError:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              enum: [VALIDATION_ERROR]
+            message:
+              type: string
+              example: "РћС€РёР±РєР° РІР°Р»РёРґР°С†РёРё РґР°РЅРЅС‹С…"
+            details:
+              type: object
+              required:
+                - fields
+              properties:
+                fields:
+                  type: object
+                  description: Field-level validation errors
+                  additionalProperties:
+                    type: string
+                  example:
+                    participantFirstName: "РћР±СЏР·Р°С‚РµР»СЊРЅРѕРµ РїРѕР»Рµ"
+                    items: "Р”РѕР»Р¶РЅРѕ СЃРѕРґРµСЂР¶Р°С‚СЊ РјРёРЅРёРјСѓРј 1 СЌР»РµРјРµРЅС‚"
+    
+    # ========================================
+    # Pagination
+    # ========================================
+    
+    Pagination:
+      type: object
+      required:
+        - page
+        - limit
+        - total
+        - totalPages
+      properties:
+        page:
+          type: integer
+          minimum: 1
+          example: 1
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+          example: 20
+        total:
+          type: integer
+          minimum: 0
+          example: 150
+        totalPages:
+          type: integer
+          minimum: 0
+          example: 8
+        hasNext:
+          type: boolean
+          example: true
+        hasPrev:
+          type: boolean
+          example: false
+    
+    # ========================================
+    # Enums (from Prisma Schema)
+    # ========================================
+    
+    UserRole:
+      type: string
+      enum:
+        - USER
+        - SCANNER
+        - MANAGER
+        - SUPER_ADMIN
+      description: |
+        User role (Prisma enum)
+        - USER: Regular user
+        - SCANNER: Can scan QR codes
+        - MANAGER: Can manage forums, orders
+        - SUPER_ADMIN: Full system access
+    
+    UserStatus:
+      type: string
+      enum:
+        - ACTIVE
+        - SUSPENDED
+      description: User account status
+    
+    AuthProvider:
+      type: string
+      enum:
+        - GOOGLE
+      description: Authentication provider
+    
+    OtpPurpose:
+      type: string
+      enum:
+        - LOGIN
+        - VERIFY_PHONE
+        - CHANGE_PHONE
+      description: OTP challenge purpose
+    
+    ForumStatus:
+      type: string
+      enum:
+        - DRAFT
+        - SCHEDULED
+        - PUBLISHED
+        - COMPLETED
+        - CANCELLED
+      description: |
+        Forum publication status
+        - DRAFT: Not visible to public
+        - SCHEDULED: Will be published at publishAt time
+        - PUBLISHED: Visible to public
+        - COMPLETED: Event finished
+        - CANCELLED: Event cancelled
+    
+    OrderStatus:
+      type: string
+      enum:
+        - PENDING_PAYMENT
+        - PAID
+        - PARTIALLY_CANCELLED
+        - CANCELLED
+        - EXPIRED
+        - PAYMENT_FAILED
+      description: Order status
+    
+    PaymentProvider:
+      type: string
+      enum:
+        - FINIK
+      description: Payment provider
+    
+    PaymentStatus:
+      type: string
+      enum:
+        - CREATED
+        - PENDING
+        - PROCESSING
+        - SUCCEEDED
+        - FAILED
+        - EXPIRED
+        - REFUND_PENDING
+        - PARTIALLY_REFUNDED
+        - REFUNDED
+      description: Payment status
+    
+    TicketStatus:
+      type: string
+      enum:
+        - ACTIVE
+        - USED
+        - CANCELLED
+      description: |
+        Ticket status
+        - ACTIVE: Valid, not used
+        - USED: Already checked in
+        - CANCELLED: Cancelled by user/admin
+        Note: Expiration is calculated from expiresAt field
+    
+    CheckInMethod:
+      type: string
+      enum:
+        - QR_ONLINE
+        - MANUAL_RECONCILED
+      description: Check-in method
+    
+    CancellationStatus:
+      type: string
+      enum:
+        - SUBMITTED
+        - UNDER_REVIEW
+        - APPROVED
+        - REJECTED
+        - COMPLETED
+      description: Cancellation request status
+    
+    RefundMethod:
+      type: string
+      enum:
+        - FINIK
+        - MANUAL
+      description: Refund method
+    
+    RefundStatus:
+      type: string
+      enum:
+        - PENDING
+        - PROCESSING
+        - SUCCEEDED
+        - FAILED
+        - CANCELLED
+      description: Refund status
+    
+    NotificationType:
+      type: string
+      enum:
+        - FORUM_PUBLISHED
+        - FORUM_UPDATED
+        - FORUM_CANCELLED
+        - EVENT_REMINDER
+        - PAYMENT_SUCCEEDED
+        - TICKETS_ISSUED
+        - CANCELLATION_UPDATED
+      description: Notification type
+    
+    NotificationChannel:
+      type: string
+      enum:
+        - TELEGRAM
+        - WEB_PUSH
+      description: Notification delivery channel
+    
+    DeliveryStatus:
+      type: string
+      enum:
+        - PENDING
+        - SENT
+        - RETRYING
+        - FAILED
+        - SKIPPED
+      description: Notification delivery status
+    
+    IntegrationProvider:
+      type: string
+      enum:
+        - GOOGLE
+        - SMS
+        - FINIK
+        - TELEGRAM
+        - WEB_PUSH
+        - AI
+      description: Integration provider
+    
+    IntegrationState:
+      type: string
+      enum:
+        - NOT_CONFIGURED
+        - HEALTHY
+        - DEGRADED
+        - ERROR
+      description: Integration health state
+    
+    # ========================================
+    # User & Authentication
+    # ========================================
+    
+    User:
+      type: object
+      required:
+        - id
+        - role
+        - status
+        - preferredLocale
+        - announcementsPushEnabled
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        firstName:
+          type: string
+          maxLength: 100
+          nullable: true
+          example: "РРІР°РЅ"
+        lastName:
+          type: string
+          maxLength: 100
+          nullable: true
+          example: "РРІР°РЅРѕРІ"
+        phone:
+          type: string
+          maxLength: 20
+          nullable: true
+          description: E.164 format, e.g. +996555123456
+          example: "+996555123456"
+        phoneVerifiedAt:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          nullable: true
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          nullable: true
+          example: "user@example.com"
+        role:
+          $ref: '#/components/schemas/UserRole'
+        status:
+          $ref: '#/components/schemas/UserStatus'
+        preferredLocale:
+          $ref: '#/components/schemas/Locale'
+        announcementsPushEnabled:
+          type: boolean
+          description: User wants to receive forum announcements
+        createdAt:
+          $ref: '#/components/schemas/DateTime'
+        updatedAt:
+          $ref: '#/components/schemas/DateTime'
+      description: |
+        User model (Prisma: User)
+        Sensitive fields never exposed: qrTokenEncrypted, OTP codes, etc.
+    
+    UserProfile:
+      allOf:
+        - $ref: '#/components/schemas/User'
+        - type: object
+          properties:
+            hasTelegramConnection:
+              type: boolean
+              description: Whether user has connected Telegram account
+            telegramUsername:
+              type: string
+              nullable: true
+              description: Telegram username (if connected and available)
+      description: Extended user profile with additional computed fields
+    
+    # ========================================
+    # Forum & Categories
+    # ========================================
+    
+    Forum:
+      type: object
+      required:
+        - id
+        - slug
+        - status
+        - timeZone
+        - startsAt
+        - qrExpiresAt
+        - capacity
+        - maxTicketsPerAccount
+        - createdById
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        slug:
+          type: string
+          maxLength: 180
+          description: URL-friendly identifier
+          example: "tech-conf-2026"
+        status:
+          $ref: '#/components/schemas/ForumStatus'
+        bannerUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: Cover image URL (S3)
+          example: "https://storage.neon.tech/..."
+        venueName:
+          type: string
+          maxLength: 255
+          nullable: true
+          example: "Р‘РёС€РєРµРє РџР°СЂРє РћС‚РµР»СЊ"
+        venueAddress:
+          type: string
+          nullable: true
+          example: "СѓР». РљРёРµРІСЃРєР°СЏ 105, Р‘РёС€РєРµРє"
+        timeZone:
+          type: string
+          maxLength: 64
+          default: "Asia/Bishkek"
+          example: "Asia/Bishkek"
+        startsAt:
+          $ref: '#/components/schemas/DateTime'
+        endsAt:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          nullable: true
+        qrExpiresAt:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: When QR codes for this forum expire (BR-11)
+        capacity:
+          type: integer
+          minimum: 1
+          description: Total forum capacity
+          example: 500
+        maxTicketsPerAccount:
+          type: integer
+          minimum: 1
+          default: 1
+          description: Max tickets per user account (BR-02, BR-03)
+          example: 1
+        publishAt:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          nullable: true
+          description: Scheduled publication time
+        publishedAt:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          nullable: true
+          description: Actual publication time
+        createdById:
+          $ref: '#/components/schemas/UUID'
+        createdAt:
+          $ref: '#/components/schemas/DateTime'
+        updatedAt:
+          $ref: '#/components/schemas/DateTime'
+        translations:
+          type: array
+          items:
+            $ref: '#/components/schemas/ForumTranslation'
+          description: Localized content (RU/KY/EN)
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketCategory'
+          description: Ticket categories (Standard, VIP, etc.)
+        availableTickets:
+          type: integer
+          minimum: 0
+          description: Computed field - available tickets count
+          readOnly: true
+      description: |
+        Forum/Event model (Prisma: Forum)
+        BR-01: Users can buy tickets for multiple forums
+        BR-02: Default maxTicketsPerAccount = 1
+        BR-03: Admin can set custom limit
+        BR-11: Admin sets qrExpiresAt
+    
+    ForumTranslation:
+      type: object
+      required:
+        - id
+        - forumId
+        - locale
+        - title
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        forumId:
+          $ref: '#/components/schemas/UUID'
+        locale:
+          $ref: '#/components/schemas/Locale'
+        title:
+          type: string
+          maxLength: 255
+          example: "Р‘РёС€РєРµРєСЃРєРёР№ Tech Forum 2026"
+        shortDescription:
+          type: string
+          nullable: true
+          example: "РљРѕРЅС„РµСЂРµРЅС†РёСЏ РґР»СЏ IT-СЃРїРµС†РёР°Р»РёСЃС‚РѕРІ"
+        description:
+          type: string
+          nullable: true
+          description: Full HTML-safe description
+        program:
+          type: string
+          nullable: true
+          description: Event program/agenda
+      description: Forum localized content (Prisma: ForumTranslation)
+    
+    TicketCategory:
+      type: object
+      required:
+        - id
+        - forumId
+        - code
+        - priceMinor
+        - currency
+        - isActive
+        - sortOrder
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        forumId:
+          $ref: '#/components/schemas/UUID'
+        code:
+          type: string
+          maxLength: 40
+          description: Category code (e.g., STANDARD, VIP)
+          example: "STANDARD"
+        priceMinor:
+          type: integer
+          description: Price in minor units (tyiyn), 100 tyiyn = 1 KGS
+          example: 50000
+        currency:
+          $ref: '#/components/schemas/Currency'
+        capacity:
+          type: integer
+          minimum: 1
+          nullable: true
+          description: Category capacity (null = limited by forum capacity only)
+          example: 300
+        isActive:
+          type: boolean
+          description: Whether category is available for purchase
+        sortOrder:
+          type: integer
+          default: 0
+          description: Display order
+        createdAt:
+          $ref: '#/components/schemas/DateTime'
+        updatedAt:
+          $ref: '#/components/schemas/DateTime'
+        translations:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketCategoryTranslation'
+        availableCount:
+          type: integer
+          minimum: 0
+          description: Computed - available tickets in this category
+          readOnly: true
+      description: |
+        Ticket category (Prisma: TicketCategory)
+        BR-05: Forums offer multiple categories (Standard/VIP)
+    
+    TicketCategoryTranslation:
+      type: object
+      required:
+        - id
+        - categoryId
+        - locale
+        - name
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        categoryId:
+          $ref: '#/components/schemas/UUID'
+        locale:
+          $ref: '#/components/schemas/Locale'
+        name:
+          type: string
+          maxLength: 100
+          example: "РЎС‚Р°РЅРґР°СЂС‚РЅС‹Р№"
+        description:
+          type: string
+          nullable: true
+          example: "Р”РѕСЃС‚СѓРї РєРѕ РІСЃРµРј СЃРµРєС†РёСЏРј"
+      description: Category localized content
+    
+    # ========================================
+    # Orders & Items
+    # ========================================
+    
+    Order:
+      type: object
+      required:
+        - id
+        - orderNumber
+        - userId
+        - forumId
+        - status
+        - subtotalMinor
+        - totalMinor
+        - currency
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        orderNumber:
+          type: string
+          maxLength: 40
+          description: Human-readable order number
+          example: "ORD-20261119-A1B2C3"
+        userId:
+          $ref: '#/components/schemas/UUID'
+        forumId:
+          $ref: '#/components/schemas/UUID'
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+        subtotalMinor:
+          type: integer
+          description: Subtotal in minor units (tyiyn)
+          example: 50000
+        totalMinor:
+          type: integer
+          description: Total in minor units (tyiyn)
+          example: 50000
+        currency:
+          $ref: '#/components/schemas/Currency'
+        reservedUntil:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          nullable: true
+          description: Reservation expiry time (10 minutes default)
+        paidAt:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          nullable: true
+          description: Payment confirmation time
+        createdAt:
+          $ref: '#/components/schemas/DateTime'
+        updatedAt:
+          $ref: '#/components/schemas/DateTime'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+          description: Order line items (one per ticket)
+        forum:
+          $ref: '#/components/schemas/Forum'
+          description: Associated forum (optional include)
+      description: |
+        Order model (Prisma: Order)
+        BR-01: One account can purchase for multiple forums
+        BR-02/BR-03: Enforces maxTicketsPerAccount
+        BR-04: Each item has participant name
+    
+    OrderItem:
+      type: object
+      required:
+        - id
+        - orderId
+        - ticketCategoryId
+        - participantFirstName
+        - participantLastName
+        - unitPriceMinor
+        - createdAt
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        orderId:
+          $ref: '#/components/schemas/UUID'
+        ticketCategoryId:
+          $ref: '#/components/schemas/UUID'
+        participantFirstName:
+          type: string
+          maxLength: 100
+          description: Participant first name (BR-04)
+          example: "РРІР°РЅ"
+        participantLastName:
+          type: string
+          maxLength: 100
+          description: Participant last name (BR-04)
+          example: "РРІР°РЅРѕРІ"
+        unitPriceMinor:
+          type: integer
+          description: Price at checkout time (immutable)
+          example: 50000
+        createdAt:
+          $ref: '#/components/schemas/DateTime'
+        ticketCategory:
+          $ref: '#/components/schemas/TicketCategory'
+          description: Category details (optional include)
+      description: |
+        Order line item (Prisma: OrderItem)
+        BR-04: Each ticket must have participant name
+        BR-06: Category cannot be changed after purchase
+    
+    # ========================================
+    # Payments
+    # ========================================
+    
+    Payment:
+      type: object
+      required:
+        - id
+        - orderId
+        - provider
+        - status
+        - amountMinor
+        - currency
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        orderId:
+          $ref: '#/components/schemas/UUID'
+        provider:
+          $ref: '#/components/schemas/PaymentProvider'
+        providerPaymentId:
+          type: string
+          maxLength: 255
+          nullable: true
+          description: Finik payment ID
+        status:
+          $ref: '#/components/schemas/PaymentStatus'
+        amountMinor:
+          type: integer
+          description: Payment amount in minor units
+          example: 50000
+        currency:
+          $ref: '#/components/schemas/Currency'
+        paidAt:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          nullable: true
+          description: When payment was confirmed
+        createdAt:
+          $ref: '#/components/schemas/DateTime'
+        updatedAt:
+          $ref: '#/components/schemas/DateTime'
+      description: |
+        Payment model (Prisma: Payment)
+        BR-07: Tickets issued only after verified payment
+        See BLOCKED_BY_PROVIDER_DOCUMENTATION for Finik details
+    
+    # ========================================
+    # Tickets
+    # ========================================
+    
+    Ticket:
+      type: object
+      required:
+        - id
+        - ticketNumber
+        - orderItemId
+        - forumId
+        - buyerId
+        - status
+        - issuedAt
+        - expiresAt
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        ticketNumber:
+          type: string
+          maxLength: 50
+          description: Human-readable ticket number
+          example: "TIX-20261119-X1Y2Z3"
+        orderItemId:
+          $ref: '#/components/schemas/UUID'
+        forumId:
+          $ref: '#/components/schemas/UUID'
+        buyerId:
+          $ref: '#/components/schemas/UUID'
+        status:
+          $ref: '#/components/schemas/TicketStatus'
+        issuedAt:
+          $ref: '#/components/schemas/DateTime'
+        expiresAt:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: QR expiration time (snapshot from Forum.qrExpiresAt)
+        usedAt:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          nullable: true
+          description: Check-in time
+        cancelledAt:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          nullable: true
+        isExpired:
+          type: boolean
+          description: Computed - whether QR has expired (BR-12)
+          readOnly: true
+        participantFirstName:
+          type: string
+          description: From OrderItem
+          readOnly: true
+        participantLastName:
+          type: string
+          description: From OrderItem
+          readOnly: true
+        categoryName:
+          type: string
+          description: Localized category name
+          readOnly: true
+        forumTitle:
+          type: string
+          description: Localized forum title
+          readOnly: true
+      description: |
+        Ticket model (Prisma: Ticket)
+        BR-07: Generated only after payment verified
+        BR-08: Unique QR token (qrTokenHash field, not exposed)
+        BR-09: One-time use
+        BR-12: Expiration handled by expiresAt field
+        Note: qrTokenHash and qrTokenEncrypted never exposed in API
+    
+    # ========================================
+    # Check-in
+    # ========================================
+    
+    CheckIn:
+      type: object
+      required:
+        - id
+        - ticketId
+        - forumId
+        - operatorId
+        - method
+        - checkedInAt
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        ticketId:
+          $ref: '#/components/schemas/UUID'
+        forumId:
+          $ref: '#/components/schemas/UUID'
+        operatorId:
+          $ref: '#/components/schemas/UUID'
+        method:
+          $ref: '#/components/schemas/CheckInMethod'
+        checkedInAt:
+          $ref: '#/components/schemas/DateTime'
+        participantName:
+          type: string
+          description: Computed - participant full name
+          readOnly: true
+        categoryName:
+          type: string
+          description: Computed - localized category
+          readOnly: true
+      description: |
+        Check-in record (Prisma: CheckIn)
+        BR-09: One-time check-in enforced by UNIQUE constraint on ticketId
+    
+    # ========================================
+    # Cancellation & Refund
+    # ========================================
+    
+    CancellationRequest:
+      type: object
+      required:
+        - id
+        - orderId
+        - requesterId
+        - status
+        - createdAt
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        orderId:
+          $ref: '#/components/schemas/UUID'
+        ticketId:
+          allOf:
+            - $ref: '#/components/schemas/UUID'
+          nullable: true
+          description: Specific ticket (null = whole order)
+        requesterId:
+          $ref: '#/components/schemas/UUID'
+        reviewedById:
+          allOf:
+            - $ref: '#/components/schemas/UUID'
+          nullable: true
+        status:
+          $ref: '#/components/schemas/CancellationStatus'
+        reason:
+          type: string
+          nullable: true
+          description: User's cancellation reason
+        adminNote:
+          type: string
+          nullable: true
+          description: Admin's internal note
+        createdAt:
+          $ref: '#/components/schemas/DateTime'
+        reviewedAt:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          nullable: true
+        completedAt:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          nullable: true
+      description: |
+        Cancellation request (Prisma: CancellationRequest)
+        BR-13: Users submit cancellation requests
+        BR-14: Approved cancellation releases slot
+    
+    Refund:
+      type: object
+      required:
+        - id
+        - orderId
+        - paymentId
+        - method
+        - status
+        - amountMinor
+        - currency
+        - createdAt
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        orderId:
+          $ref: '#/components/schemas/UUID'
+        paymentId:
+          $ref: '#/components/schemas/UUID'
+        ticketId:
+          allOf:
+            - $ref: '#/components/schemas/UUID'
+          nullable: true
+        providerRefundId:
+          type: string
+          maxLength: 255
+          nullable: true
+          description: Finik refund ID (if automatic)
+        method:
+          $ref: '#/components/schemas/RefundMethod'
+        status:
+          $ref: '#/components/schemas/RefundStatus'
+        amountMinor:
+          type: integer
+          description: Refund amount in minor units
+        currency:
+          $ref: '#/components/schemas/Currency'
+        reason:
+          type: string
+          nullable: true
+        createdAt:
+          $ref: '#/components/schemas/DateTime'
+        completedAt:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          nullable: true
+      description: |
+        Refund tracking (Prisma: Refund)
+        Note: Automatic refunds depend on Finik API (OPEN_DECISION)
+    
+    # ========================================
+    # Notifications
+    # ========================================
+    
+    Notification:
+      type: object
+      required:
+        - id
+        - userId
+        - type
+        - locale
+        - title
+        - body
+        - createdAt
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        userId:
+          $ref: '#/components/schemas/UUID'
+        forumId:
+          allOf:
+            - $ref: '#/components/schemas/UUID'
+          nullable: true
+        orderId:
+          allOf:
+            - $ref: '#/components/schemas/UUID'
+          nullable: true
+        type:
+          $ref: '#/components/schemas/NotificationType'
+        locale:
+          $ref: '#/components/schemas/Locale'
+        title:
+          type: string
+          maxLength: 255
+          example: "РќРѕРІС‹Р№ С„РѕСЂСѓРј РѕРїСѓР±Р»РёРєРѕРІР°РЅ"
+        body:
+          type: string
+          example: "Р‘РёС€РєРµРєСЃРєРёР№ Tech Forum 2026 СѓР¶Рµ РґРѕСЃС‚СѓРїРµРЅ РґР»СЏ СЂРµРіРёСЃС‚СЂР°С†РёРё"
+        readAt:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          nullable: true
+        createdAt:
+          $ref: '#/components/schemas/DateTime'
+      description: |
+        In-app notification (Prisma: Notification)
+        BR-15: Publishing forum creates notifications for all users
+        BR-20: Tickets in dashboard even if Telegram fails
+    
+    # ========================================
+    # Site Settings
+    # ========================================
+    
+    SiteSettings:
+      type: object
+      required:
+        - id
+        - displayName
+        - primaryColorHex
+        - accentColorHex
+        - updatedAt
+      properties:
+        id:
+          type: string
+          enum: [main]
+          description: Singleton ID
+        displayName:
+          type: string
+          maxLength: 120
+          default: "FORUM.KG"
+          description: Editable site name (BR-18)
+          example: "FORUM.KG"
+        logoUrl:
+          type: string
+          format: uri
+          nullable: true
+        heroImageUrl:
+          type: string
+          format: uri
+          nullable: true
+        primaryColorHex:
+          type: string
+          maxLength: 7
+          pattern: '^#[0-9A-Fa-f]{6}$'
+          default: "#2563EB"
+          example: "#2563EB"
+        accentColorHex:
+          type: string
+          maxLength: 7
+          pattern: '^#[0-9A-Fa-f]{6}$'
+          default: "#10B981"
+          example: "#10B981"
+        contactPhone:
+          type: string
+          maxLength: 30
+          nullable: true
+          example: "+996312123456"
+        contactEmail:
+          type: string
+          format: email
+          maxLength: 255
+          nullable: true
+          example: "info@forum.kg"
+        updatedAt:
+          $ref: '#/components/schemas/DateTime'
+        translations:
+          type: array
+          items:
+            $ref: '#/components/schemas/SiteSettingsTranslation'
+        socialLinks:
+          type: array
+          items:
+            $ref: '#/components/schemas/SocialLink'
+      description: |
+        Site settings (Prisma: SiteSettings)
+        BR-18: Editable branding
+    
+    SiteSettingsTranslation:
+      type: object
+      required:
+        - id
+        - siteId
+        - locale
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        siteId:
+          type: string
+        locale:
+          $ref: '#/components/schemas/Locale'
+        heroTitle:
+          type: string
+          maxLength: 255
+          nullable: true
+          example: "РџР»Р°С‚С„РѕСЂРјР° РїСЂРѕРґР°Р¶Рё Р±РёР»РµС‚РѕРІ РЅР° РјРµСЂРѕРїСЂРёСЏС‚РёСЏ"
+        heroSubtitle:
+          type: string
+          nullable: true
+        aboutText:
+          type: string
+          nullable: true
+    
+    SocialLink:
+      type: object
+      required:
+        - id
+        - siteId
+        - platform
+        - url
+        - sortOrder
+        - isActive
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        siteId:
+          type: string
+        platform:
+          type: string
+          maxLength: 60
+          example: "facebook"
+        url:
+          type: string
+          format: uri
+          example: "https://facebook.com/forumkg"
+        sortOrder:
+          type: integer
+          default: 0
+        isActive:
+          type: boolean
+    
+    # ========================================
+    # Integration Health
+    # ========================================
+    
+    IntegrationHealth:
+      type: object
+      required:
+        - provider
+        - state
+        - updatedAt
+      properties:
+        provider:
+          $ref: '#/components/schemas/IntegrationProvider'
+        state:
+          $ref: '#/components/schemas/IntegrationState'
+        lastCheckedAt:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          nullable: true
+        lastSuccessAt:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          nullable: true
+        lastError:
+          type: string
+          nullable: true
+          description: Last error message (sanitized, no secrets)
+        troubleshooting:
+          type: string
+          nullable: true
+          description: Human-readable resolution steps
+        updatedAt:
+          $ref: '#/components/schemas/DateTime'
+      description: |
+        Integration health monitoring (Prisma: IntegrationHealth)
+        Never exposes API keys or secrets
+
+# ========================================
+# API ENDPOINTS
+# Total: 106 endpoints across 15 functional groups
+# ========================================
+
+paths:
+  # ========================================
+  # Authentication (7 endpoints)
+  # ========================================
+  
+  /auth/google/login:
+    get:
+      summary: Initiate Google OAuth login
+      tags: [Authentication]
+      operationId: googleLogin
+      responses:
+        '302':
+          description: Redirect to Google OAuth
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /auth/google/callback:
+    get:
+      summary: Google OAuth callback
+      tags: [Authentication]
+      operationId: googleCallback
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect to app
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /auth/phone/request-otp:
+    post:
+      summary: Request OTP for phone
+      tags: [Authentication]
+      operationId: requestPhoneOtp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, purpose]
+              properties:
+                phone:
+                  type: string
+                  example: "+996555123456"
+                purpose:
+                  $ref: '#/components/schemas/OtpPurpose'
+      responses:
+        '200':
+          description: OTP sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  challengeId:
+                    $ref: '#/components/schemas/UUID'
+                  expiresAt:
+                    $ref: '#/components/schemas/DateTime'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+  
+  /auth/phone/verify-otp:
+    post:
+      summary: Verify OTP code
+      tags: [Authentication]
+      operationId: verifyPhoneOtp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [challengeId, code]
+              properties:
+                challengeId:
+                  $ref: '#/components/schemas/UUID'
+                code:
+                  type: string
+                  pattern: '^\d{6}$'
+      responses:
+        '200':
+          description: OTP verified
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid OTP
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /auth/session:
+    get:
+      summary: Get current session
+      tags: [Authentication]
+      operationId: getSession
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Session details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/UserProfile'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /auth/logout:
+    post:
+      summary: Logout user
+      tags: [Authentication]
+      operationId: logout
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+  
+  /auth/refresh:
+    post:
+      summary: Refresh session token
+      tags: [Authentication]
+      operationId: refreshSession
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+  
+  # ========================================
+  # Profile (8 endpoints)
+  # ========================================
+  
+  /profile:
+    get:
+      summary: Get user profile
+      tags: [Profile]
+      operationId: getProfile
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Profile data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    patch:
+      summary: Update profile
+      tags: [Profile]
+      operationId: updateProfile
+      security:
+        - cookieAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                preferredLocale:
+                  $ref: '#/components/schemas/Locale'
+                announcementsPushEnabled:
+                  type: boolean
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+  
+  /profile/phone:
+    post:
+      summary: Update phone number
+      tags: [Profile]
+      operationId: updatePhone
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, otpChallengeId]
+              properties:
+                phone:
+                  type: string
+                otpChallengeId:
+                  $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Phone updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+  
+  /profile/tickets:
+    get:
+      summary: Get user tickets
+      tags: [Profile]
+      operationId: getUserTickets
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/TicketStatus'
+      responses:
+        '200':
+          description: User tickets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tickets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Ticket'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+  
+  /profile/orders:
+    get:
+      summary: Get user orders
+      tags: [Profile]
+      operationId: getUserOrders
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: User orders
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orders:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Order'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+  
+  /profile/notifications:
+    get:
+      summary: Get user notifications
+      tags: [Profile]
+      operationId: getUserNotifications
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  notifications:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Notification'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  unreadCount:
+                    type: integer
+  
+  /profile/notifications/{notificationId}/read:
+    post:
+      summary: Mark notification read
+      tags: [Profile]
+      operationId: markNotificationRead
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Marked as read
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+  
+  /profile/push-subscriptions:
+    post:
+      summary: Register web push subscription
+      tags: [Profile]
+      operationId: registerPushSubscription
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [endpoint, keys]
+              properties:
+                endpoint:
+                  type: string
+                keys:
+                  type: object
+      responses:
+        '201':
+          description: Subscription registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+  
+  # ========================================
+  # Forums - Public (2 endpoints)
+  # ========================================
+  
+  /forums:
+    get:
+      summary: List published forums
+      tags: [Forums]
+      operationId: listForums
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: locale
+          in: query
+          schema:
+            $ref: '#/components/schemas/Locale'
+      responses:
+        '200':
+          description: Forum list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  forums:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Forum'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+  
+  /forums/{slug}:
+    get:
+      summary: Get forum by slug
+      tags: [Forums]
+      operationId: getForumBySlug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: locale
+          in: query
+          schema:
+            $ref: '#/components/schemas/Locale'
+      responses:
+        '200':
+          description: Forum details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forum'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  # ========================================
+  # Orders (4 endpoints)
+  # ========================================
+  
+  /orders:
+    post:
+      summary: Create order
+      tags: [Orders]
+      operationId: createOrder
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [forumId, items]
+              properties:
+                forumId:
+                  $ref: '#/components/schemas/UUID'
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required: [ticketCategoryId, participantFirstName, participantLastName]
+                    properties:
+                      ticketCategoryId:
+                        $ref: '#/components/schemas/UUID'
+                      participantFirstName:
+                        type: string
+                      participantLastName:
+                        type: string
+      responses:
+        '201':
+          description: Order created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  order:
+                    $ref: '#/components/schemas/Order'
+                  paymentUrl:
+                    type: string
+                    description: "BLOCKED_BY_PROVIDER_DOCUMENTATION"
+        '400':
+          description: Capacity exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /orders/{orderId}:
+    get:
+      summary: Get order details
+      tags: [Orders]
+      operationId: getOrder
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Order details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '403':
+          description: Not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /orders/{orderId}/payment-status:
+    get:
+      summary: Check payment status
+      tags: [Orders]
+      operationId: getOrderPaymentStatus
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Payment status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orderStatus:
+                    $ref: '#/components/schemas/OrderStatus'
+                  paymentStatus:
+                    $ref: '#/components/schemas/PaymentStatus'
+                  paidAt:
+                    $ref: '#/components/schemas/DateTime'
+  
+  /orders/{orderId}/cancel:
+    post:
+      summary: Cancel order (alias for cancellation request)
+      tags: [Orders]
+      operationId: cancelOrder
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+      responses:
+        '201':
+          description: Cancellation request submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancellationRequest'
+  
+  # ========================================
+  # Payments (3 endpoints)
+  # ========================================
+  
+  /payments/webhooks/finik:
+    post:
+      summary: Finik webhook
+      description: "BLOCKED_BY_PROVIDER_DOCUMENTATION: payload, signature algorithm unknown"
+      tags: [Payments]
+      operationId: handleFinikWebhook
+      parameters:
+        - name: X-Finik-Signature
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Webhook processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+  
+  /payments/{paymentId}:
+    get:
+      summary: Get payment details (admin)
+      tags: [Payments]
+      operationId: getPayment
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Payment details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '403':
+          description: Admin only
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /payments/{paymentId}/refund:
+    post:
+      summary: Initiate refund (admin)
+      tags: [Payments]
+      operationId: initiateRefund
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amountMinor:
+                  type: integer
+                reason:
+                  type: string
+      responses:
+        '201':
+          description: Refund initiated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Refund'
+  
+  # ========================================
+  # Tickets (3 endpoints)
+  # ========================================
+  
+  /tickets/{ticketId}:
+    get:
+      summary: Get ticket details
+      tags: [Tickets]
+      operationId: getTicket
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: ticketId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Ticket details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ticket'
+                  - type: object
+                    properties:
+                      qrData:
+                        type: string
+                        description: Opaque token for QR generation
+        '403':
+          description: Not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /tickets/{ticketId}/qr:
+    get:
+      summary: Get QR code image
+      tags: [Tickets]
+      operationId: getTicketQr
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: ticketId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 512
+      responses:
+        '200':
+          description: QR image
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+  
+  /tickets/{ticketId}/download:
+    get:
+      summary: Download ticket PDF
+      tags: [Tickets]
+      operationId: downloadTicketPdf
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: ticketId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: PDF file
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+  
+  # ========================================
+  # Check-in (3 endpoints)
+  # ========================================
+  
+  /check-in/validate:
+    post:
+      summary: Validate QR and check-in
+      tags: [Check-in]
+      operationId: validateCheckIn
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [qrData, forumId]
+              properties:
+                qrData:
+                  type: string
+                forumId:
+                  $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Check-in successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  checkIn:
+                    $ref: '#/components/schemas/CheckIn'
+                  ticket:
+                    $ref: '#/components/schemas/Ticket'
+        '400':
+          description: Invalid/used/expired ticket
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: SCANNER role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /check-in/forums/{forumId}/stats:
+    get:
+      summary: Get check-in stats
+      tags: [Check-in]
+      operationId: getForumCheckInStats
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: forumId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Stats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalTickets:
+                    type: integer
+                  checkedIn:
+                    type: integer
+                  pendingCheckIn:
+                    type: integer
+                  checkInRate:
+                    type: number
+  
+  /check-in/manual:
+    post:
+      summary: Manual check-in (admin)
+      tags: [Check-in]
+      operationId: manualCheckIn
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ticketId]
+              properties:
+                ticketId:
+                  $ref: '#/components/schemas/UUID'
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Manual check-in created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckIn'
+  
+  # ========================================
+  # Cancellations (4 endpoints)
+  # ========================================
+  
+  /cancellations:
+    post:
+      summary: Submit cancellation request
+      tags: [Cancellations]
+      operationId: createCancellationRequest
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orderId]
+              properties:
+                orderId:
+                  $ref: '#/components/schemas/UUID'
+                ticketId:
+                  $ref: '#/components/schemas/UUID'
+                reason:
+                  type: string
+      responses:
+        '201':
+          description: Request submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancellationRequest'
+    
+    get:
+      summary: Get user cancellation requests
+      tags: [Cancellations]
+      operationId: listUserCancellations
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Cancellation list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cancellations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CancellationRequest'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+  
+  /cancellations/{cancellationId}:
+    get:
+      summary: Get cancellation details
+      tags: [Cancellations]
+      operationId: getCancellationRequest
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: cancellationId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Cancellation details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancellationRequest'
+  
+  /cancellations/{cancellationId}/withdraw:
+    post:
+      summary: Withdraw cancellation request
+      tags: [Cancellations]
+      operationId: withdrawCancellation
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: cancellationId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Request withdrawn
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+  
+  # ========================================
+  # Telegram (4 endpoints)
+  # ========================================
+  
+  /telegram/webhook:
+    post:
+      summary: Telegram bot webhook
+      description: "BLOCKED_BY_PROVIDER_DOCUMENTATION: bot token not provided"
+      tags: [Telegram]
+      operationId: handleTelegramWebhook
+      parameters:
+        - name: X-Telegram-Bot-Api-Secret-Token
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+  
+  /telegram/connect:
+    post:
+      summary: Generate Telegram connection link
+      tags: [Telegram]
+      operationId: initiateTelegramConnection
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Deep link generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deepLink:
+                    type: string
+  
+  /telegram/disconnect:
+    post:
+      summary: Disconnect Telegram
+      tags: [Telegram]
+      operationId: disconnectTelegram
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Disconnected
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+  
+  /telegram/status:
+    get:
+      summary: Get Telegram connection status
+      tags: [Telegram]
+      operationId: getTelegramStatus
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Connection status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  isConnected:
+                    type: boolean
+                  username:
+                    type: string
+  
+  # ========================================
+  # Settings (3 endpoints)
+  # ========================================
+  
+  /settings:
+    get:
+      summary: Get site settings
+      tags: [Settings]
+      operationId: getSiteSettings
+      parameters:
+        - name: locale
+          in: query
+          schema:
+            $ref: '#/components/schemas/Locale'
+      responses:
+        '200':
+          description: Site settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SiteSettings'
+  
+  /settings/social-links:
+    get:
+      summary: Get social links
+      tags: [Settings]
+      operationId: getSocialLinks
+      responses:
+        '200':
+          description: Social links
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  links:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SocialLink'
+  
+  /settings/contact:
+    get:
+      summary: Get contact information
+      tags: [Settings]
+      operationId: getContactInfo
+      responses:
+        '200':
+          description: Contact info
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  phone:
+                    type: string
+                  email:
+                    type: string
+  
+  # ========================================
+  # Integrations (2 endpoints)
+  # ========================================
+  
+  /integrations/health:
+    get:
+      summary: Get all integration health status
+      tags: [Integrations]
+      operationId: getIntegrationHealth
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  integrations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/IntegrationHealth'
+        '403':
+          description: Admin only
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /integrations/{provider}/test:
+    post:
+      summary: Test integration (admin)
+      tags: [Integrations]
+      operationId: testIntegration
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/IntegrationProvider'
+      responses:
+        '200':
+          description: Test result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+  
+  # ========================================
+  # Admin - Users (3 endpoints)
+  # ========================================
+  
+  /admin/users:
+    get:
+      summary: List all users
+      description: |
+        **Required Role:** SUPER_ADMIN
+        
+        Returns paginated list of all users with filtering options.
+      tags: [Admin]
+      operationId: adminListUsers
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: role
+          in: query
+          schema:
+            $ref: '#/components/schemas/UserRole'
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '403':
+          description: Admin only
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /admin/users/{userId}:
+    get:
+      summary: Get user details
+      description: |
+        **Required Role:** SUPER_ADMIN
+      tags: [Admin]
+      operationId: adminGetUser
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    
+    patch:
+      summary: Update user
+      description: |
+        **Required Role:** SUPER_ADMIN
+        
+        Update user role or status. Only SUPER_ADMIN can modify user roles.
+      tags: [Admin]
+      operationId: adminUpdateUser
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role:
+                  $ref: '#/components/schemas/UserRole'
+                status:
+                  $ref: '#/components/schemas/UserStatus'
+      responses:
+        '200':
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+  
+  # ========================================
+  # Admin - Forums (8 endpoints)
+  # ========================================
+  
+  /admin/forums:
+    get:
+      summary: List all forums
+      description: |
+        **Required Role:** MANAGER or SUPER_ADMIN
+        
+        Returns all forums regardless of status (DRAFT, PUBLISHED, etc).
+      tags: [Admin]
+      operationId: adminListForums
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/ForumStatus'
+      responses:
+        '200':
+          description: Forum list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  forums:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Forum'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+    
+    post:
+      summary: Create forum
+      description: |
+        **Required Role:** MANAGER or SUPER_ADMIN
+        
+        Creates new forum with translations and ticket categories.
+      tags: [Admin]
+      operationId: adminCreateForum
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [slug, status, startsAt, qrExpiresAt, capacity, translations]
+              properties:
+                slug:
+                  type: string
+                status:
+                  $ref: '#/components/schemas/ForumStatus'
+                startsAt:
+                  $ref: '#/components/schemas/DateTime'
+                qrExpiresAt:
+                  $ref: '#/components/schemas/DateTime'
+                capacity:
+                  type: integer
+                translations:
+                  type: array
+                  items:
+                    type: object
+      responses:
+        '201':
+          description: Forum created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forum'
+  
+  /admin/forums/{forumId}:
+    get:
+      summary: Get forum details
+      description: |
+        **Required Role:** MANAGER or SUPER_ADMIN
+        
+        Returns forum details including all statuses (DRAFT, PUBLISHED, etc).
+      tags: [Admin]
+      operationId: adminGetForum
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: forumId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Forum details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forum'
+    
+    patch:
+      summary: Update forum
+      description: |
+        **Required Role:** MANAGER or SUPER_ADMIN
+        
+        Updates forum fields (status, capacity, dates, etc).
+      tags: [Admin]
+      operationId: adminUpdateForum
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: forumId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  $ref: '#/components/schemas/ForumStatus'
+                capacity:
+                  type: integer
+      responses:
+        '200':
+          description: Forum updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Forum'
+    
+    delete:
+      summary: Delete forum
+      description: |
+        **Required Role:** SUPER_ADMIN
+        
+        Deletes forum. Only DRAFT forums without orders can be deleted.
+      tags: [Admin]
+      operationId: adminDeleteForum
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: forumId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+  
+  /admin/forums/{forumId}/publish:
+    post:
+      summary: Publish forum
+      description: |
+        **Required Role:** MANAGER or SUPER_ADMIN
+      tags: [Admin]
+      operationId: adminPublishForum
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: forumId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Published
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  forum:
+                    $ref: '#/components/schemas/Forum'
+                  notificationsCreated:
+                    type: integer
+  
+  /admin/forums/{forumId}/categories:
+    get:
+      summary: List forum categories
+      description: |
+        **Required Role:** MANAGER or SUPER_ADMIN
+      tags: [Admin]
+      operationId: adminListForumCategories
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: forumId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Categories
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  categories:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TicketCategory'
+    
+    post:
+      summary: Create category
+      description: |
+        **Required Role:** MANAGER or SUPER_ADMIN
+      tags: [Admin]
+      operationId: adminCreateCategory
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: forumId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, priceMinor, translations]
+              properties:
+                code:
+                  type: string
+                priceMinor:
+                  type: integer
+                translations:
+                  type: array
+                  items:
+                    type: object
+      responses:
+        '201':
+          description: Category created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketCategory'
+  
+  /admin/forums/{forumId}/analytics:
+    get:
+      summary: Get forum analytics
+      description: |
+        **Required Role:** MANAGER or SUPER_ADMIN
+      tags: [Admin]
+      operationId: adminGetForumAnalytics
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: forumId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Analytics data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalOrders:
+                    type: integer
+                  totalRevenue:
+                    type: integer
+                  ticketsSold:
+                    type: integer
+  
+  # ========================================
+  # Admin - Categories (2 endpoints)
+  # ========================================
+  
+  /admin/categories/{categoryId}:
+    patch:
+      summary: Update category
+      description: |
+        **Required Role:** MANAGER or SUPER_ADMIN
+      tags: [Admin]
+      operationId: adminUpdateCategory
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                priceMinor:
+                  type: integer
+                capacity:
+                  type: integer
+                isActive:
+                  type: boolean
+      responses:
+        '200':
+          description: Category updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketCategory'
+    
+    delete:
+      summary: Delete category
+      description: |
+        **Required Role:** MANAGER or SUPER_ADMIN
+      tags: [Admin]
+      operationId: adminDeleteCategory
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+  
+  # ========================================
+  # Admin - Orders (2 endpoints)
+  # ========================================
+  
+  /admin/orders:
+    get:
+      summary: List all orders
+      description: |
+        **Required Role:** MANAGER or SUPER_ADMIN
+      tags: [Admin]
+      operationId: adminListOrders
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/OrderStatus'
+        - name: forumId
+          in: query
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Order list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orders:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Order'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+  
+  /admin/orders/{orderId}:
+    get:
+      summary: Get order details
+      description: |
+        **Required Role:** MANAGER or SUPER_ADMIN
+      tags: [Admin]
+      operationId: adminGetOrder
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Order details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+  
+  # ========================================
+  # Admin - Tickets (2 endpoints)
+  # ========================================
+  
+  /admin/tickets:
+    get:
+      summary: List all tickets
+      description: |
+        **Required Role:** MANAGER or SUPER_ADMIN
+      tags: [Admin]
+      operationId: adminListTickets
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/TicketStatus'
+        - name: forumId
+          in: query
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Ticket list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tickets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Ticket'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+  
+  /admin/tickets/{ticketId}/cancel:
+    post:
+      summary: Cancel ticket (admin)
+      description: |
+        **Required Role:** MANAGER or SUPER_ADMIN
+      tags: [Admin]
+      operationId: adminCancelTicket
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: ticketId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Ticket cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+  
+  # ========================================
+  # Admin - Check-ins (2 endpoints)
+  # ========================================
+  
+  /admin/check-ins:
+    get:
+      summary: List all check-ins
+      description: |
+        **Required Role:** SCANNER, MANAGER, or SUPER_ADMIN
+      tags: [Admin]
+      operationId: adminListCheckIns
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: forumId
+          in: query
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Check-in list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  checkIns:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CheckIn'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+  
+  /admin/check-ins/export:
+    get:
+      summary: Export check-ins (CSV)
+      description: |
+        **Required Role:** SCANNER, MANAGER, or SUPER_ADMIN
+      tags: [Admin]
+      operationId: adminExportCheckIns
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: forumId
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+  
+  # ========================================
+  # Admin - Cancellations (3 endpoints)
+  # ========================================
+  
+  /admin/cancellations:
+    get:
+      summary: List all cancellation requests
+      description: |
+        **Required Role:** MANAGER or SUPER_ADMIN
+      tags: [Admin]
+      operationId: adminListCancellations
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/CancellationStatus'
+      responses:
+        '200':
+          description: Cancellation list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cancellations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CancellationRequest'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+  
+  /admin/cancellations/{cancellationId}/approve:
+    post:
+      summary: Approve cancellation
+      description: |
+        **Required Role:** MANAGER or SUPER_ADMIN
+      tags: [Admin]
+      operationId: adminApproveCancellation
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: cancellationId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                adminNote:
+                  type: string
+      responses:
+        '200':
+          description: Approved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancellationRequest'
+  
+  /admin/cancellations/{cancellationId}/reject:
+    post:
+      summary: Reject cancellation
+      description: |
+        **Required Role:** MANAGER or SUPER_ADMIN
+      tags: [Admin]
+      operationId: adminRejectCancellation
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: cancellationId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                adminNote:
+                  type: string
+      responses:
+        '200':
+          description: Rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancellationRequest'
+  
+  # ========================================
+  # Admin - Settings (4 endpoints)
+  # ========================================
+  
+  /admin/settings:
+    patch:
+      summary: Update site settings
+      description: |
+        **Required Role:** SUPER_ADMIN
+      tags: [Admin]
+      operationId: adminUpdateSettings
+      security:
+        - cookieAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                displayName:
+                  type: string
+                primaryColorHex:
+                  type: string
+                accentColorHex:
+                  type: string
+      responses:
+        '200':
+          description: Settings updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SiteSettings'
+  
+  /admin/settings/translations:
+    patch:
+      summary: Update settings translations
+      description: |
+        **Required Role:** SUPER_ADMIN
+      tags: [Admin]
+      operationId: adminUpdateSettingsTranslations
+      security:
+        - cookieAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                locale:
+                  $ref: '#/components/schemas/Locale'
+                heroTitle:
+                  type: string
+                heroSubtitle:
+                  type: string
+      responses:
+        '200':
+          description: Translations updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SiteSettings'
+  
+  /admin/settings/social-links:
+    post:
+      summary: Add social link
+      description: |
+        **Required Role:** SUPER_ADMIN
+      tags: [Admin]
+      operationId: adminAddSocialLink
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [platform, url]
+              properties:
+                platform:
+                  type: string
+                url:
+                  type: string
+      responses:
+        '201':
+          description: Link added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SocialLink'
+  
+  /admin/settings/social-links/{linkId}:
+    delete:
+      summary: Delete social link
+      description: |
+        **Required Role:** SUPER_ADMIN
+      tags: [Admin]
+      operationId: adminDeleteSocialLink
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: linkId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+  
+  # ========================================
+  # Admin - Reports (5 endpoints)
+  # ========================================
+  
+  /admin/reports/revenue:
+    get:
+      summary: Revenue report
+      description: |
+        **Required Role:** MANAGER or SUPER_ADMIN
+      tags: [Admin]
+      operationId: adminGetRevenueReport
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            $ref: '#/components/schemas/DateTime'
+        - name: endDate
+          in: query
+          schema:
+            $ref: '#/components/schemas/DateTime'
+        - name: forumId
+          in: query
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Revenue data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalRevenue:
+                    type: integer
+                  orderCount:
+                    type: integer
+                  averageOrderValue:
+                    type: number
+  
+  /admin/reports/sales:
+    get:
+      summary: Sales report
+      description: |
+        **Required Role:** MANAGER or SUPER_ADMIN
+      tags: [Admin]
+      operationId: adminGetSalesReport
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: forumId
+          in: query
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: Sales data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ticketsSold:
+                    type: integer
+                  capacity:
+                    type: integer
+                  salesRate:
+                    type: number
+  
+  /admin/reports/users:
+    get:
+      summary: User statistics
+      description: |
+        **Required Role:** MANAGER or SUPER_ADMIN
+      tags: [Admin]
+      operationId: adminGetUserReport
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: User stats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalUsers:
+                    type: integer
+                  activeUsers:
+                    type: integer
+  
+  /admin/reports/forums:
+    get:
+      summary: Forum statistics
+      description: |
+        **Required Role:** MANAGER or SUPER_ADMIN
+      tags: [Admin]
+      operationId: adminGetForumReport
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Forum stats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalForums:
+                    type: integer
+                  publishedForums:
+                    type: integer
+  
+  /admin/reports/export:
+    post:
+      summary: Export custom report
+      description: |
+        **Required Role:** MANAGER or SUPER_ADMIN
+      tags: [Admin]
+      operationId: adminExportReport
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reportType]
+              properties:
+                reportType:
+                  type: string
+                  enum: [orders, tickets, revenue, users]
+                format:
+                  type: string
+                  enum: [csv, xlsx]
+                  default: csv
+                filters:
+                  type: object
+      responses:
+        '200':
+          description: Report file
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+  
+  # ========================================
+  # Admin - Audit Logs (2 endpoints)
+  # ========================================
+  
+  /admin/audit-logs:
+    get:
+      summary: List audit logs
+      description: |
+        **Required Role:** SUPER_ADMIN
+      tags: [Admin]
+      operationId: adminListAuditLogs
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: userId
+          in: query
+          schema:
+            $ref: '#/components/schemas/UUID'
+        - name: action
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Audit log list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          $ref: '#/components/schemas/UUID'
+                        userId:
+                          $ref: '#/components/schemas/UUID'
+                        action:
+                          type: string
+                        targetType:
+                          type: string
+                        targetId:
+                          $ref: '#/components/schemas/UUID'
+                        metadata:
+                          type: object
+                        createdAt:
+                          $ref: '#/components/schemas/DateTime'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+  
+  /admin/audit-logs/export:
+    get:
+      summary: Export audit logs
+      description: |
+        **Required Role:** SUPER_ADMIN
+      tags: [Admin]
+      operationId: adminExportAuditLogs
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            $ref: '#/components/schemas/DateTime'
+        - name: endDate
+          in: query
+          schema:
+            $ref: '#/components/schemas/DateTime'
+      responses:
+        '200':
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
