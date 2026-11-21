@@ -1,0 +1,96 @@
+# Auth Endpoints Testing
+# Use REST Client extension in VS Code or similar HTTP client
+# Base URL: http://localhost:3000
+
+@baseUrl = http://localhost:3000/api/v1
+@phone = +996555123456
+
+### 1. Request OTP for phone verification
+# @name requestOtp
+POST {{baseUrl}}/auth/phone/request-otp
+Content-Type: application/json
+
+{
+  "phone": "{{phone}}",
+  "purpose": "LOGIN"
+}
+
+###
+# Extract challengeId from previous response
+@challengeId = {{requestOtp.response.body.challengeId}}
+
+### 2. Verify OTP code (check console for OTP code)
+# @name verifyOtp
+POST {{baseUrl}}/auth/phone/verify-otp
+Content-Type: application/json
+
+{
+  "challengeId": "{{challengeId}}",
+  "code": "123456"
+}
+
+###
+# Session cookie should be set automatically after verify-otp
+
+### 3. Get current session
+# @name getSession
+GET {{baseUrl}}/auth/session
+
+###
+
+### 4. Refresh access token
+# @name refresh
+POST {{baseUrl}}/auth/refresh
+
+###
+
+### 5. Logout
+POST {{baseUrl}}/auth/logout
+
+###
+
+### 6. Try to access session after logout (should fail)
+GET {{baseUrl}}/auth/session
+
+###
+
+### 7. Google OAuth login (not implemented, should return 501)
+GET {{baseUrl}}/auth/google/login
+
+###
+
+### 8. Google OAuth callback (not implemented, should return 501)
+GET {{baseUrl}}/auth/google/callback?code=test_code&state=test_state
+
+###
+
+### Test invalid phone format
+POST {{baseUrl}}/auth/phone/request-otp
+Content-Type: application/json
+
+{
+  "phone": "invalid",
+  "purpose": "LOGIN"
+}
+
+###
+
+### Test invalid OTP code
+POST {{baseUrl}}/auth/phone/verify-otp
+Content-Type: application/json
+
+{
+  "challengeId": "550e8400-e29b-41d4-a716-446655440000",
+  "code": "000000"
+}
+
+###
+
+### Test rate limiting (send 4 requests quickly)
+POST {{baseUrl}}/auth/phone/request-otp
+Content-Type: application/json
+
+{
+  "phone": "{{phone}}",
+  "purpose": "LOGIN"
+}

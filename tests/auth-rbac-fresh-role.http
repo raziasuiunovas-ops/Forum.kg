@@ -1,0 +1,101 @@
+### ЭТАП 2.2 - Тестирование RBAC Fresh Role Check
+### Test: Middleware uses fresh role from database, not JWT payload
+
+@baseUrl = http://localhost:3001
+@phone = +996555100200
+
+### 1. Request OTP for test user
+# @name requestOTP
+POST {{baseUrl}}/api/v1/auth/phone/request-otp
+Content-Type: application/json
+
+{
+  "phone": "{{phone}}",
+  "purpose": "LOGIN"
+}
+
+@challengeId = {{requestOTP.response.body.challengeId}}
+
+### 2. Verify OTP and login
+# Note: Get actual OTP code from database:
+# SELECT code_hash FROM "OtpChallenge" WHERE id = '{{challengeId}}';
+# Or use bcrypt to generate hash for known code
+
+# For this test, you need to:
+# 1. Get the actual OTP from database
+# 2. Replace "123456" with the actual code
+# 3. Execute this request
+
+POST {{baseUrl}}/api/v1/auth/phone/verify-otp
+Content-Type: application/json
+
+{
+  "challengeId": "{{challengeId}}",
+  "code": "123456"
+}
+
+### 3. Get current session
+# Expected: User created with role=USER
+# @name getSession1
+GET {{baseUrl}}/api/v1/auth/session
+
+### 4. Manual step: Update user role in database
+# Execute SQL:
+# UPDATE "User" SET role = 'MANAGER' WHERE phone = '+996555100200';
+
+### 5. Get session again WITHOUT re-login
+# Expected behavior:
+# - JWT still contains old role=USER
+# - API should return fresh role=MANAGER from database
+# - This proves middleware fetches fresh data
+# @name getSession2
+GET {{baseUrl}}/api/v1/auth/session
+
+### Expected response:
+# {
+#   "user": {
+#     "role": "MANAGER",  <- Fresh from DB, not from JWT
+#     ...
+#   }
+# }
+
+### 6. Test protected endpoint (if exists)
+# Example: If you have an endpoint that requires MANAGER role
+# GET {{baseUrl}}/api/v1/admin/users
+# Expected: 200 OK (allowed because fresh role=MANAGER)
+
+### 7. Manual step: Downgrade user role
+# Execute SQL:
+# UPDATE "User" SET role = 'USER' WHERE phone = '+996555100200';
+
+### 8. Try to access MANAGER endpoint again
+# GET {{baseUrl}}/api/v1/admin/users
+# Expected: 403 INSUFFICIENT_PERMISSIONS (blocked because fresh role=USER)
+
+### 9. Manual step: Suspend user
+# Execute SQL:
+# UPDATE "User" SET status = 'SUSPENDED' WHERE phone = '+996555100200';
+
+### 10. Get session after suspension
+# Expected: 403 ACCOUNT_SUSPENDED
+GET {{baseUrl}}/api/v1/auth/session
+
+### 11. Manual step: Delete user
+# Execute SQL:
+# DELETE FROM "User" WHERE phone = '+996555100200';
+
+### 12. Get session after deletion
+# Expected: 401 INVALID_TOKEN "Пользователь не найден"
+GET {{baseUrl}}/api/v1/auth/session
+
+### Test Summary:
+# ✅ Middleware fetches fresh user data from database on every request
+# ✅ JWT is used only for identity (userId), not for authorization (role/status)
+# ✅ Role changes are applied immediately without re-login
+# ✅ Status changes (SUSPENDED) are enforced immediately
+# ✅ Deleted users cannot access protected endpoints even with valid JWT
+
+### Cleanup:
+# Execute SQL:
+# DELETE FROM "OtpChallenge" WHERE phone = '+996555100200';
+# DELETE FROM "User" WHERE phone = '+996555100200';

@@ -1,0 +1,185 @@
+### ЭТАП 2.1 - Тестирование жизненного цикла OTP
+### Test: OTP invalidation when new OTP is requested
+
+@baseUrl = http://localhost:3001
+@phone = +996555000999
+@purpose = LOGIN
+
+### 1. Request first OTP
+# @name requestOTP1
+POST {{baseUrl}}/api/v1/auth/phone/request-otp
+Content-Type: application/json
+
+{
+  "phone": "{{phone}}",
+  "purpose": "{{purpose}}"
+}
+
+### Extract challenge1 ID
+@challengeId1 = {{requestOTP1.response.body.challengeId}}
+
+### 2. Wait 2 seconds
+# (simulate user delay)
+
+### 3. Request second OTP (should invalidate first)
+# @name requestOTP2
+POST {{baseUrl}}/api/v1/auth/phone/request-otp
+Content-Type: application/json
+
+{
+  "phone": "{{phone}}",
+  "purpose": "{{purpose}}"
+}
+
+### Extract challenge2 ID
+@challengeId2 = {{requestOTP2.response.body.challengeId}}
+
+### 4. Try to verify first OTP with correct code
+# Expected: 400 OTP_ALREADY_USED (because it was invalidated)
+# Note: In real scenario, you would get the actual OTP code from DB or SMS
+POST {{baseUrl}}/api/v1/auth/phone/verify-otp
+Content-Type: application/json
+
+{
+  "challengeId": "{{challengeId1}}",
+  "code": "123456"
+}
+
+### 5. Check database manually:
+# SELECT id, phone, purpose, consumed_at, expires_at, attempts, created_at 
+# FROM "OtpChallenge" 
+# WHERE phone = '+996555000999' 
+# ORDER BY created_at DESC 
+# LIMIT 5;
+#
+# Expected results:
+# - challengeId2: consumedAt = NULL (active)
+# - challengeId1: consumedAt = NOT NULL (invalidated when challengeId2 was created)
+
+### 6. Test concurrent requests protection
+# Request OTP 3 times rapidly
+POST {{baseUrl}}/api/v1/auth/phone/request-otp
+Content-Type: application/json
+
+{
+  "phone": "+996555001111",
+  "purpose": "LOGIN"
+}
+
+###
+POST {{baseUrl}}/api/v1/auth/phone/request-otp
+Content-Type: application/json
+
+{
+  "phone": "+996555001111",
+  "purpose": "LOGIN"
+}
+
+###
+POST {{baseUrl}}/api/v1/auth/phone/request-otp
+Content-Type: application/json
+
+{
+  "phone": "+996555001111",
+  "purpose": "LOGIN"
+}
+
+### 7. Fourth request should be rate limited (429)
+POST {{baseUrl}}/api/v1/auth/phone/request-otp
+Content-Type: application/json
+
+{
+  "phone": "+996555001111",
+  "purpose": "LOGIN"
+}
+
+### 8. Test attempts increment atomicity
+# @name requestOTP3
+POST {{baseUrl}}/api/v1/auth/phone/request-otp
+Content-Type: application/json
+
+{
+  "phone": "+996555002222",
+  "purpose": "LOGIN"
+}
+
+@challengeId3 = {{requestOTP3.response.body.challengeId}}
+
+### Try wrong OTP code 5 times
+POST {{baseUrl}}/api/v1/auth/phone/verify-otp
+Content-Type: application/json
+
+{
+  "challengeId": "{{challengeId3}}",
+  "code": "000000"
+}
+
+###
+POST {{baseUrl}}/api/v1/auth/phone/verify-otp
+Content-Type: application/json
+
+{
+  "challengeId": "{{challengeId3}}",
+  "code": "000000"
+}
+
+###
+POST {{baseUrl}}/api/v1/auth/phone/verify-otp
+Content-Type: application/json
+
+{
+  "challengeId": "{{challengeId3}}",
+  "code": "000000"
+}
+
+###
+POST {{baseUrl}}/api/v1/auth/phone/verify-otp
+Content-Type: application/json
+
+{
+  "challengeId": "{{challengeId3}}",
+  "code": "000000"
+}
+
+###
+POST {{baseUrl}}/api/v1/auth/phone/verify-otp
+Content-Type: application/json
+
+{
+  "challengeId": "{{challengeId3}}",
+  "code": "000000"
+}
+
+### Sixth attempt should fail with TOO_MANY_ATTEMPTS (429)
+POST {{baseUrl}}/api/v1/auth/phone/verify-otp
+Content-Type: application/json
+
+{
+  "challengeId": "{{challengeId3}}",
+  "code": "000000"
+}
+
+### 9. Test expiry
+# @name requestOTP4
+POST {{baseUrl}}/api/v1/auth/phone/request-otp
+Content-Type: application/json
+
+{
+  "phone": "+996555003333",
+  "purpose": "LOGIN"
+}
+
+@challengeId4 = {{requestOTP4.response.body.challengeId}}
+
+### Wait for expiry (10 minutes in production)
+# For testing, you can manually update the expiresAt in DB:
+# UPDATE "OtpChallenge" SET expires_at = NOW() - INTERVAL '1 minute' WHERE id = 'challengeId4';
+
+### Then try to verify expired OTP (should return OTP_EXPIRED)
+POST {{baseUrl}}/api/v1/auth/phone/verify-otp
+Content-Type: application/json
+
+{
+  "challengeId": "{{challengeId4}}",
+  "code": "123456"
+}

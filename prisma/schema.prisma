@@ -176,6 +176,7 @@ model User {
   authIdentities               AuthIdentity[]
   telegramConnection           TelegramConnection?
   pushSubscriptions            PushSubscription[]
+  sessions                     Session[]
   createdForums                Forum[]               @relation("ForumCreator")
   orders                       Order[]
   purchasedTickets             Ticket[]              @relation("TicketBuyer")
@@ -625,4 +626,39 @@ model AuditLog {
   @@index([actorId, createdAt])
   @@index([targetType, targetId])
   @@index([createdAt])
+}
+
+// Session Management (Refresh Token Rotation with Reuse Detection)
+enum SessionRevokeReason {
+  ROTATED
+  LOGOUT
+  LOGOUT_ALL
+  SUSPICIOUS_ACTIVITY
+  EXPIRED
+  ADMIN_REVOKED
+  USER_SUSPENDED
+}
+
+model Session {
+  id               String                @id @default(uuid()) @db.Uuid
+  userId           String                @db.Uuid
+  refreshTokenHash String                @unique @db.VarChar(64)
+  userAgent        String?               @db.Text
+  ipAddress        String?               @db.VarChar(45)
+  createdAt        DateTime              @default(now())
+  expiresAt        DateTime
+  lastUsedAt       DateTime              @default(now())
+  revokedAt        DateTime?
+  revokedReason    SessionRevokeReason?
+  sessionFamilyId  String                @db.Uuid
+  generationNumber Int                   @default(0)
+  parentSessionId  String?               @db.Uuid
+
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentSession  Session?  @relation("SessionChain", fields: [parentSessionId], references: [id], onDelete: Restrict)
+  childSessions  Session[] @relation("SessionChain")
+
+  @@index([userId, revokedAt, expiresAt])
+  @@index([sessionFamilyId, generationNumber])
+  @@index([expiresAt, revokedAt])
 }
