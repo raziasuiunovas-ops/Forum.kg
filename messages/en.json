@@ -1,5 +1,113 @@
 {
-  "app": {
-    "name": "FORUM.KG"
+  "app": { "name": "FORUM.KG" },
+  "common": { "currency": "KGS", "skipToContent": "Skip to content" },
+  "nav": {
+    "forums": "Forums",
+    "how": "How it works",
+    "organizers": "For organizers",
+    "about": "About us",
+    "contacts": "Contacts",
+    "login": "Log in",
+    "account": "My account",
+    "menu": "Menu",
+    "language": "Language"
+  },
+  "hero": {
+    "eyebrow": "FORUMS · TICKETS · ENTRY MANAGEMENT",
+    "title": "A platform for forums and ticket sales <accent>in Kyrgyzstan</accent>",
+    "subtitle": "Publish forums, sell tickets, issue unique QR tickets, accept secure payments and manage event entry. Tickets are delivered to Telegram.",
+    "cta": "View forums",
+    "ctaSecondary": "For organizers",
+    "phoneBadge": "QR ticket"
+  },
+  "features": {
+    "qr": { "title": "QR tickets", "text": "A unique ticket for fast entry" },
+    "payment": { "title": "Online payment", "text": "Secure and convenient payment methods" },
+    "languages": { "title": "Multilingual", "text": "Russian, Kyrgyz and English" }
+  },
+  "forums": {
+    "title": "Upcoming forums",
+    "subtitle": "Current forums, business meetings and industry events in Kyrgyzstan",
+    "all": "All forums",
+    "categories": "Ticket categories:",
+    "from": "from {price} KGS",
+    "left": "{count, plural, one {# seat} other {# seats}} left",
+    "soldOut": "Sold out",
+    "buy": "Buy ticket",
+    "soldOutButton": "Sold out",
+    "empty": "New forums will appear here soon"
+  },
+  "how": {
+    "title": "How it works",
+    "subtitle": "Just a few steps and you are at the forum you want",
+    "steps": {
+      "1": { "title": "Choose a forum", "text": "Find an event you are interested in in the forum catalogue." },
+      "2": { "title": "Get your ticket", "text": "Choose a category and fill in your registration details." },
+      "3": { "title": "Pay online", "text": "Pay securely by bank card or other convenient methods." },
+      "4": { "title": "Get your QR code and attend", "text": "The ticket arrives in Telegram and in your account. Show the QR code at the entrance." }
+    }
+  },
+  "about": {
+    "eyebrow": "FOR ORGANIZERS AND ATTENDEES",
+    "title": "About FORUM.KG",
+    "text": "FORUM.KG is a modern platform for running forums and managing tickets in Kyrgyzstan. We help organizers publish events, sell admission tickets, verify payments, issue unique QR tickets and control attendee entry.",
+    "telegram": { "title": "Telegram delivery", "text": "Tickets and notifications straight to your messenger" },
+    "account": { "title": "Personal account", "text": "Manage tickets, registrations and events" },
+    "analytics": { "title": "Analytics", "text": "Sales, registrations and event statistics" },
+    "access": { "title": "Access control", "text": "Fast QR ticket validation at the entrance" },
+    "mock": {
+      "forum": "Bishkek Digital Forum 2026",
+      "active": "Active",
+      "sold": "Tickets sold",
+      "registered": "Registrations",
+      "revenue": "Revenue",
+      "dynamics": "Sales trend",
+      "menuEvents": "My events",
+      "menuSales": "Sales",
+      "menuParticipants": "Attendees",
+      "menuCheckin": "Check-in",
+      "menuAnalytics": "Analytics",
+      "menuSettings": "Settings"
+    }
+  },
+  "contacts": {
+    "title": "Contacts",
+    "subtitle": "Get in touch — we will help you organize a forum, buy tickets or answer any questions.",
+    "email": "Email",
+    "phone": "Phone",
+    "address": "Address",
+    "addressValue": "Bishkek, Kyrgyzstan",
+    "social": "Follow us",
+    "supportTitle": "Support for attendees and organizers",
+    "supportText": "Our team is available on weekdays from 09:00 to 18:00 (Bishkek time)."
+  },
+  "footer": {
+    "tagline": "A platform for forums, ticket sales and entry management in Kyrgyzstan.",
+    "forums": {
+      "title": "Forums",
+      "all": "All forums",
+      "upcoming": "Upcoming events",
+      "archive": "Forum archive"
+    },
+    "organizers": {
+      "title": "For organizers",
+      "publish": "Publish a forum",
+      "pricing": "Pricing",
+      "features": "Platform features"
+    },
+    "users": {
+      "title": "For users",
+      "howToBuy": "How to buy a ticket",
+      "account": "My account",
+      "faq": "FAQ"
+    },
+    "legal": {
+      "title": "Legal information",
+      "privacy": "Privacy policy",
+      "terms": "Terms of use",
+      "offer": "Public offer",
+      "contacts": "Contacts"
+    },
+    "rights": "© 2026 FORUM.KG. All rights reserved."
   }
 }
