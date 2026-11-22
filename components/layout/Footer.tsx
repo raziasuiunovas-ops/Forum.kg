@@ -1,67 +1,49 @@
+import { ArrowUpRight } from 'lucide-react'
 import { getT } from '@/lib/i18n/server'
 import type { AppLocale } from '@/i18n/routing'
 import type { SiteSettingsView } from '@/lib/site/settings'
 import { Logo } from './Logo'
-import { LanguageSwitcher } from './LanguageSwitcher'
 import { SocialIcons } from '@/components/landing/SocialIcons'
 
 export async function Footer({ locale, settings }: { locale: AppLocale; settings: SiteSettingsView }) {
   const t = await getT(locale, 'footer')
-  const nav = await getT(locale, 'nav')
 
-  // TODO: point these to real pages when they exist (forums list, legal pages, FAQ...).
   const columns = [
     {
-      title: t('forums.title'),
+      title: t('platform.title'),
       links: [
-        { label: t('forums.all'), href: '#forums' },
-        { label: t('forums.upcoming'), href: '#forums' },
-        { label: t('forums.archive'), href: '#' },
+        { label: t('platform.all'), href: '#events' },
+        { label: t('platform.how'), href: '#how' },
+        { label: t('platform.buy'), href: '#events' },
       ],
     },
     {
       title: t('organizers.title'),
       links: [
-        { label: t('organizers.publish'), href: '#contacts' },
-        { label: t('organizers.pricing'), href: '#contacts' },
-        { label: t('organizers.features'), href: '#about' },
-      ],
-    },
-    {
-      title: t('users.title'),
-      links: [
-        { label: t('users.howToBuy'), href: '#how' },
-        { label: t('users.account'), href: `/${locale}/account` },
-        { label: t('users.faq'), href: '#' },
-      ],
-    },
-    {
-      title: t('legal.title'),
-      links: [
-        { label: t('legal.privacy'), href: '#' },
-        { label: t('legal.terms'), href: '#' },
-        { label: t('legal.offer'), href: '#' },
-        { label: t('legal.contacts'), href: '#contacts' },
+        { label: t('organizers.create'), href: '#organizers' },
+        { label: t('organizers.features'), href: '#organizers' },
+        { label: t('organizers.contacts'), href: '#contacts' },
       ],
     },
   ]
 
   return (
-    <footer className="bg-footer text-white">
-      <div className="container px-4 py-12 sm:px-8">
-        <div className="grid gap-10 lg:grid-cols-[1.3fr_repeat(4,1fr)]">
+    <footer id="contacts" className="relative overflow-hidden bg-footer text-white">
+      <div className="mx-auto max-w-6xl px-5 pb-6 pt-16 sm:px-8">
+        <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr_1.2fr]">
           <div>
-            <Logo locale={locale} name={settings.displayName} logoUrl={settings.logoUrl} light />
-            <p className="mt-4 max-w-xs text-sm leading-relaxed text-white/70">{t('tagline')}</p>
-            <SocialIcons links={settings.socialLinks} variant="footer" />
+            <Logo locale={locale} name={settings.displayName} logoUrl={settings.logoUrl} />
+            <p className="mt-4 max-w-xs text-sm leading-relaxed text-white/60">{t('tagline')}</p>
+            <SocialIcons links={settings.socialLinks} />
           </div>
+
           {columns.map((col) => (
             <div key={col.title}>
               <h3 className="text-sm font-bold">{col.title}</h3>
-              <ul className="mt-4 space-y-2.5 text-sm text-white/70">
+              <ul className="mt-4 space-y-2.5 text-sm text-white/60">
                 {col.links.map((l) => (
                   <li key={l.label}>
-                    <a href={l.href} className="hover:text-white">
+                    <a href={l.href} className="transition hover:text-white">
                       {l.label}
                     </a>
                   </li>
@@ -69,13 +51,39 @@ export async function Footer({ locale, settings }: { locale: AppLocale; settings
               </ul>
             </div>
           ))}
+
+          <div>
+            <h3 className="text-sm font-bold">{t('contacts.title')}</h3>
+            <ul className="mt-4 space-y-2.5 text-sm text-white/60">
+              <li>
+                <a href={`mailto:${settings.contactEmail}`} className="transition hover:text-white">
+                  {settings.contactEmail}
+                </a>
+              </li>
+              <li>
+                <a href={`tel:${settings.contactPhone.replace(/\s/g, '')}`} className="transition hover:text-white">
+                  {settings.contactPhone}
+                </a>
+              </li>
+              <li>{t('contacts.address')}</li>
+            </ul>
+          </div>
         </div>
-        <div className="mt-10 flex flex-col items-start justify-between gap-4 border-t border-white/15 pt-6 text-sm text-white/60 sm:flex-row sm:items-center">
+
+        <p
+          aria-hidden
+          className="pointer-events-none mt-10 select-none whitespace-nowrap text-center text-[19vw] font-black leading-[0.8] tracking-tighter text-white/[0.04] md:text-[15rem]"
+        >
+          FORUM.KG
+        </p>
+
+        <div className="mt-4 flex flex-col items-start justify-between gap-2 border-t border-white/10 pt-5 text-xs text-white/50 sm:flex-row sm:items-center">
           <p>{t('rights')}</p>
-          <LanguageSwitcher current={locale} label={nav('language')} tone="dark" />
+          <p className="inline-flex items-center gap-1">
+            {t('madeFor')} <ArrowUpRight className="h-3 w-3" />
+          </p>
         </div>
       </div>
     </footer>
   )
 }
-

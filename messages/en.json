@@ -1,113 +1,103 @@
 {
   "app": { "name": "FORUM.KG" },
-  "common": { "currency": "KGS", "skipToContent": "Skip to content" },
+  "common": { "currency": "KGS" },
   "nav": {
-    "forums": "Forums",
+    "events": "Events",
     "how": "How it works",
     "organizers": "For organizers",
-    "about": "About us",
     "contacts": "Contacts",
-    "login": "Log in",
-    "account": "My account",
+    "cabinet": "My account",
     "menu": "Menu",
     "language": "Language"
   },
   "hero": {
-    "eyebrow": "FORUMS · TICKETS · ENTRY MANAGEMENT",
-    "title": "A platform for forums and ticket sales <accent>in Kyrgyzstan</accent>",
-    "subtitle": "Publish forums, sell tickets, issue unique QR tickets, accept secure payments and manage event entry. Tickets are delivered to Telegram.",
-    "cta": "View forums",
-    "ctaSecondary": "For organizers",
-    "phoneBadge": "QR ticket"
+    "eyebrow": "A NEW ERA OF EVENTS IN KYRGYZSTAN",
+    "line1": "People",
+    "line2": "Ideas",
+    "line3": "Future",
+    "subtitle": "A place for meetings that change everything. Discover the country's key forums, find your people and get a ticket in a couple of clicks.",
+    "ctaPrimary": "Explore events",
+    "ctaSecondary": "Create a forum",
+    "communityTitle": "Meetings that unite",
+    "communityText": "Kyrgyzstan · knowledge · community",
+    "discover": "DISCOVER",
+    "ticketLabel": "YOUR ACCESS PASS",
+    "badgeTitle": "Your seat is ready!",
+    "badgeText": "QR ticket in Telegram"
   },
-  "features": {
-    "qr": { "title": "QR tickets", "text": "A unique ticket for fast entry" },
-    "payment": { "title": "Online payment", "text": "Secure and convenient payment methods" },
-    "languages": { "title": "Multilingual", "text": "Russian, Kyrgyz and English" }
+  "marquee": {
+    "1": "Ideas become reality",
+    "2": "Meet. Learn. Connect.",
+    "3": "Events without borders",
+    "4": "The future starts here"
   },
-  "forums": {
-    "title": "Upcoming forums",
-    "subtitle": "Current forums, business meetings and industry events in Kyrgyzstan",
-    "all": "All forums",
-    "categories": "Ticket categories:",
+  "events": {
+    "eyebrow": "01 / EVENT CALENDAR",
+    "title": "Worth seeing in person",
+    "subtitle": "Forums where new ideas, connections and opportunities are born. Choose your event.",
+    "all": "All events",
+    "search": "Search events...",
+    "featured": "Editor's pick",
+    "ticketsFrom": "Tickets from",
     "from": "from {price} KGS",
     "left": "{count, plural, one {# seat} other {# seats}} left",
     "soldOut": "Sold out",
-    "buy": "Buy ticket",
-    "soldOutButton": "Sold out",
-    "empty": "New forums will appear here soon"
+    "empty": "Nothing found for your search"
   },
-  "how": {
-    "title": "How it works",
-    "subtitle": "Just a few steps and you are at the forum you want",
-    "steps": {
-      "1": { "title": "Choose a forum", "text": "Find an event you are interested in in the forum catalogue." },
-      "2": { "title": "Get your ticket", "text": "Choose a category and fill in your registration details." },
-      "3": { "title": "Pay online", "text": "Pay securely by bank card or other convenient methods." },
-      "4": { "title": "Get your QR code and attend", "text": "The ticket arrives in Telegram and in your account. Show the QR code at the entrance." }
+  "perks": {
+    "qr": { "title": "QR instead of paper", "text": "One code — fast entry to the event" },
+    "payment": { "title": "Online payment", "text": "Convenient ticket checkout" },
+    "telegram": { "title": "Ticket in Telegram", "text": "Important details always at hand" }
+  },
+  "steps": {
+    "eyebrow": "02 / SIMPLE AND CONVENIENT",
+    "title": "From interest to meeting — <accent>in 3 steps.</accent>",
+    "text": "No complicated registrations or extra actions. Choose an event — we simplified the rest.",
+    "cta": "Choose your forum",
+    "items": {
+      "1": { "title": "Discover an event", "text": "Explore the schedule, filter forums by topic and pick what interests you." },
+      "2": { "title": "Get your ticket online", "text": "Choose a ticket category, fill in your details and pay in a convenient way." },
+      "3": { "title": "Receive your QR code", "text": "The ticket arrives in Telegram and in your account. Show the QR code at the entrance." }
     }
   },
-  "about": {
-    "eyebrow": "FOR ORGANIZERS AND ATTENDEES",
-    "title": "About FORUM.KG",
-    "text": "FORUM.KG is a modern platform for running forums and managing tickets in Kyrgyzstan. We help organizers publish events, sell admission tickets, verify payments, issue unique QR tickets and control attendee entry.",
-    "telegram": { "title": "Telegram delivery", "text": "Tickets and notifications straight to your messenger" },
-    "account": { "title": "Personal account", "text": "Manage tickets, registrations and events" },
-    "analytics": { "title": "Analytics", "text": "Sales, registrations and event statistics" },
-    "access": { "title": "Access control", "text": "Fast QR ticket validation at the entrance" },
+  "organizers": {
+    "eyebrow": "FORUM.KG / FOR ORGANIZERS",
+    "title1": "Your forum.",
+    "title2": "Our engine.",
+    "text": "Publish events, sell tickets and manage attendees. Everything for a great event — in one platform.",
+    "points": {
+      "1": "Ticket sales",
+      "2": "Real-time analytics",
+      "3": "QR entry control",
+      "4": "Tickets in Telegram"
+    },
+    "cta": "Become an organizer",
     "mock": {
       "forum": "Bishkek Digital Forum 2026",
       "active": "Active",
-      "sold": "Tickets sold",
+      "sold": "Sold",
       "registered": "Registrations",
       "revenue": "Revenue",
-      "dynamics": "Sales trend",
-      "menuEvents": "My events",
-      "menuSales": "Sales",
-      "menuParticipants": "Attendees",
-      "menuCheckin": "Check-in",
-      "menuAnalytics": "Analytics",
-      "menuSettings": "Settings"
+      "dynamics": "Sales trend"
     }
   },
-  "contacts": {
-    "title": "Contacts",
-    "subtitle": "Get in touch — we will help you organize a forum, buy tickets or answer any questions.",
-    "email": "Email",
-    "phone": "Phone",
-    "address": "Address",
-    "addressValue": "Bishkek, Kyrgyzstan",
-    "social": "Follow us",
-    "supportTitle": "Support for attendees and organizers",
-    "supportText": "Our team is available on weekdays from 09:00 to 18:00 (Bishkek time)."
+  "faq": {
+    "eyebrow": "03 / WE ARE HERE",
+    "title": "Still have questions",
+    "text": "We collected answers to the most important ones. And if a question remains, our team will help.",
+    "items": {
+      "1": { "q": "How do I get my ticket after payment?", "a": "An electronic ticket with a QR code will be available in Telegram and in your account once the payment is confirmed." },
+      "2": { "q": "Do I need to print the QR code?", "a": "No. Just show the QR code on your phone screen at the entrance and staff will scan it." },
+      "3": { "q": "How can an organizer publish a forum?", "a": "Email us — we will help you create the event, set up ticket categories and open sales." },
+      "4": { "q": "Which languages does the platform support?", "a": "The platform is available in Russian, Kyrgyz and English. You can switch the language in the site header." }
+    }
   },
   "footer": {
-    "tagline": "A platform for forums, ticket sales and entry management in Kyrgyzstan.",
-    "forums": {
-      "title": "Forums",
-      "all": "All forums",
-      "upcoming": "Upcoming events",
-      "archive": "Forum archive"
-    },
-    "organizers": {
-      "title": "For organizers",
-      "publish": "Publish a forum",
-      "pricing": "Pricing",
-      "features": "Platform features"
-    },
-    "users": {
-      "title": "For users",
-      "howToBuy": "How to buy a ticket",
-      "account": "My account",
-      "faq": "FAQ"
-    },
-    "legal": {
-      "title": "Legal information",
-      "privacy": "Privacy policy",
-      "terms": "Terms of use",
-      "offer": "Public offer",
-      "contacts": "Contacts"
-    },
-    "rights": "© 2026 FORUM.KG. All rights reserved."
+    "tagline": "A new gathering point for those who create the future of Kyrgyzstan.",
+    "platform": { "title": "Platform", "all": "All forums", "how": "How it works", "buy": "Buy a ticket" },
+    "organizers": { "title": "For organizers", "create": "Create an event", "features": "Features", "contacts": "Contacts" },
+    "contacts": { "title": "Contacts", "address": "Bishkek, Kyrgyzstan" },
+    "rights": "© 2026 FORUM.KG · Design concept",
+    "madeFor": "Made for people who meet"
   }
 }

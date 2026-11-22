@@ -4,10 +4,12 @@ import { getSiteSettings } from '@/lib/site/settings'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { Hero } from '@/components/landing/Hero'
-import { UpcomingForums } from '@/components/landing/UpcomingForums'
-import { HowItWorks } from '@/components/landing/HowItWorks'
-import { About } from '@/components/landing/About'
-import { Contacts } from '@/components/landing/Contacts'
+import { Marquee } from '@/components/landing/Marquee'
+import { EventsSection } from '@/components/landing/EventsSection'
+import { Perks } from '@/components/landing/Perks'
+import { Steps } from '@/components/landing/Steps'
+import { Organizers } from '@/components/landing/Organizers'
+import { Faq } from '@/components/landing/Faq'
 
 export default async function LandingPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params
@@ -19,10 +21,12 @@ export default async function LandingPage({ params }: { params: Promise<{ locale
       <Header locale={locale} settings={settings} />
       <main>
         <Hero locale={locale} settings={settings} />
-        <UpcomingForums locale={locale} />
-        <HowItWorks locale={locale} />
-        <About locale={locale} settings={settings} />
-        <Contacts locale={locale} settings={settings} />
+        <Marquee locale={locale} />
+        <EventsSection locale={locale} />
+        <Perks locale={locale} />
+        <Steps locale={locale} />
+        <Organizers locale={locale} email={settings.contactEmail} />
+        <Faq locale={locale} email={settings.contactEmail} />
       </main>
       <Footer locale={locale} settings={settings} />
     </>

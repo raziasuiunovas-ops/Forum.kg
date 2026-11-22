@@ -32,3 +32,27 @@ export function formatMoneyMinor(minor: number, locale: AppLocale) {
     minor / 100,
   )
 }
+
+/** "05" */
+export function formatDay(iso: string, locale: AppLocale, timeZone: string) {
+  return new Intl.DateTimeFormat(INTL_LOCALE[locale], { day: '2-digit', timeZone }).format(new Date(iso))
+}
+
+/** "НОЯ" / "NOV" (short month, upper-case) */
+export function formatMonthShort(iso: string, locale: AppLocale, timeZone: string) {
+  return new Intl.DateTimeFormat(INTL_LOCALE[locale], { month: 'short', timeZone })
+    .format(new Date(iso))
+    .replace('.', '')
+    .toUpperCase()
+}
+
+/** "5 декабря" */
+export function formatDayMonth(iso: string, locale: AppLocale, timeZone: string) {
+  return new Intl.DateTimeFormat(INTL_LOCALE[locale], { day: 'numeric', month: 'long', timeZone }).format(
+    new Date(iso),
+  )
+}
+
+export function formatYear(iso: string, timeZone: string) {
+  return new Intl.DateTimeFormat('en-GB', { year: 'numeric', timeZone }).format(new Date(iso))
+}
