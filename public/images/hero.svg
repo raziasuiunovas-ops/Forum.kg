@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 800" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9cc3f5"/><stop offset=".7" stop-color="#dbe9fb"/><stop offset="1" stop-color="#f4f8ff"/></linearGradient>
+    <linearGradient id="far" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#93a9c9"/><stop offset="1" stop-color="#c3d2e6"/></linearGradient>
+    <linearGradient id="near" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5f7aa3"/><stop offset="1" stop-color="#a8bad3"/></linearGradient>
+    <linearGradient id="haze" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff"/></linearGradient>
+  </defs>
+  <rect width="1600" height="800" fill="url(#sky)"/>
+  <circle cx="1230" cy="150" r="90" fill="#fff" opacity=".35"/>
+  <polygon points="500,560 800,250 930,360 1060,200 1250,380 1420,260 1600,420 1600,640 500,640" fill="url(#far)"/>
+  <polygon points="1060,200 1110,262 1085,252 1060,290 1035,250 1012,262" fill="#fff" opacity=".9"/>
+  <polygon points="800,250 842,300 818,292 800,322 782,290 758,300" fill="#fff" opacity=".85"/>
+  <polygon points="300,640 640,380 790,470 960,330 1180,500 1400,400 1600,540 1600,700 300,700" fill="url(#near)"/>
+  <polygon points="960,330 1010,385 985,376 960,410 934,374 910,385" fill="#fff" opacity=".85"/>
+  <rect y="520" width="1600" height="280" fill="url(#haze)"/>
+</svg>

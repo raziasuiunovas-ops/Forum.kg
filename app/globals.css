@@ -23,7 +23,10 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
+    --radius: 0.75rem;
+    /* Admin-editable brand tokens (see lib/site/theme.ts) */
+    --brand-accent: 160 84% 39%;
+    --footer: 222 70% 17%;
   }
 
   .dark {
@@ -53,7 +56,11 @@
   * {
     @apply border-border;
   }
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 5rem;
+  }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
   }
 }
