@@ -35,7 +35,6 @@ export const POST = withErrorHandler(async (
           id: true,
           status: true,
           startsAt: true,
-          publishedAt: true,
           registrationDeadline: true,
           capacity: true,
         },
@@ -44,7 +43,6 @@ export const POST = withErrorHandler(async (
       if (
         event.status !== ForumStatus.PUBLISHED ||
         event.startsAt <= now ||
-        (event.publishedAt !== null && event.publishedAt > now) ||
         (event.registrationDeadline !== null && event.registrationDeadline <= now)
       ) {
         throw new RegistrationClosedError()

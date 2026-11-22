@@ -33,10 +33,7 @@ export const GET = withErrorHandler(async (request: NextRequest, context: EventR
   const event = await prisma.forum.findUnique({ where: { id }, select: publicEventSelect })
   if (!event) return notFound('Событие', 'EVENT_NOT_FOUND')
 
-  if (
-    event.status !== ForumStatus.PUBLISHED ||
-    (event.publishedAt !== null && event.publishedAt > new Date())
-  ) {
+  if (event.status !== ForumStatus.PUBLISHED) {
     const authResult = await requireManager(request)
     if (authResult instanceof NextResponse) return notFound('Событие', 'EVENT_NOT_FOUND')
   }
