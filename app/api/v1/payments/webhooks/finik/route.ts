@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { OrderStatus, PaymentStatus, TicketStatus } from '@prisma/client'
 import crypto from 'crypto'
+import { encryptQRToken } from '@/lib/crypto/qr-encryption'
 
 /**
  * Stub webhook payload structure
@@ -32,7 +33,32 @@ interface FinikWebhookPayload {
 
 /**
  * Verify Finik webhook signature
- * STUB: Returns true always. Must implement actual signature verification.
+ * 
+ * PRODUCTION REQUIREMENTS - BLOCKED:
+ * To complete this implementation, you need the following from Finik API documentation:
+ * 1. Signature algorithm (HMAC-SHA256, HMAC-SHA512, or other)
+ * 2. HTTP header name for signature (e.g., X-Finik-Signature, X-Hub-Signature-256)
+ * 3. Payload format for signature calculation (raw body, specific fields, etc.)
+ * 4. Signature format (hex, base64, prefixed with "sha256=", etc.)
+ * 5. Timestamp validation requirements (if any)
+ * 6. Webhook secret key format and how to obtain it
+ * 
+ * CURRENT IMPLEMENTATION:
+ * - Uses HMAC-SHA256 (common standard, adjust if Finik uses different algorithm)
+ * - Expects signature in X-Finik-Signature header
+ * - Signs raw request body
+ * - Compares using timing-safe comparison
+ * 
+ * SECURITY NOTES:
+ * - NEVER bypass signature verification in production (NODE_ENV check is temporary)
+ * - Use constant-time comparison to prevent timing attacks
+ * - Validate timestamp if Finik includes it (prevents replay attacks)
+ * - Log failed verification attempts for monitoring
+ * 
+ * @param payload - Raw request body (as string, before JSON parsing)
+ * @param signature - Signature from X-Finik-Signature header
+ * @param secret - Webhook secret from FINIK_WEBHOOK_SECRET environment variable
+ * @returns true if signature is valid, false otherwise
  */
 function verifyFinikSignature(
   payload: string,
@@ -40,26 +66,56 @@ function verifyFinikSignature(
   secret: string
 ): boolean {
   if (!signature) {
-    console.warn('No signature provided for Finik webhook')
+    console.warn('[SECURITY] No signature provided for Finik webhook')
     return false
   }
 
-  // STUB: Actual implementation would be:
-  // const expectedSignature = crypto
-  //   .createHmac('sha256', secret)
-  //   .update(payload)
-  //   .digest('hex')
-  // return crypto.timingSafeEqual(
-  //   Buffer.from(signature),
-  //   Buffer.from(expectedSignature)
-  // )
+  // SECURITY: No bypass in any environment
+  // For local testing without Finik, use test endpoint: POST /api/v1/payments/verify-test
+  // Production MUST have valid FINIK_WEBHOOK_SECRET and proper signature
 
-  // For now, accept all webhooks in development
-  if (process.env.NODE_ENV === 'development') {
-    return true
+  try {
+    // Calculate expected signature using HMAC-SHA256
+    // ADJUST ALGORITHM IF FINIK USES DIFFERENT METHOD (check their docs)
+    const expectedSignature = crypto
+      .createHmac('sha256', secret)
+      .update(payload, 'utf-8')
+      .digest('hex')
+
+    // Some providers prefix signature with algorithm: "sha256=abc123..."
+    // Adjust this parsing based on Finik's actual format
+    let receivedSignature = signature
+    if (signature.includes('=')) {
+      const parts = signature.split('=')
+      if (parts.length === 2 && parts[0] === 'sha256') {
+        receivedSignature = parts[1]
+      }
+    }
+
+    // Constant-time comparison to prevent timing attacks
+    // Both strings must be same length for timingSafeEqual
+    if (expectedSignature.length !== receivedSignature.length) {
+      console.warn('[SECURITY] Signature length mismatch', {
+        expected: expectedSignature.length,
+        received: receivedSignature.length,
+      })
+      return false
+    }
+
+    const isValid = crypto.timingSafeEqual(
+      Buffer.from(expectedSignature, 'utf-8'),
+      Buffer.from(receivedSignature, 'utf-8')
+    )
+
+    if (!isValid) {
+      console.warn('[SECURITY] Webhook signature verification failed')
+    }
+
+    return isValid
+  } catch (error) {
+    console.error('[SECURITY] Error during signature verification:', error)
+    return false
   }
-
-  return false
 }
 
 /**
@@ -118,21 +174,28 @@ export async function POST(request: NextRequest) {
     // Generate dedupe key to prevent duplicate processing
     const dedupeKey = `finik:${payload.payment_id}:${payload.event_type}`
 
-    // Check for duplicate webhook
-    const existingWebhook = await prisma.paymentWebhookEvent.findUnique({
-      where: { dedupeKey },
-    })
-
-    if (existingWebhook) {
-      console.log(`Duplicate webhook ignored: ${dedupeKey}`)
-      return NextResponse.json({ success: true, duplicate: true })
-    }
-
     // Calculate payload digest for audit
     const payloadDigest = crypto.createHash('sha256').update(rawBody).digest('hex')
 
-    // Process webhook in transaction
+    // Process webhook in transaction with deduplication check INSIDE transaction
+    // This prevents race conditions where two identical webhooks arrive simultaneously
     const result = await prisma.$transaction(async (tx) => {
+      // Check for duplicate webhook inside transaction (prevents race condition)
+      const existingWebhook = await tx.paymentWebhookEvent.findUnique({
+        where: { dedupeKey },
+      })
+
+      if (existingWebhook) {
+        console.log(`Duplicate webhook ignored (in transaction): ${dedupeKey}`)
+        // Return early from transaction - no processing needed
+        return {
+          duplicate: true,
+          payment: null,
+          order: null,
+          tickets: [],
+          webhookEvent: existingWebhook,
+        }
+      }
       // 1. Find order by orderNumber
       const order = await tx.order.findFirst({
         where: { orderNumber: payload.order_number },
@@ -223,10 +286,6 @@ export async function POST(request: NextRequest) {
             .padStart(6, '0')
           const ticketNumber = `TIX-${datePart}-${randomPart}`
 
-          // Generate QR token
-          const qrToken = generateQRToken()
-          const qrTokenHash = hashQRToken(qrToken)
-
           // Get forum and order item details
           const forum = await tx.forum.findUnique({
             where: { id: order.forumId },
@@ -246,9 +305,9 @@ export async function POST(request: NextRequest) {
           const qrToken = generateQRToken()
           const qrTokenHash = hashQRToken(qrToken)
 
-          // TODO: Encrypt qrToken properly in production
-          // For now, store base64-encoded (NOT secure, just placeholder)
-          const qrTokenEncrypted = Buffer.from(qrToken).toString('base64')
+          // Encrypt qrToken using AES-256-GCM
+          // This replaces the insecure Base64 encoding
+          const qrTokenEncrypted = encryptQRToken(qrToken)
 
           // Create ticket
           const ticket = await tx.ticket.create({
@@ -322,12 +381,18 @@ export async function POST(request: NextRequest) {
       }
 
       return {
+        duplicate: false,
         payment: updatedPayment,
         order: updatedOrder,
         tickets,
         webhookEvent,
       }
     })
+
+    // Handle duplicate detection result
+    if (result.duplicate) {
+      return NextResponse.json({ success: true, duplicate: true })
+    }
 
     console.log(`Processed Finik webhook: ${payload.event_type} for order ${payload.order_number}`)
 
@@ -343,6 +408,17 @@ export async function POST(request: NextRequest) {
     })
   } catch (error: any) {
     console.error('Error processing Finik webhook:', error)
+
+    // Handle Prisma unique constraint violation (duplicate dedupeKey)
+    // This is a backup safety check - should not happen with transaction-based deduplication
+    if (error.code === 'P2002' && error.meta?.target?.includes('dedupeKey')) {
+      console.log(`Duplicate webhook caught by unique constraint: ${error.meta.target}`)
+      return NextResponse.json({
+        success: true,
+        duplicate: true,
+        message: 'Webhook already processed',
+      })
+    }
 
     if (error.message === 'ORDER_NOT_FOUND') {
       return NextResponse.json(
