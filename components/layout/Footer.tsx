@@ -12,17 +12,17 @@ export async function Footer({ locale, settings }: { locale: AppLocale; settings
     {
       title: t('platform.title'),
       links: [
-        { label: t('platform.all'), href: '#events' },
-        { label: t('platform.how'), href: '#how' },
-        { label: t('platform.buy'), href: '#events' },
+        { label: t('platform.all'), href: `/${locale}/forums` },
+        { label: t('platform.how'), href: `/${locale}#how` },
+        { label: t('platform.buy'), href: `/${locale}/forums` },
       ],
     },
     {
       title: t('organizers.title'),
       links: [
-        { label: t('organizers.create'), href: '#organizers' },
-        { label: t('organizers.features'), href: '#organizers' },
-        { label: t('organizers.contacts'), href: '#contacts' },
+        { label: t('organizers.create'), href: `/${locale}#organizers` },
+        { label: t('organizers.features'), href: `/${locale}#organizers` },
+        { label: t('organizers.contacts'), href: `/${locale}#contacts` },
       ],
     },
   ]

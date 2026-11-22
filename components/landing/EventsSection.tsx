@@ -1,42 +1,15 @@
+import Link from 'next/link'
+import { ArrowRight } from 'lucide-react'
 import { getT } from '@/lib/i18n/server'
-import { getUpcomingForums } from '@/lib/forums'
-import {
-  formatDay,
-  formatDayMonth,
-  formatEventTime,
-  formatMonthShort,
-  formatMoneyMinor,
-  formatYear,
-} from '@/lib/format'
+import { buildEventViews, getEventsLabels } from '@/lib/forums/views'
 import type { AppLocale } from '@/i18n/routing'
 import { Reveal } from '@/components/motion/Reveal'
 import { Eyebrow } from './Eyebrow'
-import { EventsCalendar, type EventView } from './EventsCalendar'
+import { EventsCalendar } from './EventsCalendar'
 
 export async function EventsSection({ locale }: { locale: AppLocale }) {
   const t = await getT(locale, 'events')
-  const forums = await getUpcomingForums(locale)
-
-  // Everything is formatted on the server; the client component only filters/searches.
-  const events: EventView[] = forums.map((f) => ({
-    id: f.id,
-    href: `/${locale}/forums/${f.slug}`,
-    bannerUrl: f.bannerUrl,
-    tag: f.tag,
-    title: f.title,
-    description: f.shortDescription,
-    city: f.venueName.split(',')[0].trim(),
-    venue: f.venueName,
-    day: formatDay(f.startsAt, locale, f.timeZone),
-    monthShort: formatMonthShort(f.startsAt, locale, f.timeZone),
-    year: formatYear(f.startsAt, f.timeZone),
-    dayMonth: formatDayMonth(f.startsAt, locale, f.timeZone).toUpperCase(),
-    time: formatEventTime(f.startsAt, locale, f.timeZone),
-    priceLabel: t('from', { price: formatMoneyMinor(f.minPriceMinor, locale) }),
-    leftLabel: t('left', { count: f.availableTickets }),
-    soldOut: f.soldOut,
-    categories: f.categories.map((c) => c.name),
-  }))
+  const [events, labels] = await Promise.all([buildEventViews(locale), getEventsLabels(locale)])
 
   return (
     <section id="events" className="bg-surface py-20 sm:py-28">
@@ -55,18 +28,18 @@ export async function EventsSection({ locale }: { locale: AppLocale }) {
         </Reveal>
 
         <Reveal delay={120}>
-          <EventsCalendar
-            events={events}
-            labels={{
-              all: t('all'),
-              search: t('search'),
-              featured: t('featured'),
-              ticketsFrom: t('ticketsFrom'),
-              soldOut: t('soldOut'),
-              empty: t('empty'),
-            }}
-          />
+          <EventsCalendar events={events} labels={labels} />
         </Reveal>
+
+        <div className="mt-10 flex justify-center">
+          <Link
+            href={`/${locale}/forums`}
+            className="group inline-flex h-12 items-center gap-2 rounded-full bg-white px-7 text-sm font-bold text-ink shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:shadow-lg"
+          >
+            {t('viewAll')}
+            <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+          </Link>
+        </div>
       </div>
     </section>
   )

@@ -18,8 +18,11 @@ export interface MockForum {
   tagColor: 'blue' | 'green' | 'purple'
   title: Localized<string>
   shortDescription: Localized<string>
+  description: Localized<string>
+  venueAddress: Localized<string>
+  maxTicketsPerAccount: number
   availableTickets: number
-  categories: { code: string; priceMinor: number; name: Localized<string> }[]
+  categories: { code: string; priceMinor: number; available: number; name: Localized<string> }[]
 }
 
 export interface ForumCardData {
@@ -37,4 +40,11 @@ export interface ForumCardData {
   soldOut: boolean
   minPriceMinor: number
   categories: { code: string; name: string }[]
+}
+
+export interface ForumDetailData extends ForumCardData {
+  description: string
+  venueAddress: string
+  maxTicketsPerAccount: number
+  categoriesFull: { code: string; name: string; priceMinor: number; available: number }[]
 }

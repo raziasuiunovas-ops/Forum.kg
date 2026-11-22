@@ -11,10 +11,10 @@ export async function Header({ locale, settings }: { locale: AppLocale; settings
   const t = await getT(locale, 'nav')
 
   const items = [
-    { href: '#events', label: t('events') },
-    { href: '#how', label: t('how') },
-    { href: '#organizers', label: t('organizers') },
-    { href: '#contacts', label: t('contacts') },
+    { href: `/${locale}/forums`, label: t('events') },
+    { href: `/${locale}#how`, label: t('how') },
+    { href: `/${locale}#organizers`, label: t('organizers') },
+    { href: `/${locale}#contacts`, label: t('contacts') },
   ]
   // TODO(auth): show the account link only for signed-in users, "login" otherwise.
   const cabinetHref = `/${locale}/login`
@@ -31,7 +31,7 @@ export async function Header({ locale, settings }: { locale: AppLocale; settings
 
   return (
     <header className="fixed inset-x-0 top-3 z-50 px-3 sm:px-6">
-      <div className="relative mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 rounded-full border border-white/10 bg-[#0b1030]/70 px-4 shadow-[0_10px_40px_-12px_rgba(0,0,0,.6)] backdrop-blur-xl sm:px-6">
+      <div className="relative mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 rounded-full border border-white/10 bg-[#0b1030]/90 px-4 shadow-[0_10px_40px_-12px_rgba(0,0,0,.6)] backdrop-blur-xl sm:px-6">
         <Logo locale={locale} name={settings.displayName} logoUrl={settings.logoUrl} />
 
         <nav className="hidden items-center gap-7 lg:flex" aria-label="Main">
