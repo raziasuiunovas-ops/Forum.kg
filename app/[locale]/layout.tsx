@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   if (!isAppLocale(locale)) return {}
   const [settings, t] = await Promise.all([getSiteSettings(locale), getT(locale, 'hero')])
   return {
-    title: `${settings.displayName} — ${t('cta')}`,
+    title: `${settings.displayName} — ${t('line1')}. ${t('line2')}. ${t('line3')}.`,
     description: settings.heroSubtitle ?? t('subtitle'),
   }
 }
@@ -43,7 +43,13 @@ export default async function LocaleLayout({
         footer: settings.footerColorHex,
       })}
     >
-      <body className={inter.className}>{children}</body>
+      <body className={`${inter.className} bg-surface text-ink`}>
+        {/* If JS is disabled the scroll-reveal content must stay visible */}
+        <noscript>
+          <style>{'.reveal{opacity:1!important;transform:none!important}'}</style>
+        </noscript>
+        {children}
+      </body>
     </html>
   )
 }

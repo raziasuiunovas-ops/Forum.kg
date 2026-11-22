@@ -10,7 +10,7 @@ import { locales, LOCALE_COOKIE, type AppLocale } from '@/i18n/routing'
 export function LanguageSwitcher({
   current,
   label,
-  tone = 'light',
+  tone = 'dark',
 }: {
   current: AppLocale
   label: string
@@ -31,29 +31,35 @@ export function LanguageSwitcher({
     router.push(parts.join('/') || `/${next}`)
   }
 
+  const dark = tone === 'dark'
   return (
-    <div role="group" aria-label={label} className="flex items-center gap-1 text-sm">
-      {locales.map((l, i) => (
-        <span key={l} className="flex items-center gap-1">
-          {i > 0 && <span aria-hidden className={tone === 'dark' ? 'text-white/40' : 'text-slate-300'}>/</span>}
+    <div
+      role="group"
+      aria-label={label}
+      className={`flex items-center gap-0.5 rounded-full p-1 text-[11px] font-bold ${dark ? 'bg-white/5' : 'bg-slate-100'}`}
+    >
+      {locales.map((l) => {
+        const active = l === current
+        return (
           <button
+            key={l}
             type="button"
             onClick={() => switchTo(l)}
-            aria-current={l === current ? 'true' : undefined}
-            className={
-              l === current
-                ? tone === 'dark'
-                  ? 'font-bold text-white'
-                  : 'font-bold text-primary'
-                : tone === 'dark'
-                  ? 'text-white/60 hover:text-white'
+            aria-current={active ? 'true' : undefined}
+            className={`h-7 min-w-7 rounded-full px-2 transition ${
+              active
+                ? dark
+                  ? 'bg-white/15 text-white'
+                  : 'bg-white text-slate-900 shadow'
+                : dark
+                  ? 'text-white/50 hover:text-white'
                   : 'text-slate-500 hover:text-slate-900'
-            }
+            }`}
           >
             {l.toUpperCase()}
           </button>
-        </span>
-      ))}
+        )
+      })}
     </div>
   )
 }

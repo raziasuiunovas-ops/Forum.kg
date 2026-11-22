@@ -34,11 +34,11 @@ export interface SiteSettingsView {
 export const DEFAULT_SITE_SETTINGS: SiteSettingsView = {
   displayName: 'FORUM.KG',
   logoUrl: null,
-  heroImageUrl: '/images/hero.svg',
+  heroImageUrl: '/images/hero-card.svg',
   aboutImageUrl: null,
-  primaryColorHex: '#2563EB',
-  accentColorHex: '#10B981',
-  footerColorHex: '#0B1F4B',
+  primaryColorHex: '#3B5BFF',
+  accentColorHex: '#7C5CFF',
+  footerColorHex: '#070B24',
   contactEmail: 'info@forum.kg',
   contactPhone: '+996 700 123 456',
   socialLinks: [
