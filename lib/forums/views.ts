@@ -19,6 +19,7 @@ export async function buildEventViews(locale: AppLocale): Promise<EventView[]> {
     id: f.id,
     href: `/${locale}/forums/${f.slug}`,
     bannerUrl: f.bannerUrl,
+    bannerPosition: f.bannerPosition,
     tag: f.tag,
     title: f.title,
     description: f.shortDescription,

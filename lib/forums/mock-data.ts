@@ -5,7 +5,8 @@ export const MOCK_FORUMS: MockForum[] = [
   {
     id: 'mock-1',
     slug: 'bishkek-digital-forum-2026',
-    bannerUrl: '/images/forum-tech.svg',
+    bannerUrl: '/images/forum-tech.webp',
+    bannerPosition: '50% 30%',
     startsAt: '2027-01-24T10:00:00+06:00',
     timeZone: 'Asia/Bishkek',
     venueName: 'Бишкек, Sheraton',
@@ -33,7 +34,8 @@ export const MOCK_FORUMS: MockForum[] = [
   {
     id: 'mock-2',
     slug: 'fintech-forum-central-asia',
-    bannerUrl: '/images/forum-finance.svg',
+    bannerUrl: '/images/forum-finance.webp',
+    bannerPosition: '50% 45%',
     startsAt: '2027-02-05T09:30:00+06:00',
     timeZone: 'Asia/Bishkek',
     venueName: 'Бишкек, Novotel',
@@ -62,6 +64,7 @@ export const MOCK_FORUMS: MockForum[] = [
     id: 'mock-3',
     slug: 'education-innovation-summit',
     bannerUrl: '/images/forum-edu.svg',
+    bannerPosition: '50% 50%',
     startsAt: '2027-02-18T11:00:00+06:00',
     timeZone: 'Asia/Bishkek',
     venueName: 'Ош, Jannat Resort',

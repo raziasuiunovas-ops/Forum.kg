@@ -8,6 +8,7 @@ export interface EventView {
   id: string
   href: string
   bannerUrl: string
+  bannerPosition: string
   tag: string
   title: string
   description: string
@@ -104,6 +105,7 @@ export function EventsCalendar({ events, labels }: { events: EventView[]; labels
               alt=""
               loading="lazy"
               decoding="async"
+              style={{ objectPosition: featured.bannerPosition }}
               className="absolute inset-0 -z-20 h-full w-full object-cover transition duration-700 group-hover:scale-105"
             />
             <div className="absolute inset-0 -z-10 bg-gradient-to-b from-[#050a2e]/30 via-[#050a2e]/20 to-[#050a2e]/90" />
@@ -182,6 +184,7 @@ export function EventsCalendar({ events, labels }: { events: EventView[]; labels
                     alt=""
                     loading="lazy"
                     decoding="async"
+                    style={{ objectPosition: e.bannerPosition }}
                     className="h-full w-full object-cover transition duration-700 group-hover:scale-110"
                   />
                   <span className="absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-white text-ink shadow transition group-hover:rotate-45 group-hover:bg-primary group-hover:text-white">

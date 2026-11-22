@@ -12,6 +12,7 @@ function toCard(f: MockForum, locale: AppLocale): ForumCardData {
     id: f.id,
     slug: f.slug,
     bannerUrl: f.bannerUrl,
+    bannerPosition: f.bannerPosition,
     startsAt: f.startsAt,
     timeZone: f.timeZone,
     venueName: f.venueName,

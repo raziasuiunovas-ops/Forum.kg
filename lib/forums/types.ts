@@ -11,6 +11,8 @@ export interface MockForum {
   id: string
   slug: string
   bannerUrl: string
+  /** CSS object-position, to keep the important part of the photo visible when cropped */
+  bannerPosition: string
   startsAt: string // ISO 8601
   timeZone: string
   venueName: string
@@ -29,6 +31,7 @@ export interface ForumCardData {
   id: string
   slug: string
   bannerUrl: string
+  bannerPosition: string
   startsAt: string
   timeZone: string
   venueName: string

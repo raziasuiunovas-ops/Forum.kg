@@ -98,6 +98,7 @@ export async function Hero({ locale, settings }: { locale: AppLocale; settings: 
           <div className="animate-float">
             <TiltCard className="rotate-[4deg]">
               <div className="overflow-hidden rounded-[2rem] border border-white/15 bg-white/5 p-2 shadow-[0_40px_80px_-30px_hsl(var(--primary)/.7)] backdrop-blur">
+                  {/* the photo is a cut-out (transparent sky), so the sky comes from this gradient */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={settings.heroImageUrl}
@@ -105,7 +106,7 @@ export async function Hero({ locale, settings }: { locale: AppLocale; settings: 
                   width={800}
                   height={880}
                   fetchPriority="high"
-                  className="aspect-[4/4.4] w-full rounded-[1.6rem] object-cover"
+                  className="aspect-[4/4.4] w-full rounded-[1.6rem] bg-gradient-to-b from-[#1d4fe0] via-[#5a8dff] to-[#0b1a5c] object-cover object-bottom"
                 />
               </div>
             </TiltCard>

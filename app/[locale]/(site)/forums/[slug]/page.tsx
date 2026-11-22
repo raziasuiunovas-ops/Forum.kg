@@ -38,7 +38,12 @@ export default async function ForumPage({ params }: { params: Promise<{ locale: 
       {/* banner */}
       <section className="relative isolate overflow-hidden bg-footer pb-24 pt-32 text-white sm:pt-36">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={forum.bannerUrl} alt="" className="absolute inset-0 -z-20 h-full w-full object-cover opacity-60" />
+        <img
+          src={forum.bannerUrl}
+          alt=""
+          style={{ objectPosition: forum.bannerPosition }}
+          className="absolute inset-0 -z-20 h-full w-full object-cover opacity-60"
+        />
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-footer/60 via-footer/55 to-footer/95" />
         <div className="mx-auto max-w-6xl px-5 sm:px-8">
           <Link

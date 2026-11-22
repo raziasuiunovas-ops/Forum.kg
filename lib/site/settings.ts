@@ -34,7 +34,7 @@ export interface SiteSettingsView {
 export const DEFAULT_SITE_SETTINGS: SiteSettingsView = {
   displayName: 'FORUM.KG',
   logoUrl: null,
-  heroImageUrl: '/images/hero-card.svg',
+  heroImageUrl: '/images/hero-forum.webp',
   aboutImageUrl: null,
   primaryColorHex: '#3B5BFF',
   accentColorHex: '#7C5CFF',
