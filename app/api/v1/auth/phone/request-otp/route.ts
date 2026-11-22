@@ -77,36 +77,36 @@ async function attemptOTPRequest(request: NextRequest) {
       )
     }
 
-  const validation = validateRequestBody(requestOtpSchema, body)
+    const validation = validateRequestBody(requestOtpSchema, body)
 
-  if (!validation.success) {
-    return NextResponse.json(
-      {
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Ошибка валидации данных',
-          details: formatValidationErrors(validation.errors),
+    if (!validation.success) {
+      return NextResponse.json(
+        {
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Ошибка валидации данных',
+            details: formatValidationErrors(validation.errors),
+          },
         },
-      },
-      { status: 422 }
-    )
-  }
+        { status: 422 }
+      )
+    }
 
-  const { phone, purpose } = validation.data
+    const { phone, purpose } = validation.data
 
-  // Normalize phone number to E.164 format
-  const normalizedPhone = normalizePhone(phone)
-  if (!normalizedPhone) {
-    return NextResponse.json(
-      {
-        error: {
-          code: VALIDATION_ERRORS.INVALID_PHONE.code,
-          message: VALIDATION_ERRORS.INVALID_PHONE.message,
+    // Normalize phone number to E.164 format
+    const normalizedPhone = normalizePhone(phone)
+    if (!normalizedPhone) {
+      return NextResponse.json(
+        {
+          error: {
+            code: VALIDATION_ERRORS.INVALID_PHONE.code,
+            message: VALIDATION_ERRORS.INVALID_PHONE.message,
+          },
         },
-      },
-      { status: 422 }
-    )
-  }
+        { status: 422 }
+      )
+    }
 
     // Use transaction with Serializable isolation to prevent race conditions:
     // 1. Check rate limiting (atomic with Serializable isolation)

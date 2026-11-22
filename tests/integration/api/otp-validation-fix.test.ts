@@ -7,7 +7,7 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 
 // Base URL for API (check actual port)
-const BASE_URL = process.env.TEST_API_URL || 'http://localhost:3001'
+const BASE_URL = process.env.TEST_API_URL || 'http://localhost:3000'
 
 /**
  * Helper function to make API requests

@@ -46,6 +46,17 @@ test('creates structured records with the required request and outcome fields', 
   assert.equal(record.severity, 'info')
 })
 
+test('uses the server supplied request ID ahead of client controlled request headers', () => {
+  const record = createSecurityAuditRecord({
+    eventType: 'API_ERROR',
+    result: 'error',
+    request: request(),
+    requestId: 'server-generated-id',
+  })
+
+  assert.equal(record?.requestId, 'server-generated-id')
+})
+
 test('serializes only allowlisted fields and omits tokens, cookies, OTP, and payload data', () => {
   const lines: string[] = []
   const unsafeInput = {
@@ -117,6 +128,10 @@ test('supports each required security event type', () => {
     'AUTH_SUCCESS', 'AUTH_FAILURE', 'OTP_REQUEST', 'OTP_VERIFY', 'REFRESH_SUCCESS',
     'REFRESH_TOKEN_REUSE', 'LOGOUT', 'LOGOUT_ALL', 'ACCESS_DENIED',
     'RATE_LIMIT_EXCEEDED', 'CSRF_REJECTED', 'SUSPICIOUS_REQUEST', 'API_ERROR',
+    'USER_PROFILE_UPDATED', 'TOPIC_CATEGORY_CREATED', 'TOPIC_CREATED',
+    'TOPIC_UPDATED', 'TOPIC_DELETED', 'POST_CREATED', 'POST_UPDATED', 'POST_DELETED',
+    'EVENT_CREATED', 'EVENT_UPDATED', 'EVENT_CANCELLED', 'EVENT_REGISTERED',
+    'EVENT_REGISTRATION_CANCELLED',
   ]
 
   for (const eventType of eventTypes) {

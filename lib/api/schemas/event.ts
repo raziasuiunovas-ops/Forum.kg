@@ -16,13 +16,17 @@ import {
   colorSchema
 } from './common'
 
+const strictTranslationSchema = translationSchema.strict()
+const strictMoneyAmountSchema = moneyAmountSchema.strict()
+const booleanQuerySchema = z.enum(['true', 'false']).transform((value) => value === 'true')
+
 /**
  * Event location schema
  */
 export const eventLocationSchema = z.object({
-  name: translationSchema,
-  address: translationSchema.optional(),
-  coordinates: coordinateSchema.optional(),
+  name: strictTranslationSchema,
+  address: strictTranslationSchema.optional(),
+  coordinates: coordinateSchema.strict().optional(),
 }).strict()
 
 export type EventLocation = z.infer<typeof eventLocationSchema>
@@ -33,15 +37,16 @@ export type EventLocation = z.infer<typeof eventLocationSchema>
  */
 export const createEventSchema = z.object({
   slug: slugSchema,
-  title: translationSchema,
-  description: translationSchema,
+  title: strictTranslationSchema,
+  description: strictTranslationSchema,
   coverImageUrl: urlSchema.optional(),
   location: eventLocationSchema,
+  timeZone: z.string().min(1).max(64).optional().default('Asia/Bishkek'),
   startTime: dateTimeSchema,
   endTime: dateTimeSchema,
   registrationDeadline: dateTimeSchema.optional(),
-  capacity: z.number().int().positive().optional(),
-  price: moneyAmountSchema.optional(),
+  capacity: z.number().int().positive(),
+  price: strictMoneyAmountSchema.optional(),
   categories: z.array(z.string().min(2).max(50)).max(5).optional(),
   tags: z.array(z.string().min(2).max(50)).max(10).optional(),
   organizerId: uuidSchema,
@@ -62,19 +67,22 @@ export type CreateEventInput = z.infer<typeof createEventSchema>
  */
 export const updateEventSchema = z.object({
   slug: slugSchema.optional(),
-  title: translationSchema.optional(),
-  description: translationSchema.optional(),
+  title: strictTranslationSchema.optional(),
+  description: strictTranslationSchema.optional(),
   coverImageUrl: urlSchema.optional(),
   location: eventLocationSchema.optional(),
+  timeZone: z.string().min(1).max(64).optional(),
   startTime: dateTimeSchema.optional(),
   endTime: dateTimeSchema.optional(),
   registrationDeadline: dateTimeSchema.optional(),
   capacity: z.number().int().positive().optional(),
-  price: moneyAmountSchema.optional(),
+  price: strictMoneyAmountSchema.optional(),
   categories: z.array(z.string().min(2).max(50)).max(5).optional(),
   tags: z.array(z.string().min(2).max(50)).max(10).optional(),
   isPublished: z.boolean().optional(),
-}).strict()
+}).strict().refine((data) => Object.keys(data).length > 0, {
+  message: 'Необходимо передать хотя бы одно поле для изменения',
+})
 
 export type UpdateEventInput = z.infer<typeof updateEventSchema>
 
@@ -88,7 +96,7 @@ export const eventFiltersSchema = paginationQuerySchema.extend({
   tag: z.string().max(50).optional(),
   startAfter: dateTimeSchema.optional(),
   startBefore: dateTimeSchema.optional(),
-  isPublished: z.coerce.boolean().optional(),
+  isPublished: booleanQuerySchema.optional(),
   search: z.string().max(200).optional(),
   sortBy: z.enum(['startTime', 'createdAt', 'registrationCount']).optional().default('startTime'),
   sortOrder: z.enum(['asc', 'desc']).optional().default('asc'),

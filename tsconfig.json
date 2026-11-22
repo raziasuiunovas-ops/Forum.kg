@@ -29,13 +29,13 @@
     "target": "ES2017"
   },
   "include": [
-    "next-env.d.ts",
     "app/**/*.ts",
     "app/**/*.tsx",
-    "lib/**/*.ts",
-    "i18n/**/*.ts",
     "components/**/*.tsx",
+    "i18n/**/*.ts",
+    "lib/**/*.ts",
     "middleware.ts",
+    "next-env.d.ts",
     ".next/types/**/*.ts"
   ],
   "exclude": [

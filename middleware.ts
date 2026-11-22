@@ -1,22 +1,24 @@
-﻿import createMiddleware from 'next-intl/middleware'
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { csrfMiddleware } from './lib/security/csrf'
 import { checkApiRateLimit } from './lib/security/api-rate-limit'
 import { isSuspiciousApiRequest, writeSecurityAuditEvent } from './lib/security/audit-logger'
 
-const intlMiddleware = createMiddleware({
-  locales: ['ru', 'ky', 'en'],
-  defaultLocale: 'ru',
-})
-
 export default async function middleware(request: NextRequest) {
   const isApiRequest = request.nextUrl.pathname.startsWith('/api/')
+  const requestId = isApiRequest ? crypto.randomUUID() : undefined
+  const forwardedRequestHeaders = isApiRequest ? new Headers(request.headers) : undefined
+  if (requestId && forwardedRequestHeaders) {
+    // Use a server-generated ID so every downstream audit event for this
+    // request shares one correlation value, regardless of client input.
+    forwardedRequestHeaders.set('x-request-id', requestId)
+  }
 
   if (isApiRequest && isSuspiciousApiRequest(request)) {
     writeSecurityAuditEvent({
       eventType: 'SUSPICIOUS_REQUEST',
       result: 'denied',
       request,
+      requestId,
       reason: 'path_injection_pattern',
     })
   }
@@ -31,6 +33,7 @@ export default async function middleware(request: NextRequest) {
         eventType: 'RATE_LIMIT_EXCEEDED',
         result: 'denied',
         request,
+        requestId,
         reason: 'global_api_limit',
         statusCode: 429,
       })
@@ -39,6 +42,7 @@ export default async function middleware(request: NextRequest) {
         eventType: 'API_ERROR',
         result: 'error',
         request,
+        requestId,
         reason: 'rate_limit_service_unavailable',
         statusCode: rateLimitDecision.response.status,
       })
@@ -62,6 +66,7 @@ export default async function middleware(request: NextRequest) {
           eventType: 'CSRF_REJECTED',
           result: 'denied',
           request,
+          requestId,
           reason: 'csrf_validation_failed',
           statusCode: 403,
         })
@@ -70,13 +75,15 @@ export default async function middleware(request: NextRequest) {
     }
     
     // For API routes, just add rate limit headers and continue
-    return addRateLimitHeaders(NextResponse.next())
+    return addRateLimitHeaders(NextResponse.next({
+      request: { headers: forwardedRequestHeaders },
+    }))
   }
 
-  // Apply internationalization middleware for non-API routes
-  return addRateLimitHeaders(intlMiddleware(request))
+  // For non-API routes, continue without modification
+  return addRateLimitHeaders(NextResponse.next())
 }
 
 export const config = {
-  matcher: ['/', '/(ru|ky|en)/:path*', '/api/:path*']
+  matcher: ['/api/:path*']
 }

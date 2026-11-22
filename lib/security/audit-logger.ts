@@ -15,6 +15,19 @@ export type SecurityAuditEventType =
   | 'CSRF_REJECTED'
   | 'SUSPICIOUS_REQUEST'
   | 'API_ERROR'
+  | 'USER_PROFILE_UPDATED'
+  | 'TOPIC_CATEGORY_CREATED'
+  | 'TOPIC_CREATED'
+  | 'TOPIC_UPDATED'
+  | 'TOPIC_DELETED'
+  | 'POST_CREATED'
+  | 'POST_UPDATED'
+  | 'POST_DELETED'
+  | 'EVENT_CREATED'
+  | 'EVENT_UPDATED'
+  | 'EVENT_CANCELLED'
+  | 'EVENT_REGISTERED'
+  | 'EVENT_REGISTRATION_CANCELLED'
 
 export type SecurityAuditResult = 'success' | 'failure' | 'denied' | 'error'
 export type SecurityAuditSeverity = 'info' | 'warning' | 'error'
@@ -23,6 +36,7 @@ export interface SecurityAuditInput {
   eventType: SecurityAuditEventType
   result: SecurityAuditResult
   request?: NextRequest
+  requestId?: string
   userId?: string
   reason?: string
   statusCode?: number
@@ -64,6 +78,19 @@ const SEVERITY_BY_EVENT: Record<SecurityAuditEventType, SecurityAuditSeverity> =
   CSRF_REJECTED: 'warning',
   SUSPICIOUS_REQUEST: 'warning',
   API_ERROR: 'error',
+  USER_PROFILE_UPDATED: 'info',
+  TOPIC_CATEGORY_CREATED: 'info',
+  TOPIC_CREATED: 'info',
+  TOPIC_UPDATED: 'info',
+  TOPIC_DELETED: 'warning',
+  POST_CREATED: 'info',
+  POST_UPDATED: 'info',
+  POST_DELETED: 'warning',
+  EVENT_CREATED: 'info',
+  EVENT_UPDATED: 'info',
+  EVENT_CANCELLED: 'warning',
+  EVENT_REGISTERED: 'info',
+  EVENT_REGISTRATION_CANCELLED: 'info',
 }
 
 const THROTTLED_EVENTS = new Set<SecurityAuditEventType>([
@@ -125,7 +152,7 @@ export function createSecurityAuditRecord(
   const record: SecurityAuditRecord = {
     eventType: input.eventType,
     timestamp: new Date(now).toISOString(),
-    requestId: getRequestId(input.request),
+    requestId: getRequestId(input.request, input.requestId),
     endpoint: getEndpoint(input.request),
     method: getMethod(input.request),
     result,
@@ -202,8 +229,8 @@ function pruneThrottleState(now: number): void {
   }
 }
 
-function getRequestId(request?: NextRequest): string {
-  const candidate = request?.headers.get('x-request-id')?.trim()
+function getRequestId(request?: NextRequest, explicitRequestId?: string): string {
+  const candidate = explicitRequestId?.trim() ?? request?.headers.get('x-request-id')?.trim()
   if (candidate && /^[A-Za-z0-9._:-]{1,80}$/.test(candidate)) return candidate
   return crypto.randomUUID()
 }
