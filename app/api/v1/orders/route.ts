@@ -4,11 +4,13 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { createHash } from 'node:crypto'
 import { prisma } from '@/lib/db'
 import { z } from 'zod'
 import { requireAuth } from '@/lib/auth/middleware'
-import { OrderStatus, PaymentStatus } from '@prisma/client'
+import { OrderIdempotencyStatus, OrderStatus, PaymentStatus, Prisma } from '@prisma/client'
 import { createAuthError } from '@/lib/auth'
+import { createFinikPayment } from '@/lib/payments/finik'
 
 const createOrderSchema = z.object({
   forumId: z.string().uuid(),
@@ -26,6 +28,173 @@ const createOrderSchema = z.object({
 
 // Order reservation timeout (10 minutes)
 const RESERVATION_TIMEOUT_MS = 10 * 60 * 1000
+const MAX_ORDER_TRANSACTION_ATTEMPTS = 3
+const IDEMPOTENCY_KEY_PATTERN = /^[\x21-\x7E]{1,255}$/
+const FINIK_REQUEST_LEASE_MS = 30_000
+
+function sha256(value: string): string {
+  return createHash('sha256').update(value, 'utf8').digest('hex')
+}
+
+function idempotencyConflict(): NextResponse {
+  return NextResponse.json({
+    error: {
+      code: 'IDEMPOTENCY_KEY_REUSED',
+      message: 'Idempotency-Key уже использован с другим запросом',
+    },
+  }, { status: 409 })
+}
+
+async function resumeIdempotencyResponse(
+  userId: string,
+  keyHash: string,
+  fingerprint: string
+): Promise<NextResponse | null> {
+  const saved = await prisma.orderIdempotency.findUnique({
+    where: { userId_keyHash: { userId, keyHash } },
+  })
+  if (!saved) return null
+  if (saved.fingerprint !== fingerprint) return idempotencyConflict()
+  if (saved.status === OrderIdempotencyStatus.COMPLETED && saved.responseStatus !== null && saved.response !== null) {
+    return NextResponse.json(saved.response, { status: saved.responseStatus })
+  }
+  if (!saved.orderId) {
+    return NextResponse.json({
+      error: { code: 'IDEMPOTENCY_RESULT_UNAVAILABLE', message: 'Результат запроса ещё обрабатывается. Повторите запрос позже' },
+    }, { status: 503, headers: { 'Retry-After': '1' } })
+  }
+  return createFinikOrderResponse(saved.id)
+}
+
+async function createFinikOrderResponse(idempotencyId: string): Promise<NextResponse> {
+  const idempotency = await prisma.orderIdempotency.findUnique({ where: { id: idempotencyId } })
+  if (!idempotency?.orderId) {
+    return NextResponse.json({
+      error: { code: 'IDEMPOTENCY_RESULT_UNAVAILABLE', message: 'Результат запроса ещё обрабатывается. Повторите запрос позже' },
+    }, { status: 503, headers: { 'Retry-After': '1' } })
+  }
+  if (idempotency.status === OrderIdempotencyStatus.COMPLETED && idempotency.responseStatus !== null && idempotency.response !== null) {
+    return NextResponse.json(idempotency.response, { status: idempotency.responseStatus })
+  }
+
+  const [order, payment] = await Promise.all([
+    prisma.order.findUnique({
+      where: { id: idempotency.orderId },
+      include: {
+        items: { include: { ticketCategory: { include: { translations: true } } } },
+        forum: { include: { translations: true } },
+      },
+    }),
+    prisma.payment.findFirst({
+      where: { orderId: idempotency.orderId, provider: 'FINIK' },
+      orderBy: { createdAt: 'asc' },
+    }),
+  ])
+  if (!order || !payment) throw new Error('FINIK_PAYMENT_RECORD_NOT_FOUND')
+
+  const now = new Date()
+  const alreadyPaid = order.status === OrderStatus.PAID || payment.status === PaymentStatus.SUCCEEDED
+  const reservationExpired = order.status === OrderStatus.PENDING_PAYMENT && (!order.reservedUntil || order.reservedUntil <= now)
+  const orderClosed = order.status !== OrderStatus.PENDING_PAYMENT && !alreadyPaid
+  if (reservationExpired || orderClosed) {
+    const body = { error: { code: 'ORDER_RESERVATION_EXPIRED', message: 'Срок резервации заказа истёк' } }
+    await prisma.$transaction(async (tx) => {
+      await tx.order.updateMany({ where: { id: order.id, status: OrderStatus.PENDING_PAYMENT, reservedUntil: { lte: now } }, data: { status: OrderStatus.EXPIRED } })
+      await tx.payment.updateMany({ where: { id: payment.id, status: { in: [PaymentStatus.CREATED, PaymentStatus.PROCESSING] } }, data: { status: PaymentStatus.EXPIRED } })
+      await tx.orderIdempotency.update({
+        where: { id: idempotency.id },
+        data: { status: OrderIdempotencyStatus.COMPLETED, responseStatus: 410, response: body as Prisma.InputJsonValue },
+      })
+    })
+    return NextResponse.json(body, { status: 410 })
+  }
+  const finikEndDate = order.reservedUntil ?? new Date(now.getTime() + RESERVATION_TIMEOUT_MS)
+
+  const leaseExpiredAt = new Date(now.getTime() - FINIK_REQUEST_LEASE_MS)
+  const claim = alreadyPaid ? { count: 1 } : await prisma.payment.updateMany({
+    where: {
+      id: payment.id,
+      OR: [
+        { status: PaymentStatus.CREATED },
+        { status: PaymentStatus.PROCESSING, updatedAt: { lt: leaseExpiredAt } },
+      ],
+    },
+    data: { status: PaymentStatus.PROCESSING, providerPaymentId: payment.providerPaymentId ?? payment.id },
+  })
+  if (claim.count !== 1) {
+    const refreshed = await prisma.orderIdempotency.findUnique({ where: { id: idempotency.id } })
+    if (refreshed?.status === OrderIdempotencyStatus.COMPLETED && refreshed.responseStatus !== null && refreshed.response !== null) {
+      return NextResponse.json(refreshed.response, { status: refreshed.responseStatus })
+    }
+    return NextResponse.json({
+      error: { code: 'PAYMENT_INITIALIZATION_IN_PROGRESS', message: 'Платёж создаётся. Повторите запрос позже' },
+    }, { status: 503, headers: { 'Retry-After': '1' } })
+  }
+
+  try {
+    const { paymentUrl } = await createFinikPayment({
+      paymentId: payment.providerPaymentId ?? payment.id,
+      orderNumber: order.orderNumber,
+      amountMinor: payment.amountMinor,
+      currency: payment.currency,
+      reservedUntil: finikEndDate,
+    })
+    const response = {
+      order: {
+        id: order.id,
+        orderNumber: order.orderNumber,
+        status: order.status,
+        totalMinor: order.totalMinor,
+        currency: order.currency,
+        reservedUntil: order.reservedUntil?.toISOString() ?? null,
+        createdAt: order.createdAt.toISOString(),
+        items: order.items.map((item) => ({
+          id: item.id,
+          participantFirstName: item.participantFirstName,
+          participantLastName: item.participantLastName,
+          unitPriceMinor: item.unitPriceMinor,
+          categoryName: item.ticketCategory.translations[0]?.name || item.ticketCategory.code,
+        })),
+        forum: {
+          id: order.forum.id,
+          slug: order.forum.slug,
+          title: order.forum.translations[0]?.title || 'Untitled',
+          startsAt: order.forum.startsAt.toISOString(),
+        },
+      },
+      paymentUrl,
+    }
+
+    const savedResponse = await prisma.$transaction(async (tx) => {
+      const current = await tx.orderIdempotency.findUnique({ where: { id: idempotency.id } })
+      if (current?.status === OrderIdempotencyStatus.COMPLETED && current.responseStatus !== null && current.response !== null) {
+        return { body: current.response as Prisma.InputJsonValue, status: current.responseStatus }
+      }
+      await tx.payment.updateMany({
+        where: { id: payment.id, status: { in: [PaymentStatus.PROCESSING, PaymentStatus.CREATED] } },
+        data: { status: PaymentStatus.PENDING, providerPaymentId: payment.providerPaymentId ?? payment.id },
+      })
+      await tx.orderIdempotency.update({
+        where: { id: idempotency.id },
+        data: { status: OrderIdempotencyStatus.COMPLETED, responseStatus: 201, response: response as Prisma.InputJsonValue },
+      })
+      return { body: response as Prisma.InputJsonValue, status: 201 }
+    })
+    return NextResponse.json(savedResponse.body, { status: savedResponse.status })
+  } catch {
+    await prisma.payment.updateMany({
+      where: { id: payment.id, status: PaymentStatus.PROCESSING },
+      data: { status: PaymentStatus.CREATED },
+    }).catch(() => undefined)
+    return NextResponse.json({
+      error: { code: 'FINIK_PAYMENT_UNAVAILABLE', message: 'Не удалось создать платёж. Повторите запрос позже' },
+    }, { status: 502, headers: { 'Retry-After': '1' } })
+  }
+}
+
+function isPrismaErrorCode(error: unknown, code: string): boolean {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === code
+}
 
 /**
  * Generate unique order number
@@ -52,12 +221,22 @@ export async function POST(request: NextRequest) {
 
     const user = authResult.user
 
-    // Check idempotency key
     const idempotencyKey = request.headers.get('idempotency-key')
-    if (idempotencyKey) {
-      // Check for existing order with this key
-      // Note: Would need IdempotencyKey table in production
-      // For now, skip detailed idempotency implementation
+    if (idempotencyKey === null) {
+      return NextResponse.json({
+        error: {
+          code: 'IDEMPOTENCY_KEY_REQUIRED',
+          message: 'Требуется заголовок Idempotency-Key',
+        },
+      }, { status: 400 })
+    }
+    if (!IDEMPOTENCY_KEY_PATTERN.test(idempotencyKey)) {
+      return NextResponse.json({
+        error: {
+          code: 'INVALID_IDEMPOTENCY_KEY',
+          message: 'Idempotency-Key должен содержать от 1 до 255 печатных ASCII-символов',
+        },
+      }, { status: 400 })
     }
 
     // Parse request body
@@ -78,10 +257,32 @@ export async function POST(request: NextRequest) {
     }
 
     const { forumId, items } = validation.data
+    const keyHash = sha256(idempotencyKey)
+    const fingerprint = sha256(JSON.stringify({
+      forumId,
+      items: items.map((item) => ({
+        ticketCategoryId: item.ticketCategoryId,
+        participantFirstName: item.participantFirstName,
+        participantLastName: item.participantLastName,
+      })),
+    }))
+
+    const previousResponse = await resumeIdempotencyResponse(user.userId, keyHash, fingerprint)
+    if (previousResponse) return previousResponse
 
     // Execute order creation in transaction with capacity checks
-    const result = await prisma.$transaction(
+    const createOrderTransaction = () => prisma.$transaction(
       async (tx) => {
+        const idempotency = await tx.orderIdempotency.create({
+          data: {
+            userId: user.userId,
+            keyHash,
+            fingerprint,
+            status: OrderIdempotencyStatus.PROCESSING,
+          },
+          select: { id: true },
+        })
+
         // 1. Get forum with FOR UPDATE lock to prevent race conditions
         const forum = await tx.forum.findUnique({
           where: { id: forumId },
@@ -263,48 +464,46 @@ export async function POST(request: NextRequest) {
           },
         })
 
-        return { order, payment }
+        // Persist the order and stable provider ID before calling Finik. The external
+        // request must stay outside this retried Serializable transaction.
+        await tx.payment.update({
+          where: { id: payment.id },
+          data: { providerPaymentId: payment.id },
+        })
+        await tx.orderIdempotency.update({ where: { id: idempotency.id }, data: { orderId: order.id } })
+
+        return idempotency.id
       },
       {
         timeout: 10000, // 10 second timeout for transaction
-        isolationLevel: 'Serializable', // Highest isolation to prevent race conditions
+        isolationLevel: 'Serializable',
       }
     )
 
-    // 7. Generate payment URL (stub implementation)
-    // In production, call Finik API here to create payment session
-    const paymentUrl = generateFinikPaymentUrl(result.payment.id, result.order.orderNumber)
+    let idempotencyId: string | null = null
+    for (let attempt = 0; attempt < MAX_ORDER_TRANSACTION_ATTEMPTS; attempt += 1) {
+      try {
+        idempotencyId = await createOrderTransaction()
+        break
+      } catch (error) {
+        const committedResponse = await resumeIdempotencyResponse(user.userId, keyHash, fingerprint)
+        if (committedResponse) return committedResponse
 
-    // Transform to API response
-    const response = {
-      order: {
-        id: result.order.id,
-        orderNumber: result.order.orderNumber,
-        status: result.order.status,
-        totalMinor: result.order.totalMinor,
-        currency: result.order.currency,
-        reservedUntil: result.order.reservedUntil?.toISOString(),
-        createdAt: result.order.createdAt.toISOString(),
-        items: result.order.items.map((item) => ({
-          id: item.id,
-          participantFirstName: item.participantFirstName,
-          participantLastName: item.participantLastName,
-          unitPriceMinor: item.unitPriceMinor,
-          categoryName: item.ticketCategory.translations[0]?.name || item.ticketCategory.code,
-        })),
-        forum: {
-          id: result.order.forum.id,
-          slug: result.order.forum.slug,
-          title: result.order.forum.translations[0]?.title || 'Untitled',
-          startsAt: result.order.forum.startsAt.toISOString(),
-        },
-      },
-      paymentUrl,
+        if (
+          isPrismaErrorCode(error, 'P2034') &&
+          attempt + 1 < MAX_ORDER_TRANSACTION_ATTEMPTS
+        ) {
+          continue
+        }
+
+        throw error
+      }
     }
 
-    return NextResponse.json(response, { status: 201 })
+    if (idempotencyId === null) throw new Error('ORDER_CREATION_FAILED')
+    return createFinikOrderResponse(idempotencyId)
   } catch (error: any) {
-    console.error('Error creating order:', error)
+    console.error('Order creation failed')
 
     // Handle business logic errors
     if (error.message === 'FORUM_NOT_FOUND') {
@@ -403,6 +602,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (isPrismaErrorCode(error, 'P2034')) {
+      return NextResponse.json({
+        error: {
+          code: 'CONCURRENT_MODIFICATION',
+          message: 'Заказ изменился одновременно с запросом. Повторите попытку',
+        },
+      }, { status: 409 })
+    }
+
     // Generic error
     return NextResponse.json(
       {
@@ -416,16 +624,3 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/**
- * Generate Finik payment URL (stub implementation)
- * In production, this would call Finik API to create payment session
- */
-function generateFinikPaymentUrl(paymentId: string, orderNumber: string): string {
-  // Stub: return placeholder URL
-  // Real implementation would call Finik API:
-  // const finikResponse = await finikClient.createPayment({...})
-  // return finikResponse.paymentUrl
-
-  const baseUrl = process.env.FINIK_PAYMENT_URL || 'https://pay.finik.kg'
-  return `${baseUrl}/pay?order=${orderNumber}&payment=${paymentId}`
-}

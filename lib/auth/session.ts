@@ -9,12 +9,31 @@ import { cookies } from 'next/headers'
 import { SessionUser, JWTPayload, SESSION_CONFIG } from './types'
 import { createAuthError } from './errors'
 
-// Get JWT secret from environment (no fallback for security)
-const JWT_SECRET = process.env.JWT_SECRET
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET
+/**
+ * Get JWT secret from environment (lazy evaluation for testing)
+ * Reads from process.env at call time, not module load time
+ */
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET
+  if (!secret) {
+    throw new Error('JWT_SECRET is not configured')
+  }
+  return secret
+}
 
-// Validate secrets are configured
-if (!JWT_SECRET || !JWT_REFRESH_SECRET) {
+/**
+ * Get JWT refresh secret from environment (lazy evaluation for testing)
+ */
+function getJwtRefreshSecret(): string {
+  const secret = process.env.JWT_REFRESH_SECRET
+  if (!secret) {
+    throw new Error('JWT_REFRESH_SECRET is not configured')
+  }
+  return secret
+}
+
+// Validate secrets are configured at module load (only show warning in dev)
+if (!process.env.JWT_SECRET || !process.env.JWT_REFRESH_SECRET) {
   const error = 'CRITICAL: JWT_SECRET and JWT_REFRESH_SECRET must be configured in environment variables'
   
   if (process.env.NODE_ENV === 'production') {
@@ -31,9 +50,7 @@ if (!JWT_SECRET || !JWT_REFRESH_SECRET) {
  * Create JWT access token
  */
 export function createAccessToken(user: SessionUser, sessionId: string): string {
-  if (!JWT_SECRET) {
-    throw new Error('JWT_SECRET is not configured')
-  }
+  const JWT_SECRET = getJwtSecret()
 
   const payload: JWTPayload = {
     userId: user.id,
@@ -51,9 +68,7 @@ export function createAccessToken(user: SessionUser, sessionId: string): string 
  * Create JWT refresh token
  */
 export function createRefreshToken(userId: string): string {
-  if (!JWT_REFRESH_SECRET) {
-    throw new Error('JWT_REFRESH_SECRET is not configured')
-  }
+  const JWT_REFRESH_SECRET = getJwtRefreshSecret()
 
   // Generate cryptographically secure random nonce
   // This ensures each token is unique even if issued in same second
@@ -73,9 +88,7 @@ export function createRefreshToken(userId: string): string {
  * Verify and decode JWT access token
  */
 export function verifyAccessToken(token: string): JWTPayload {
-  if (!JWT_SECRET) {
-    throw new Error('JWT_SECRET is not configured')
-  }
+  const JWT_SECRET = getJwtSecret()
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload
@@ -92,9 +105,7 @@ export function verifyAccessToken(token: string): JWTPayload {
  * Verify and decode JWT refresh token
  */
 export function verifyRefreshToken(token: string): { userId: string } {
-  if (!JWT_REFRESH_SECRET) {
-    throw new Error('JWT_REFRESH_SECRET is not configured')
-  }
+  const JWT_REFRESH_SECRET = getJwtRefreshSecret()
 
   try {
     const decoded = jwt.verify(token, JWT_REFRESH_SECRET) as { userId: string }

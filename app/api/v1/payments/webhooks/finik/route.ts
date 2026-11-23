@@ -1,446 +1,260 @@
-/**
- * POST /api/v1/payments/webhooks/finik
- * Finik payment webhook handler
- * 
- * IMPORTANT: This is a STUB implementation due to lack of Finik API documentation.
- * In production, you must:
- * 1. Implement webhook signature verification
- * 2. Parse actual Finik webhook payload
- * 3. Map Finik payment statuses to internal statuses
- * 4. Handle all payment lifecycle events
- */
-
 import { NextRequest, NextResponse } from 'next/server'
+import { createHash, randomBytes, randomUUID } from 'node:crypto'
+import { OrderStatus, PaymentStatus, Prisma, RefundMethod, RefundStatus, TicketStatus, WebhookEventStatus } from '@prisma/client'
 import { prisma } from '@/lib/db'
-import { OrderStatus, PaymentStatus, TicketStatus } from '@prisma/client'
-import crypto from 'crypto'
+import { countOccupiedSeats, lockEventRow } from '@/lib/api/events'
 import { encryptQRToken } from '@/lib/crypto/qr-encryption'
+import {
+  FINIK_MAX_WEBHOOK_BYTES,
+  readFinikWebhookPublicKey,
+  readLimitedRequestText,
+  verifyFinikWebhookSignature,
+} from '@/lib/payments/finik'
 
-/**
- * Stub webhook payload structure
- * Replace with actual Finik webhook schema when available
- */
-interface FinikWebhookPayload {
-  event_type: 'payment.succeeded' | 'payment.failed' | 'payment.expired'
-  payment_id: string // Finik's payment ID
-  order_number: string // Our order number
-  amount: number
-  currency: string
-  status: string
-  paid_at?: string
-  metadata?: Record<string, any>
+type FinikWebhookPayload = {
+  id?: unknown
+  transactionId?: unknown
+  status?: unknown
+  amount?: unknown
+  fields?: unknown
+  transactionDate?: unknown
 }
 
-/**
- * Verify Finik webhook signature
- * 
- * PRODUCTION REQUIREMENTS - BLOCKED:
- * To complete this implementation, you need the following from Finik API documentation:
- * 1. Signature algorithm (HMAC-SHA256, HMAC-SHA512, or other)
- * 2. HTTP header name for signature (e.g., X-Finik-Signature, X-Hub-Signature-256)
- * 3. Payload format for signature calculation (raw body, specific fields, etc.)
- * 4. Signature format (hex, base64, prefixed with "sha256=", etc.)
- * 5. Timestamp validation requirements (if any)
- * 6. Webhook secret key format and how to obtain it
- * 
- * CURRENT IMPLEMENTATION:
- * - Uses HMAC-SHA256 (common standard, adjust if Finik uses different algorithm)
- * - Expects signature in X-Finik-Signature header
- * - Signs raw request body
- * - Compares using timing-safe comparison
- * 
- * SECURITY NOTES:
- * - NEVER bypass signature verification in production (NODE_ENV check is temporary)
- * - Use constant-time comparison to prevent timing attacks
- * - Validate timestamp if Finik includes it (prevents replay attacks)
- * - Log failed verification attempts for monitoring
- * 
- * @param payload - Raw request body (as string, before JSON parsing)
- * @param signature - Signature from X-Finik-Signature header
- * @param secret - Webhook secret from FINIK_WEBHOOK_SECRET environment variable
- * @returns true if signature is valid, false otherwise
- */
-function verifyFinikSignature(
-  payload: string,
-  signature: string | null,
-  secret: string
-): boolean {
-  if (!signature) {
-    console.warn('[SECURITY] No signature provided for Finik webhook')
-    return false
-  }
-
-  // SECURITY: No bypass in any environment
-  // For local testing without Finik, use test endpoint: POST /api/v1/payments/verify-test
-  // Production MUST have valid FINIK_WEBHOOK_SECRET and proper signature
-
-  try {
-    // Calculate expected signature using HMAC-SHA256
-    // ADJUST ALGORITHM IF FINIK USES DIFFERENT METHOD (check their docs)
-    const expectedSignature = crypto
-      .createHmac('sha256', secret)
-      .update(payload, 'utf-8')
-      .digest('hex')
-
-    // Some providers prefix signature with algorithm: "sha256=abc123..."
-    // Adjust this parsing based on Finik's actual format
-    let receivedSignature = signature
-    if (signature.includes('=')) {
-      const parts = signature.split('=')
-      if (parts.length === 2 && parts[0] === 'sha256') {
-        receivedSignature = parts[1]
-      }
-    }
-
-    // Constant-time comparison to prevent timing attacks
-    // Both strings must be same length for timingSafeEqual
-    if (expectedSignature.length !== receivedSignature.length) {
-      console.warn('[SECURITY] Signature length mismatch', {
-        expected: expectedSignature.length,
-        received: receivedSignature.length,
-      })
-      return false
-    }
-
-    const isValid = crypto.timingSafeEqual(
-      Buffer.from(expectedSignature, 'utf-8'),
-      Buffer.from(receivedSignature, 'utf-8')
-    )
-
-    if (!isValid) {
-      console.warn('[SECURITY] Webhook signature verification failed')
-    }
-
-    return isValid
-  } catch (error) {
-    console.error('[SECURITY] Error during signature verification:', error)
-    return false
-  }
+type FinikFields = Record<string, unknown> & {
+  paymentId?: unknown
+  amount?: unknown
+  currency?: unknown
+  orderNumber?: unknown
 }
 
-/**
- * Generate QR token for ticket
- * Uses cryptographically secure random bytes
- */
+function jsonError(code: string, message: string, status: number): NextResponse {
+  return NextResponse.json({ error: { code, message } }, { status })
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function toMinorUnits(value: unknown): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return null
+  const minor = Math.round(value * 100)
+  if (!Number.isSafeInteger(minor) || Math.abs(value - minor / 100) > 1e-9) return null
+  return minor
+}
+
+function eventId(value: unknown): string | null {
+  return typeof value === 'string' && value.length > 0 && value.length <= 200 ? value : null
+}
+
+function isPrismaCode(error: unknown, code: string): boolean {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === code
+}
+
 function generateQRToken(): string {
-  return crypto.randomBytes(32).toString('base64url')
+  return randomBytes(32).toString('base64url')
 }
 
-/**
- * Hash QR token for lookup
- */
 function hashQRToken(token: string): string {
-  return crypto.createHash('sha256').update(token).digest('hex')
+  return createHash('sha256').update(token).digest('hex')
 }
 
 export async function POST(request: NextRequest) {
+  let rawBody: string
   try {
-    // Get webhook signature
-    const signature = request.headers.get('x-finik-signature')
-
-    // Get raw body for signature verification
-    const rawBody = await request.text()
-    let payload: FinikWebhookPayload
-
-    try {
-      payload = JSON.parse(rawBody)
-    } catch {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'INVALID_PAYLOAD',
-            message: 'Invalid JSON payload',
-          },
-        },
-        { status: 400 }
-      )
+    const contentLength = Number(request.headers.get('content-length'))
+    if (Number.isFinite(contentLength) && contentLength > FINIK_MAX_WEBHOOK_BYTES) {
+      return jsonError('PAYLOAD_TOO_LARGE', 'Webhook payload is too large', 413)
     }
+    const text = await readLimitedRequestText(request, FINIK_MAX_WEBHOOK_BYTES)
+    if (text === null) return jsonError('PAYLOAD_TOO_LARGE', 'Webhook payload is too large', 413)
+    rawBody = text
+  } catch {
+    return jsonError('INVALID_PAYLOAD', 'Invalid webhook payload', 400)
+  }
 
-    // Verify webhook signature
-    const finikSecret = process.env.FINIK_WEBHOOK_SECRET || 'dev-secret'
-    if (!verifyFinikSignature(rawBody, signature, finikSecret)) {
-      console.error('Invalid Finik webhook signature')
-      return NextResponse.json(
-        {
-          error: {
-            code: 'INVALID_SIGNATURE',
-            message: 'Webhook signature verification failed',
-          },
-        },
-        { status: 401 }
-      )
-    }
+  let payload: FinikWebhookPayload
+  try {
+    const parsed: unknown = JSON.parse(rawBody)
+    if (!isRecord(parsed)) return jsonError('INVALID_PAYLOAD', 'Invalid webhook payload', 400)
+    payload = parsed
+  } catch {
+    return jsonError('INVALID_PAYLOAD', 'Invalid webhook payload', 400)
+  }
 
-    // Generate dedupe key to prevent duplicate processing
-    const dedupeKey = `finik:${payload.payment_id}:${payload.event_type}`
+  const fields = isRecord(payload.fields) ? payload.fields as FinikFields : null
+  const paymentId = eventId(fields?.paymentId)
+  const transactionId = eventId(payload.transactionId) ?? eventId(payload.id)
+  if (!fields || !paymentId || !transactionId || typeof payload.status !== 'string') {
+    return jsonError('INVALID_PAYLOAD', 'Invalid webhook payload', 400)
+  }
 
-    // Calculate payload digest for audit
-    const payloadDigest = crypto.createHash('sha256').update(rawBody).digest('hex')
+  let publicKey: string
+  try {
+    publicKey = readFinikWebhookPublicKey(process.env)
+  } catch {
+    return jsonError('WEBHOOK_NOT_CONFIGURED', 'Webhook processing is unavailable', 503)
+  }
 
-    // Process webhook in transaction with deduplication check INSIDE transaction
-    // This prevents race conditions where two identical webhooks arrive simultaneously
+  const url = new URL(request.url)
+  if (!verifyFinikWebhookSignature({
+    method: request.method,
+    path: url.pathname,
+    host: request.headers.get('host'),
+    headers: request.headers,
+    query: url.searchParams,
+    body: payload,
+    signature: request.headers.get('signature'),
+    publicKey,
+  })) {
+    return jsonError('INVALID_SIGNATURE', 'Webhook signature verification failed', 401)
+  }
+
+  const digest = createHash('sha256').update(rawBody, 'utf8').digest('hex')
+  const normalizedStatus = payload.status.toLowerCase()
+  if (normalizedStatus !== 'success' && normalizedStatus !== 'succeeded') {
+    return NextResponse.json({ success: true, ignored: true })
+  }
+
+  const receivedAmount = toMinorUnits(payload.amount)
+  const fieldsAmount = toMinorUnits(fields.amount)
+  const receivedCurrency = typeof fields.currency === 'string' ? fields.currency.toUpperCase() : null
+  const receivedOrderNumber = typeof fields.orderNumber === 'string' ? fields.orderNumber : null
+  if (receivedAmount === null || fieldsAmount === null || receivedAmount !== fieldsAmount || !receivedCurrency) {
+    return jsonError('INVALID_PAYMENT_DETAILS', 'Webhook payment details do not match', 400)
+  }
+
+  try {
     const result = await prisma.$transaction(async (tx) => {
-      // Check for duplicate webhook inside transaction (prevents race condition)
-      const existingWebhook = await tx.paymentWebhookEvent.findUnique({
-        where: { dedupeKey },
+      const priorEvent = await tx.paymentWebhookEvent.findUnique({ where: { dedupeKey: `finik:${transactionId}` } })
+      if (priorEvent) return { outcome: 'duplicate' as const }
+
+      const candidate = await tx.payment.findUnique({
+        where: { providerPaymentId: paymentId },
+        include: { order: { select: { id: true, forumId: true } } },
       })
-
-      if (existingWebhook) {
-        console.log(`Duplicate webhook ignored (in transaction): ${dedupeKey}`)
-        // Return early from transaction - no processing needed
-        return {
-          duplicate: true,
-          payment: null,
-          order: null,
-          tickets: [],
-          webhookEvent: existingWebhook,
-        }
-      }
-      // 1. Find order by orderNumber
-      const order = await tx.order.findFirst({
-        where: { orderNumber: payload.order_number },
-        include: {
-          items: true,
-          payments: {
-            where: { providerPaymentId: payload.payment_id },
-            take: 1,
-          },
-        },
-      })
-
-      if (!order) {
-        throw new Error('ORDER_NOT_FOUND')
-      }
-
-      // 2. Find or update payment record
-      let payment = order.payments[0]
-
-      if (!payment) {
-        // Create payment if doesn't exist (shouldn't happen normally)
-        payment = await tx.payment.create({
+      if (!candidate) {
+        await tx.paymentWebhookEvent.create({
           data: {
-            orderId: order.id,
             provider: 'FINIK',
-            providerPaymentId: payload.payment_id,
-            status: PaymentStatus.PENDING,
-            amountMinor: Math.round(payload.amount * 100), // Convert to minor units
-            currency: payload.currency,
+            dedupeKey: `finik:${transactionId}`,
+            providerEventId: transactionId,
+            payloadDigest: digest,
+            eventType: normalizedStatus,
+            status: WebhookEventStatus.IGNORED,
           },
         })
+        return { outcome: 'unknown-payment' as const }
       }
 
-      // 3. Record webhook event
+      // Match the lock used by RSVP and order reservation before touching the order,
+      // payment, tickets, or capacity counts.
+      await lockEventRow(tx, candidate.order.forumId)
+      const payment = await tx.payment.findUnique({ where: { id: candidate.id } })
+      const order = await tx.order.findUnique({
+        where: { id: candidate.order.id },
+        include: { items: true, forum: { select: { capacity: true, qrExpiresAt: true } } },
+      })
+      if (!payment || !order) return { outcome: 'unknown-payment' as const }
+
       const webhookEvent = await tx.paymentWebhookEvent.create({
         data: {
           provider: 'FINIK',
-          dedupeKey,
-          providerEventId: payload.payment_id,
+          dedupeKey: `finik:${transactionId}`,
+          providerEventId: transactionId,
           paymentId: payment.id,
-          payloadDigest,
-          eventType: payload.event_type,
-          status: 'RECEIVED',
+          payloadDigest: digest,
+          eventType: normalizedStatus,
+          status: WebhookEventStatus.RECEIVED,
         },
       })
 
-      // 4. Process event based on type
-      let updatedPayment
-      let updatedOrder
-      const tickets: any[] = []
-
-      if (payload.event_type === 'payment.succeeded') {
-        // Payment successful - update payment and order
-        const paidAt = payload.paid_at ? new Date(payload.paid_at) : new Date()
-
-        updatedPayment = await tx.payment.update({
-          where: { id: payment.id },
-          data: {
-            status: PaymentStatus.SUCCEEDED,
-            paidAt,
-          },
-        })
-
-        updatedOrder = await tx.order.update({
-          where: { id: order.id },
-          data: {
-            status: OrderStatus.PAID,
-            paidAt,
-          },
-        })
-
-        // 5. Issue tickets for all order items
-        for (const item of order.items) {
-          // Check if ticket already exists (idempotency)
-          const existingTicket = await tx.ticket.findUnique({
-            where: { orderItemId: item.id },
-          })
-
-          if (existingTicket) {
-            tickets.push(existingTicket)
-            continue
-          }
-
-          // Generate ticket number: TIX-YYYYMMDD-XXXXXX
-          const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '')
-          const randomPart = Math.floor(Math.random() * 1000000)
-            .toString()
-            .padStart(6, '0')
-          const ticketNumber = `TIX-${datePart}-${randomPart}`
-
-          // Get forum and order item details
-          const forum = await tx.forum.findUnique({
-            where: { id: order.forumId },
-            select: { qrExpiresAt: true },
-          })
-
-          const fullItem = await tx.orderItem.findUnique({
-            where: { id: item.id },
-            select: {
-              participantFirstName: true,
-              participantLastName: true,
-              ticketCategoryId: true,
-            },
-          })
-
-          // Generate QR token
-          const qrToken = generateQRToken()
-          const qrTokenHash = hashQRToken(qrToken)
-
-          // Encrypt qrToken using AES-256-GCM
-          // This replaces the insecure Base64 encoding
-          const qrTokenEncrypted = encryptQRToken(qrToken)
-
-          // Create ticket
-          const ticket = await tx.ticket.create({
-            data: {
-              ticketNumber,
-              orderItemId: item.id,
-              buyerId: order.userId,
-              forumId: order.forumId,
-              status: TicketStatus.ACTIVE,
-              qrTokenHash,
-              qrTokenEncrypted, // TODO: Use proper encryption in production
-              expiresAt: forum?.qrExpiresAt || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-            },
-          })
-
-          tickets.push({ ...ticket, qrToken, categoryId: fullItem?.ticketCategoryId })
-        }
-
-        // Mark webhook as processed
-        await tx.paymentWebhookEvent.update({
-          where: { id: webhookEvent.id },
-          data: {
-            status: 'PROCESSED',
-            processedAt: new Date(),
-          },
-        })
-      } else if (payload.event_type === 'payment.failed') {
-        // Payment failed
-        updatedPayment = await tx.payment.update({
-          where: { id: payment.id },
-          data: { status: PaymentStatus.FAILED },
-        })
-
-        updatedOrder = await tx.order.update({
-          where: { id: order.id },
-          data: { status: OrderStatus.PAYMENT_FAILED },
-        })
-
-        await tx.paymentWebhookEvent.update({
-          where: { id: webhookEvent.id },
-          data: {
-            status: 'PROCESSED',
-            processedAt: new Date(),
-          },
-        })
-      } else if (payload.event_type === 'payment.expired') {
-        // Payment expired
-        updatedPayment = await tx.payment.update({
-          where: { id: payment.id },
-          data: { status: PaymentStatus.EXPIRED },
-        })
-
-        updatedOrder = await tx.order.update({
-          where: { id: order.id },
-          data: { status: OrderStatus.EXPIRED },
-        })
-
-        await tx.paymentWebhookEvent.update({
-          where: { id: webhookEvent.id },
-          data: {
-            status: 'PROCESSED',
-            processedAt: new Date(),
-          },
-        })
-      } else {
-        // Unknown event type - mark as ignored
-        await tx.paymentWebhookEvent.update({
-          where: { id: webhookEvent.id },
-          data: { status: 'IGNORED' },
-        })
+      const isValidOrderNumber = !receivedOrderNumber || receivedOrderNumber === order.orderNumber
+      if (
+        payment.providerPaymentId !== paymentId ||
+        payment.orderId !== order.id ||
+        payment.amountMinor !== receivedAmount ||
+        payment.amountMinor !== fieldsAmount ||
+        payment.currency !== receivedCurrency ||
+        !isValidOrderNumber
+      ) {
+        await tx.paymentWebhookEvent.update({ where: { id: webhookEvent.id }, data: { status: WebhookEventStatus.IGNORED } })
+        return { outcome: 'mismatch' as const }
       }
 
-      return {
-        duplicate: false,
-        payment: updatedPayment,
-        order: updatedOrder,
-        tickets,
-        webhookEvent,
+      if (payment.status === PaymentStatus.SUCCEEDED) {
+        await tx.paymentWebhookEvent.update({ where: { id: webhookEvent.id }, data: { status: WebhookEventStatus.IGNORED } })
+        return { outcome: 'already-paid' as const }
       }
-    })
 
-    // Handle duplicate detection result
-    if (result.duplicate) {
-      return NextResponse.json({ success: true, duplicate: true })
-    }
+      const paidAt = typeof payload.transactionDate === 'number' && Number.isFinite(payload.transactionDate)
+        ? new Date(payload.transactionDate)
+        : new Date()
+      if (!Number.isFinite(paidAt.getTime()) || paidAt.getTime() > Date.now() + 5 * 60 * 1000) {
+        await tx.paymentWebhookEvent.update({ where: { id: webhookEvent.id }, data: { status: WebhookEventStatus.IGNORED } })
+        return { outcome: 'mismatch' as const }
+      }
 
-    console.log(`Processed Finik webhook: ${payload.event_type} for order ${payload.order_number}`)
+      const occupied = await countOccupiedSeats(tx, order.forumId, new Date())
+      const reservationActive = order.status === OrderStatus.PENDING_PAYMENT && !!order.reservedUntil && order.reservedUntil > new Date()
+      const extraCapacity = reservationActive ? 0 : order.items.length
+      const capacityUnavailable = occupied > order.forum.capacity || occupied + extraCapacity > order.forum.capacity
 
-    // In production, should trigger:
-    // - Email notification to user
-    // - Telegram notification if connected
-    // - SMS with ticket links
-
-    return NextResponse.json({
-      success: true,
-      processed: true,
-      ticketsIssued: result.tickets?.length || 0,
-    })
-  } catch (error: any) {
-    console.error('Error processing Finik webhook:', error)
-
-    // Handle Prisma unique constraint violation (duplicate dedupeKey)
-    // This is a backup safety check - should not happen with transaction-based deduplication
-    if (error.code === 'P2002' && error.meta?.target?.includes('dedupeKey')) {
-      console.log(`Duplicate webhook caught by unique constraint: ${error.meta.target}`)
-      return NextResponse.json({
-        success: true,
-        duplicate: true,
-        message: 'Webhook already processed',
+      await tx.payment.update({
+        where: { id: payment.id },
+        data: { status: PaymentStatus.SUCCEEDED, paidAt },
       })
-    }
 
-    if (error.message === 'ORDER_NOT_FOUND') {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'ORDER_NOT_FOUND',
-            message: 'Order not found',
+      if (capacityUnavailable || order.status !== OrderStatus.PENDING_PAYMENT) {
+        await tx.order.update({ where: { id: order.id }, data: { status: OrderStatus.CANCELLED } })
+        await tx.refund.create({
+          data: {
+            orderId: order.id,
+            paymentId: payment.id,
+            method: RefundMethod.MANUAL,
+            status: RefundStatus.PENDING,
+            amountMinor: payment.amountMinor,
+            currency: payment.currency,
+            reason: 'Payment arrived after reservation was no longer available',
           },
-        },
-        { status: 404 }
-      )
-    }
+        })
+        await tx.paymentWebhookEvent.update({ where: { id: webhookEvent.id }, data: { status: WebhookEventStatus.PROCESSED, processedAt: new Date() } })
+        return { outcome: 'refund-required' as const }
+      }
 
-    // Return 500 to trigger Finik retry
-    return NextResponse.json(
-      {
-        error: {
-          code: 'WEBHOOK_PROCESSING_FAILED',
-          message: 'Failed to process webhook',
-        },
-      },
-      { status: 500 }
-    )
+      await tx.order.update({ where: { id: order.id }, data: { status: OrderStatus.PAID, paidAt } })
+      for (const item of order.items) {
+        const existingTicket = await tx.ticket.findUnique({ where: { orderItemId: item.id } })
+        if (existingTicket) continue
+
+        const token = generateQRToken()
+        await tx.ticket.create({
+          data: {
+            ticketNumber: `TIX-${randomUUID()}`,
+            orderItemId: item.id,
+            buyerId: order.userId,
+            forumId: order.forumId,
+            status: TicketStatus.ACTIVE,
+            qrTokenHash: hashQRToken(token),
+            qrTokenEncrypted: encryptQRToken(token),
+            expiresAt: order.forum.qrExpiresAt || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+          },
+        })
+      }
+
+      await tx.paymentWebhookEvent.update({ where: { id: webhookEvent.id }, data: { status: WebhookEventStatus.PROCESSED, processedAt: new Date() } })
+      return { outcome: 'processed' as const, ticketsIssued: order.items.length }
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
+
+    if (result.outcome === 'duplicate') return NextResponse.json({ success: true, duplicate: true })
+    if (result.outcome === 'unknown-payment') return NextResponse.json({ success: true, ignored: true })
+    if (result.outcome === 'mismatch') return jsonError('PAYMENT_DETAILS_MISMATCH', 'Webhook payment details do not match', 400)
+    if (result.outcome === 'already-paid') return NextResponse.json({ success: true, duplicate: true })
+    if (result.outcome === 'refund-required') return NextResponse.json({ success: true, processed: true, refundRequired: true })
+    return NextResponse.json({ success: true, processed: true, ticketsIssued: result.ticketsIssued })
+  } catch (error) {
+    if (isPrismaCode(error, 'P2002')) return NextResponse.json({ success: true, duplicate: true })
+    // Do not log provider payloads, headers, signatures, or database error contents.
+    console.error('Finik webhook transaction failed')
+    return jsonError('WEBHOOK_PROCESSING_FAILED', 'Failed to process webhook', 500)
   }
 }

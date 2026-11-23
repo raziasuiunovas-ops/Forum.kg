@@ -110,6 +110,20 @@ export async function GET(request: NextRequest, context: RouteContext) {
       )
     }
 
+    // SECURITY: Check if order is paid
+    // Never expose QR for unpaid tickets
+    if (!ticket.orderItem.order.paidAt) {
+      return NextResponse.json(
+        {
+          error: {
+            code: 'ORDER_NOT_PAID',
+            message: 'Заказ не оплачен. QR-код будет доступен после оплаты.',
+          },
+        },
+        { status: 402 } // 402 Payment Required
+      )
+    }
+
     // Check if ticket expired
     const now = new Date()
     const isExpired = ticket.expiresAt < now

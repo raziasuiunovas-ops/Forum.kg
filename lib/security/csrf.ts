@@ -9,6 +9,7 @@ import { cookies } from 'next/headers'
 const CSRF_TOKEN_LENGTH = 32
 const CSRF_COOKIE_NAME = 'csrf_token'
 const CSRF_HEADER_NAME = 'x-csrf-token'
+const FINIK_WEBHOOK_PATH = '/api/v1/payments/webhooks/finik'
 
 // Methods that require CSRF protection
 const PROTECTED_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE']
@@ -116,7 +117,9 @@ export function validateOrigin(request: NextRequest): boolean {
  * Check if path should skip CSRF validation
  */
 export function shouldSkipCsrf(pathname: string): boolean {
-  return CSRF_SKIP_PATHS.some(path => pathname.startsWith(path))
+  // Finik authenticates this server-to-server callback with its signed request;
+  // browser cookies and CSRF tokens are not part of the webhook contract.
+  return pathname === FINIK_WEBHOOK_PATH || CSRF_SKIP_PATHS.some(path => pathname.startsWith(path))
 }
 
 /**

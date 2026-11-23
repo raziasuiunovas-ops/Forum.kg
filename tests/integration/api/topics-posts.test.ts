@@ -45,7 +45,7 @@ const auth = require('../../../lib/auth/middleware') as typeof import('../../../
 const categoriesRoute = require('../../../app/api/v1/topics/categories/route') as typeof import('../../../app/api/v1/topics/categories/route')
 const topicsRoute = require('../../../app/api/v1/topics/route') as typeof import('../../../app/api/v1/topics/route')
 const topicRoute = require('../../../app/api/v1/topics/[id]/route') as typeof import('../../../app/api/v1/topics/[id]/route')
-const repliesRoute = require('../../../app/api/v1/topics/[topicId]/replies/route') as typeof import('../../../app/api/v1/topics/[topicId]/replies/route')
+const repliesRoute = require('../../../app/api/v1/topics/[id]/replies/route') as typeof import('../../../app/api/v1/topics/[id]/replies/route')
 const replyRoute = require('../../../app/api/v1/replies/[id]/route') as typeof import('../../../app/api/v1/replies/[id]/route')
 moduleLoader._load = originalLoad
 
@@ -94,12 +94,8 @@ function request(path: string, method = 'GET', body?: string) {
   })
 }
 
-function params(id: string): { params: Promise<{ id: string }> }
-function params(id: string, key: 'topicId'): { params: Promise<{ topicId: string }> }
-function params(id: string, key: 'id' | 'topicId' = 'id') {
-  return key === 'topicId'
-    ? { params: Promise.resolve({ topicId: id }) }
-    : { params: Promise.resolve({ id }) }
+function params(id: string): { params: Promise<{ id: string }> } {
+  return { params: Promise.resolve({ id }) }
 }
 
 function authAs(t: any, userId = USER_ID, role = 'USER') {
@@ -334,7 +330,7 @@ test('GET replies paginates and masks deleted reply content', async (t) => {
 
   const response = await repliesRoute.GET(
     request(`/api/v1/topics/${TOPIC_ID}/replies?page=2&limit=3`),
-    params(TOPIC_ID, 'topicId')
+    params(TOPIC_ID)
   )
   const body = await response.json() as any
 
@@ -368,7 +364,7 @@ test('POST reply creates a same-topic reply and increments its counter transacti
     request(`/api/v1/topics/${TOPIC_ID}/replies`, 'POST', JSON.stringify({
       content: { ru: 'Ответ' }, parentId: PARENT_ID,
     })),
-    params(TOPIC_ID, 'topicId')
+    params(TOPIC_ID)
   )
 
   assert.equal(response.status, 201)
@@ -391,12 +387,12 @@ test('POST reply rejects locked topics and parents from another topic', async (t
 
   const lockedResponse = await repliesRoute.POST(
     request(`/api/v1/topics/${TOPIC_ID}/replies`, 'POST', body),
-    params(TOPIC_ID, 'topicId')
+    params(TOPIC_ID)
   )
   locked = false
   const parentResponse = await repliesRoute.POST(
     request(`/api/v1/topics/${TOPIC_ID}/replies`, 'POST', body),
-    params(TOPIC_ID, 'topicId')
+    params(TOPIC_ID)
   )
 
   assert.equal(lockedResponse.status, 409)
@@ -491,7 +487,7 @@ test('reply endpoints require authentication and return 404 for missing IDs', as
     : NextResponse.json({ error: { code: 'UNAUTHORIZED' } }, { status: 401 }))
   const unauthorized = await repliesRoute.POST(
     request(`/api/v1/topics/${TOPIC_ID}/replies`, 'POST', JSON.stringify({ content: { ru: 'Ответ' } })),
-    params(TOPIC_ID, 'topicId')
+    params(TOPIC_ID)
   )
   assert.equal(unauthorized.status, 401)
 
@@ -510,15 +506,15 @@ test('reply validation rejects unknown fields and malformed JSON', async (t) => 
     request(`/api/v1/topics/${TOPIC_ID}/replies`, 'POST', JSON.stringify({
       content: { ru: 'Ответ' }, isPinned: true,
     })),
-    params(TOPIC_ID, 'topicId')
+    params(TOPIC_ID)
   )
   const malformed = await repliesRoute.POST(
     request(`/api/v1/topics/${TOPIC_ID}/replies`, 'POST', '{ invalid'),
-    params(TOPIC_ID, 'topicId')
+    params(TOPIC_ID)
   )
   const empty = await repliesRoute.POST(
     request(`/api/v1/topics/${TOPIC_ID}/replies`, 'POST', ''),
-    params(TOPIC_ID, 'topicId')
+    params(TOPIC_ID)
   )
   assert.equal(unknown.status, 422)
   assert.equal(malformed.status, 422)
