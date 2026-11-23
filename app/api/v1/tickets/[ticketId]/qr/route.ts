@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth/middleware'
+import { decryptQRToken } from '@/lib/crypto/qr-encryption'
 
 interface RouteContext {
   params: Promise<{
@@ -41,6 +42,15 @@ export async function GET(request: NextRequest, context: RouteContext) {
         status: true,
         expiresAt: true,
         qrTokenEncrypted: true,
+        orderItem: {
+          select: {
+            order: {
+              select: {
+                paidAt: true,
+              },
+            },
+          },
+        },
       },
     })
 
@@ -66,6 +76,20 @@ export async function GET(request: NextRequest, context: RouteContext) {
           },
         },
         { status: 403 }
+      )
+    }
+
+    // SECURITY: Check if order is paid
+    // Never expose QR for unpaid tickets
+    if (!ticket.orderItem.order.paidAt) {
+      return NextResponse.json(
+        {
+          error: {
+            code: 'ORDER_NOT_PAID',
+            message: 'Заказ не оплачен. QR-код будет доступен после оплаты.',
+          },
+        },
+        { status: 402 } // 402 Payment Required
       )
     }
 
@@ -95,8 +119,24 @@ export async function GET(request: NextRequest, context: RouteContext) {
       )
     }
 
-    // Decrypt QR token
-    const qrToken = Buffer.from(ticket.qrTokenEncrypted, 'base64').toString('utf-8')
+    // Decrypt QR token using AES-256-GCM
+    // SECURITY: This replaces insecure Base64 decoding
+    let qrToken: string
+    try {
+      qrToken = decryptQRToken(ticket.qrTokenEncrypted)
+    } catch (error) {
+      console.error('[SECURITY] Failed to decrypt QR token for ticket:', ticket.id)
+      // Never log the error details which might contain key information
+      return NextResponse.json(
+        {
+          error: {
+            code: 'QR_DECRYPTION_FAILED',
+            message: 'Не удалось расшифровать QR-код. Обратитесь в поддержку.',
+          },
+        },
+        { status: 500 }
+      )
+    }
 
     // Build QR content
     const qrContent = `FORUM.KG|${ticket.ticketNumber}|${qrToken}`

@@ -57,6 +57,11 @@ enum OrderStatus {
   PAYMENT_FAILED
 }
 
+enum OrderIdempotencyStatus {
+  PROCESSING
+  COMPLETED
+}
+
 enum PaymentProvider {
   FINIK
 }
@@ -182,6 +187,7 @@ model User {
   eventRegistrations           EventRegistration[]   @relation("EventRegistrationUser")
   createdForums                Forum[]               @relation("ForumCreator")
   orders                       Order[]
+  orderIdempotencyKeys         OrderIdempotency[]
   purchasedTickets             Ticket[]              @relation("TicketBuyer")
   performedCheckIns            CheckIn[]             @relation("CheckInOperator")
   cancellationRequests         CancellationRequest[] @relation("CancellationRequester")
@@ -347,17 +353,37 @@ model Order {
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
-  user          User                  @relation(fields: [userId], references: [id])
-  forum         Forum                 @relation(fields: [forumId], references: [id])
-  items         OrderItem[]
-  payments      Payment[]
-  cancellations CancellationRequest[]
-  refunds       Refund[]
-  notifications Notification[]
+  user           User                  @relation(fields: [userId], references: [id])
+  forum          Forum                 @relation(fields: [forumId], references: [id])
+  items          OrderItem[]
+  payments       Payment[]
+  cancellations  CancellationRequest[]
+  refunds        Refund[]
+  notifications  Notification[]
+  idempotencyKey OrderIdempotency?
 
   @@index([userId, createdAt])
   @@index([forumId, status, reservedUntil])
   @@index([status, createdAt])
+}
+
+model OrderIdempotency {
+  id             String                 @id @default(uuid()) @db.Uuid
+  userId         String                 @db.Uuid
+  keyHash        String                 @db.VarChar(64)
+  fingerprint    String                 @db.VarChar(64)
+  status         OrderIdempotencyStatus @default(PROCESSING)
+  orderId        String?                @unique @db.Uuid
+  responseStatus Int?
+  response       Json?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order Order? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, keyHash])
+  @@index([createdAt])
 }
 
 model OrderItem {
@@ -670,6 +696,21 @@ model Session {
   @@index([userId, revokedAt, expiresAt])
   @@index([sessionFamilyId, generationNumber])
   @@index([expiresAt, revokedAt])
+}
+
+// Admin 2FA Code Storage (persistent, multi-instance safe)
+model Admin2FACode {
+  id            String    @id @default(uuid()) @db.Uuid
+  pendingToken  String    @unique @db.VarChar(255) // base64url encoded token
+  username      String    @db.VarChar(100)
+  codeHash      String    @db.VarChar(128) // SHA-256 hash of 6-digit code
+  chatId        String    @db.VarChar(64)
+  attempts      Int       @default(0)
+  expiresAt     DateTime
+  createdAt     DateTime  @default(now())
+
+  @@index([expiresAt]) // For cleanup queries
+  @@index([username, createdAt]) // For rate limiting queries
 }
 
 model TopicCategory {

@@ -7,7 +7,7 @@ import { parsePaginationParams, uuidSchema } from '@/lib/api/schemas/common'
 import { requireAuth } from '@/lib/auth/middleware'
 import { writeSecurityAuditEvent } from '@/lib/security/audit-logger'
 
-type RepliesRouteContext = { params: Promise<{ topicId: string }> }
+type RepliesRouteContext = { params: Promise<{ id: string }> }
 
 const replyPublicSelect = {
   id: true,
@@ -21,7 +21,7 @@ const replyPublicSelect = {
 } satisfies Prisma.PostSelect
 
 export const GET = withErrorHandler(async (request: NextRequest, context: RepliesRouteContext) => {
-  const { topicId } = await context.params
+  const { id: topicId } = await context.params
   const parsedTopicId = uuidSchema.safeParse(topicId)
   if (!parsedTopicId.success) return error('INVALID_PARAMETER', 'Неверный идентификатор темы', 400)
 
@@ -66,7 +66,7 @@ export const POST = withErrorHandler(async (request: NextRequest, context: Repli
   const authResult = await requireAuth(request)
   if (authResult instanceof NextResponse) return authResult
 
-  const { topicId } = await context.params
+  const { id: topicId } = await context.params
   const parsedTopicId = uuidSchema.safeParse(topicId)
   if (!parsedTopicId.success) return error('INVALID_PARAMETER', 'Неверный идентификатор темы', 400)
   const input = await validateBody(request, createReplySchema)
