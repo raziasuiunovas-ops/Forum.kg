@@ -1,38 +1,54 @@
 /**
  * GET /api/v1/tickets/{ticketId}/qr
- * Generate QR code for ticket
- * 
- * NOTE: This is a STUB implementation.
- * In production, you should either:
- * 1. Install 'qrcode' package and generate PNG
- * 2. Use a dedicated QR generation service
- * 3. Return data for client-side QR generation
+ * Generate a private, scannable QR image for an active ticket.
  */
 
+import QRCode from 'qrcode'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth/middleware'
 import { decryptQRToken } from '@/lib/crypto/qr-encryption'
 
 interface RouteContext {
-  params: Promise<{
-    ticketId: string
-  }>
+  params: Promise<{ ticketId: string }>
+}
+
+const PRIVATE_QR_HEADERS = {
+  'Cache-Control': 'private, no-store, no-cache, max-age=0, must-revalidate',
+  Pragma: 'no-cache',
+  Vary: 'Cookie, Authorization',
+  'X-Content-Type-Options': 'nosniff',
+}
+
+function privateJson(body: unknown, status: number): NextResponse {
+  return NextResponse.json(body, { status, headers: PRIVATE_QR_HEADERS })
+}
+
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
-    // Authenticate user
     const authResult = await requireAuth(request)
-    
     if ('headers' in authResult) {
+      authResult.headers.set('Cache-Control', PRIVATE_QR_HEADERS['Cache-Control'])
+      authResult.headers.set('Pragma', PRIVATE_QR_HEADERS.Pragma)
+      authResult.headers.set('Vary', PRIVATE_QR_HEADERS.Vary)
       return authResult
     }
 
-    const user = authResult.user
     const { ticketId } = await context.params
+    if (!isUuid(ticketId)) {
+      return privateJson({ error: { code: 'INVALID_TICKET_ID', message: 'Неверный формат ID билета' } }, 400)
+    }
 
-    // Get ticket
+    const sizeValue = request.nextUrl.searchParams.get('size')
+    const size = sizeValue === null ? 512 : Number(sizeValue)
+    if (!Number.isInteger(size) || size < 128 || size > 1024) {
+      return privateJson({ error: { code: 'INVALID_QR_SIZE', message: 'Размер QR-кода должен быть от 128 до 1024 пикселей' } }, 400)
+    }
+
     const ticket = await prisma.ticket.findUnique({
       where: { id: ticketId },
       select: {
@@ -44,152 +60,63 @@ export async function GET(request: NextRequest, context: RouteContext) {
         qrTokenEncrypted: true,
         orderItem: {
           select: {
-            order: {
-              select: {
-                paidAt: true,
-              },
-            },
+            order: { select: { paidAt: true } },
           },
         },
       },
     })
 
     if (!ticket) {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'TICKET_NOT_FOUND',
-            message: 'Билет не найден',
-          },
-        },
-        { status: 404 }
-      )
+      return privateJson({ error: { code: 'TICKET_NOT_FOUND', message: 'Билет не найден' } }, 404)
     }
 
-    // Authorization check
-    if (ticket.buyerId !== user.userId && user.role !== 'SUPER_ADMIN') {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'FORBIDDEN',
-            message: 'Нет доступа к этому билету',
-          },
-        },
-        { status: 403 }
-      )
+    if (ticket.buyerId !== authResult.user.userId && authResult.user.role !== 'SUPER_ADMIN') {
+      return privateJson({ error: { code: 'FORBIDDEN', message: 'Нет доступа к этому билету' } }, 403)
     }
 
-    // SECURITY: Check if order is paid
-    // Never expose QR for unpaid tickets
     if (!ticket.orderItem.order.paidAt) {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'ORDER_NOT_PAID',
-            message: 'Заказ не оплачен. QR-код будет доступен после оплаты.',
-          },
-        },
-        { status: 402 } // 402 Payment Required
-      )
+      return privateJson({
+        error: { code: 'ORDER_NOT_PAID', message: 'QR-код будет доступен после оплаты заказа' },
+      }, 402)
     }
 
-    // Check ticket is valid for QR display
-    if (ticket.status === 'CANCELLED') {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'TICKET_CANCELLED',
-            message: 'Билет отменён',
-          },
-        },
-        { status: 400 }
-      )
+    if (ticket.status !== 'ACTIVE') {
+      return privateJson({ error: { code: 'TICKET_NOT_ACTIVE', message: 'QR-код доступен только для активного билета' } }, 409)
     }
 
-    // Check expiry
-    if (ticket.expiresAt < new Date()) {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'TICKET_EXPIRED',
-            message: 'Срок действия билета истёк',
-          },
-        },
-        { status: 400 }
-      )
+    if (ticket.expiresAt <= new Date()) {
+      return privateJson({ error: { code: 'TICKET_EXPIRED', message: 'Срок действия билета истёк' } }, 400)
     }
 
-    // Decrypt QR token using AES-256-GCM
-    // SECURITY: This replaces insecure Base64 decoding
     let qrToken: string
     try {
       qrToken = decryptQRToken(ticket.qrTokenEncrypted)
-    } catch (error) {
+    } catch {
       console.error('[SECURITY] Failed to decrypt QR token for ticket:', ticket.id)
-      // Never log the error details which might contain key information
-      return NextResponse.json(
-        {
-          error: {
-            code: 'QR_DECRYPTION_FAILED',
-            message: 'Не удалось расшифровать QR-код. Обратитесь в поддержку.',
-          },
-        },
-        { status: 500 }
-      )
+      return privateJson({
+        error: { code: 'QR_DECRYPTION_FAILED', message: 'Не удалось сформировать QR-код. Обратитесь в поддержку.' },
+      }, 500)
     }
 
-    // Build QR content
-    const qrContent = `FORUM.KG|${ticket.ticketNumber}|${qrToken}`
+    // This is the minimal payload consumed by POST /api/v1/check-in/validate.
+    const payload = `FORUM.KG|${ticket.ticketNumber}|${qrToken}`
+    const svg = await QRCode.toString(payload, {
+      type: 'svg',
+      errorCorrectionLevel: 'M',
+      margin: 2,
+      width: size,
+    })
 
-    // STUB: Return simple SVG QR code placeholder
-    // In production, use proper QR generation library
-    const size = parseInt(request.nextUrl.searchParams.get('size') || '512')
-    
-    // Generate simple placeholder SVG
-    const svg = generatePlaceholderQR(qrContent, size)
-
-    return new Response(svg, {
+    return new NextResponse(svg, {
+      status: 200,
       headers: {
-        'Content-Type': 'image/svg+xml',
-        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        ...PRIVATE_QR_HEADERS,
+        'Content-Type': 'image/svg+xml; charset=utf-8',
+        'Content-Disposition': 'inline; filename="ticket-qr.svg"',
       },
     })
-  } catch (error) {
-    console.error('Error generating QR code:', error)
-    return NextResponse.json(
-      {
-        error: {
-          code: 'QR_GENERATION_FAILED',
-          message: 'Не удалось создать QR-код',
-        },
-      },
-      { status: 500 }
-    )
+  } catch {
+    console.error('Error generating ticket QR')
+    return privateJson({ error: { code: 'QR_GENERATION_FAILED', message: 'Не удалось создать QR-код' } }, 500)
   }
-}
-
-/**
- * Generate placeholder SVG QR code
- * STUB: Replace with actual QR generation in production
- */
-function generatePlaceholderQR(content: string, size: number): string {
-  // Simple SVG with text (not a real QR code)
-  // In production, use 'qrcode' package:
-  // const QRCode = require('qrcode')
-  // const url = await QRCode.toDataURL(content)
-  
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
-  <rect width="100%" height="100%" fill="white"/>
-  <rect x="10%" y="10%" width="80%" height="80%" fill="none" stroke="black" stroke-width="2"/>
-  <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" font-family="monospace" font-size="12" fill="black">
-    QR CODE PLACEHOLDER
-  </text>
-  <text x="50%" y="60%" text-anchor="middle" dominant-baseline="middle" font-family="monospace" font-size="8" fill="gray">
-    Install 'qrcode' npm package
-  </text>
-  <text x="50%" y="70%" text-anchor="middle" dominant-baseline="middle" font-family="monospace" font-size="6" fill="gray" opacity="0.5">
-    ${content.substring(0, 40)}...
-  </text>
-</svg>`
 }

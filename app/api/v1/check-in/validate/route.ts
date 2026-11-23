@@ -11,6 +11,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/db'
 import { z } from 'zod'
 import { requireRole } from '@/lib/auth/middleware'
@@ -315,6 +316,18 @@ export async function POST(request: NextRequest) {
           },
         },
         { status: 400 }
+      )
+    }
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034') {
+      return NextResponse.json(
+        {
+          error: {
+            code: 'CONCURRENT_CHECK_IN',
+            message: 'Билет зарегистрирован одновременно с этим запросом',
+          },
+        },
+        { status: 409 }
       )
     }
 

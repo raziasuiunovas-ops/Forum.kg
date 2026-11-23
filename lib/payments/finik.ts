@@ -42,6 +42,16 @@ export function readFinikConfig(env: Readonly<Record<string, string | undefined>
     throw new Error('Finik is not configured')
   }
 
+  // Validate RSA private key format (PEM)
+  if (!privateKey.includes('BEGIN PRIVATE KEY') && !privateKey.includes('BEGIN RSA PRIVATE KEY')) {
+    throw new Error('Finik is not configured')
+  }
+
+  // Validate RSA public key format (PEM)
+  if (!publicKey.includes('BEGIN PUBLIC KEY') && !publicKey.includes('BEGIN RSA PUBLIC KEY')) {
+    throw new Error('Finik is not configured')
+  }
+
   validateHttpsUrl(redirectUrl)
   validateHttpsUrl(webhookUrl)
 
@@ -162,6 +172,12 @@ export async function createFinikPayment(
 
   if (response.status !== 302) {
     await cancelResponseBody(response)
+    // Log HTTP status for diagnostics without exposing response body or credentials
+    console.error('Finik payment creation failed', {
+      status: response.status,
+      paymentId: input.paymentId,
+      environment: config.environment,
+    })
     throw new Error('Finik rejected the payment request')
   }
 
@@ -181,7 +197,6 @@ export function verifyFinikWebhookSignature(input: {
   body: unknown
   signature: string | null
   publicKey: string
-  now?: number
 }): boolean {
   if (!input.host || !input.signature || !input.publicKey) return false
 
@@ -226,7 +241,14 @@ export function readFinikWebhookPublicKey(
       ? env.FINIK_PROD_PUBLIC_KEY
       : undefined
   if (!key?.trim()) throw new Error('Finik webhook verification is not configured')
-  return key.trim().replace(/\\n/g, '\n')
+  const publicKey = key.trim().replace(/\\n/g, '\n')
+  
+  // Validate RSA public key format (PEM)
+  if (!publicKey.includes('BEGIN PUBLIC KEY') && !publicKey.includes('BEGIN RSA PUBLIC KEY')) {
+    throw new Error('Finik webhook verification is not configured')
+  }
+  
+  return publicKey
 }
 
 export async function readLimitedRequestText(request: Request, maxBytes: number): Promise<string | null> {

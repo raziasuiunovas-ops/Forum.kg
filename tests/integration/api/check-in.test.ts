@@ -218,7 +218,6 @@ test('POST /api/v1/check-in/validate - forged token hash rejected', async (t) =>
 
 test('POST /api/v1/check-in/validate - expired ticket rejected', async (t) => {
   authAs(t)
-  authAs(t)
   
   const expiredTicket = {
     ...mockTicket,
@@ -245,7 +244,6 @@ test('POST /api/v1/check-in/validate - expired ticket rejected', async (t) => {
 // =============================================================================
 
 test('POST /api/v1/check-in/validate - already checked-in rejected', async (t) => {
-  authAs(t)
   authAs(t)
   
   const checkedInTicket = {
@@ -277,7 +275,6 @@ test('POST /api/v1/check-in/validate - already checked-in rejected', async (t) =
 
 test('POST /api/v1/check-in/validate - wrong forum rejected', async (t) => {
   authAs(t)
-  authAs(t)
   
   t.mock.method(prisma.ticket, 'findFirst', async () => mockTicket)
   
@@ -299,7 +296,6 @@ test('POST /api/v1/check-in/validate - wrong forum rejected', async (t) => {
 // =============================================================================
 
 test('POST /api/v1/check-in/validate - cancelled ticket rejected', async (t) => {
-  authAs(t)
   authAs(t)
   
   const cancelledTicket = {
@@ -328,7 +324,6 @@ test('POST /api/v1/check-in/validate - cancelled ticket rejected', async (t) => 
 
 test('POST /api/v1/check-in/validate - used ticket rejected', async (t) => {
   authAs(t)
-  authAs(t)
   
   const usedTicket = {
     ...mockTicket,
@@ -348,6 +343,36 @@ test('POST /api/v1/check-in/validate - used ticket rejected', async (t) => {
   
   const data = await response.json()
   assert.equal(data.error.code, 'TICKET_ALREADY_USED', 'Error code must be TICKET_ALREADY_USED')
+})
+
+test('POST /api/v1/check-in/validate - repeating the same QR cannot create another check-in', async (t) => {
+  authAs(t)
+  let ticketState: any = { ...mockTicket }
+  let checkInCreates = 0
+  t.mock.method(prisma.ticket, 'findFirst', async () => ticketState)
+  t.mock.method(prisma.checkIn, 'create', async (args: any) => {
+    checkInCreates += 1
+    ticketState = { ...ticketState, status: 'USED', usedAt: new Date(), checkIn: { id: 'checkin-once' } }
+    return {
+      id: 'checkin-once',
+      ticketId: args.data.ticketId,
+      forumId: args.data.forumId,
+      operatorId: args.data.operatorId,
+      method: args.data.method,
+      checkedInAt: new Date(),
+    }
+  })
+  t.mock.method(prisma.ticket, 'update', async () => ticketState)
+
+  const body = JSON.stringify({ qrData: QR_DATA, forumId: FORUM_ID })
+  const first = await checkInRoute.POST(request('/api/v1/check-in/validate', 'POST', body))
+  const repeated = await checkInRoute.POST(request('/api/v1/check-in/validate', 'POST', body))
+  const repeatedBody = await repeated.json()
+
+  assert.equal(first.status, 200)
+  assert.equal(repeated.status, 400)
+  assert.equal(repeatedBody.error.code, 'TICKET_ALREADY_USED')
+  assert.equal(checkInCreates, 1)
 })
 
 // =============================================================================

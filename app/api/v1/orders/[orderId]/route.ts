@@ -188,3 +188,175 @@ export async function GET(request: NextRequest, context: RouteContext) {
     )
   }
 }
+/**
+ * DELETE /api/v1/orders/{orderId}
+ * Cancel unpaid order (owner only, PENDING_PAYMENT status only)
+ */
+export async function DELETE(request: NextRequest, context: RouteContext) {
+  try {
+    // Authenticate user
+    const authResult = await requireAuth(request)
+    
+    if ('headers' in authResult) {
+      return authResult
+    }
+
+    const user = authResult.user
+    const { orderId } = await context.params
+
+    // Validate UUID format
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId)) {
+      return NextResponse.json(
+        {
+          error: {
+            code: 'INVALID_ORDER_ID',
+            message: 'Неверный формат ID заказа',
+          },
+        },
+        { status: 400 }
+      )
+    }
+
+    // Use Serializable transaction to prevent race conditions
+    const result = await prisma.$transaction(async (tx) => {
+      // Lock order for update
+      await tx.$queryRaw`SELECT "id" FROM "Order" WHERE "id" = ${orderId}::uuid FOR UPDATE`
+
+      // Get order with owner check
+      const order = await tx.order.findFirst({
+        where: {
+          id: orderId,
+          userId: user.userId,
+        },
+        include: {
+          payments: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+          },
+        },
+      })
+
+      if (!order) {
+        return { kind: 'not_found' as const }
+      }
+
+      // Only allow cancellation of PENDING_PAYMENT orders
+      if (order.status !== 'PENDING_PAYMENT') {
+        return { kind: 'not_cancellable' as const, status: order.status }
+      }
+
+      // Check if already expired or paid
+      const now = new Date()
+      if (order.reservedUntil && order.reservedUntil < now) {
+        return { kind: 'already_expired' as const }
+      }
+
+      if (order.paidAt) {
+        return { kind: 'already_paid' as const }
+      }
+
+      // Cancel order and expire payment
+      await tx.order.update({
+        where: { id: orderId },
+        data: { status: 'CANCELLED' },
+      })
+
+      // Expire pending payment if exists
+      if (order.payments[0]) {
+        await tx.payment.updateMany({
+          where: {
+            id: order.payments[0].id,
+            status: { in: ['CREATED', 'PENDING', 'PROCESSING'] },
+          },
+          data: { status: 'EXPIRED' },
+        })
+      }
+
+      return { kind: 'success' as const }
+    }, {
+      isolationLevel: 'Serializable',
+    })
+
+    if (result.kind === 'not_found') {
+      return NextResponse.json(
+        {
+          error: {
+            code: 'ORDER_NOT_FOUND',
+            message: 'Заказ не найден',
+          },
+        },
+        { status: 404 }
+      )
+    }
+
+    if (result.kind === 'not_cancellable') {
+      return NextResponse.json(
+        {
+          error: {
+            code: 'ORDER_NOT_CANCELLABLE',
+            message: `Нельзя отменить заказ в статусе ${result.status}. Только неоплаченные заказы можно отменить напрямую.`,
+          },
+        },
+        { status: 409 }
+      )
+    }
+
+    if (result.kind === 'already_expired') {
+      return NextResponse.json(
+        {
+          error: {
+            code: 'ORDER_ALREADY_EXPIRED',
+            message: 'Заказ уже истёк',
+          },
+        },
+        { status: 409 }
+      )
+    }
+
+    if (result.kind === 'already_paid') {
+      return NextResponse.json(
+        {
+          error: {
+            code: 'ORDER_ALREADY_PAID',
+            message: 'Заказ уже оплачен. Используйте endpoint отмены с возвратом средств.',
+          },
+        },
+        { status: 409 }
+      )
+    }
+
+    return NextResponse.json(
+      {
+        message: 'Заказ успешно отменён',
+        orderId,
+        status: 'CANCELLED',
+      },
+      { status: 200 }
+    )
+  } catch (error) {
+    console.error('Error cancelling unpaid order:', error)
+    
+    // Handle Prisma transaction conflicts
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2034') {
+      return NextResponse.json(
+        {
+          error: {
+            code: 'CONCURRENT_MODIFICATION',
+            message: 'Заказ изменился одновременно с запросом. Повторите попытку.',
+          },
+        },
+        { status: 409 }
+      )
+    }
+
+    return NextResponse.json(
+      {
+        error: {
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Не удалось отменить заказ',
+        },
+      },
+      { status: 500 }
+    )
+  }
+}

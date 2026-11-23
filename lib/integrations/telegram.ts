@@ -48,6 +48,7 @@ interface TelegramResponse<T = any> {
 /**
  * Send message via Telegram Bot API
  * 
+ * SECURITY: Does not log message text to prevent leaking sensitive codes
  * @throws {TelegramError} If message sending fails
  */
 export async function sendTelegramMessage(
@@ -74,13 +75,16 @@ export async function sendTelegramMessage(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
+      // Add timeout to prevent hanging
+      signal: AbortSignal.timeout(10000), // 10 seconds
     })
 
     const data: TelegramResponse = await response.json()
 
     if (!data.ok) {
+      // Don't log the full response which might contain sensitive data
       throw new TelegramError(
-        data.description || 'Telegram API request failed',
+        'Telegram API request failed',
         data.error_code,
         data.description
       )
@@ -91,10 +95,12 @@ export async function sendTelegramMessage(
       throw error
     }
 
-    // Network or other errors
+    // Network or timeout errors - don't log full error which might contain sensitive data
     if (error instanceof Error) {
+      // Extract only the error type, not the message which might contain URL with token
+      const errorType = error.name || 'Error'
       throw new TelegramError(
-        `Failed to send Telegram message: ${error.message}`
+        `Failed to send Telegram message: ${errorType}`
       )
     }
 
@@ -105,21 +111,37 @@ export async function sendTelegramMessage(
 /**
  * Send admin 2FA code via Telegram
  * Formatted message for authentication code
+ * 
+ * SECURITY: Code is sent in message text, never logged
  */
 export async function sendAdmin2FACode(
   chatId: string,
   code: string,
   expiresInMinutes: number = 5
 ): Promise<void> {
+  // SECURITY: Format code with HTML to prevent injection
+  // <code> tag ensures code is displayed as monospace and prevents HTML interpretation
+  const safeCode = code.replace(/[<>&"']/g, (c) => {
+    const entities: Record<string, string> = {
+      '<': '&lt;',
+      '>': '&gt;',
+      '&': '&amp;',
+      '"': '&quot;',
+      "'": '&#39;',
+    }
+    return entities[c] || c
+  })
+
   const text = `🔐 <b>Код аутентификации администратора</b>
 
-Ваш код подтверждения: <code>${code}</code>
+Ваш код подтверждения: <code>${safeCode}</code>
 
 ⏱ Код действителен в течение ${expiresInMinutes} минут.
 🔒 Никому не сообщайте этот код.
 
 Если вы не запрашивали этот код, проигнорируйте это сообщение.`
 
+  // Send without logging sensitive data
   await sendTelegramMessage({
     chatId,
     text,

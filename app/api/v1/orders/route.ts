@@ -99,7 +99,14 @@ async function createFinikOrderResponse(idempotencyId: string): Promise<NextResp
   if (reservationExpired || orderClosed) {
     const body = { error: { code: 'ORDER_RESERVATION_EXPIRED', message: 'Срок резервации заказа истёк' } }
     await prisma.$transaction(async (tx) => {
-      await tx.order.updateMany({ where: { id: order.id, status: OrderStatus.PENDING_PAYMENT, reservedUntil: { lte: now } }, data: { status: OrderStatus.EXPIRED } })
+      await tx.order.updateMany({
+        where: {
+          id: order.id,
+          status: OrderStatus.PENDING_PAYMENT,
+          OR: [{ reservedUntil: null }, { reservedUntil: { lte: now } }],
+        },
+        data: { status: OrderStatus.EXPIRED },
+      })
       await tx.payment.updateMany({ where: { id: payment.id, status: { in: [PaymentStatus.CREATED, PaymentStatus.PROCESSING] } }, data: { status: PaymentStatus.EXPIRED } })
       await tx.orderIdempotency.update({
         where: { id: idempotency.id },

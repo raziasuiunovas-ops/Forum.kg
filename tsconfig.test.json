@@ -2,8 +2,7 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "CommonJS",
-    "moduleResolution": "Node",
-    "baseUrl": ".",
+    "moduleResolution": "Bundler",
     "paths": {
       "@/*": ["./*"]
     },
@@ -20,6 +19,9 @@
   "include": [
     "tests/unit/**/*.test.ts",
     "tests/integration/**/*.test.ts",
-    "app/api/v1/health/__tests__/health.test.ts"
+    "tests/security/**/*.test.ts",
+    "app/api/v1/health/__tests__/health.test.ts",
+    "lib/**/*.ts",
+    "app/**/*.ts"
   ]
 }
