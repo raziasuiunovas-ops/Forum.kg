@@ -7,3 +7,6 @@ export const LOCALE_COOKIE = 'NEXT_LOCALE'
 export function isAppLocale(value: string | undefined | null): value is AppLocale {
   return !!value && (locales as readonly string[]).includes(value)
 }
+
+/** Alias kept for code that imports the type under this name. */
+export type Locale = AppLocale

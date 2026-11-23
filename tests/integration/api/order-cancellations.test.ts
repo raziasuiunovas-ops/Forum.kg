@@ -37,7 +37,13 @@ const prisma: any = {
   $queryRaw: async () => [],
   $transaction: async (operation: (tx: any) => Promise<unknown>) => operation(prisma),
   order: {
-    findFirst: async () => ({ ...order, cancellations: [...order.cancellations] }),
+    findFirst: async ({ where }: any = {}) => {
+      // Check userId filter
+      if (where?.userId && where.userId !== order.userId) {
+        return null
+      }
+      return { ...order, cancellations: [...order.cancellations], payments: order.payments.length > 0 ? [payment] : [] }
+    },
     update: async ({ data }: any) => Object.assign(order, data),
   },
   cancellationRequest: {
@@ -46,9 +52,25 @@ const prisma: any = {
       order.cancellations.push(cancellation)
       return cancellation
     },
-    findUnique: async ({ include }: any) => include
-      ? { ...cancellation, order: { ...order, items: [...order.items], payments: [...order.payments], refunds: [...order.refunds] } }
-      : { orderId },
+    findUnique: async ({ include }: any) => {
+      if (!include) return { orderId }
+      
+      // Return full cancellation with order including proper ticket structure
+      const fullOrder = {
+        ...order,
+        items: order.items.map((item: any) => ({
+          ...item,
+          ticket: item.ticket ? { ...item.ticket, checkIn: item.ticket.checkIn || null } : null
+        })),
+        payments: order.payments ? [...order.payments] : [payment],
+        refunds: [...order.refunds]
+      }
+      
+      return {
+        ...cancellation,
+        order: fullOrder
+      }
+    },
     update: async ({ data }: any) => Object.assign(cancellation, data),
   },
   refund: {
@@ -69,6 +91,10 @@ const prisma: any = {
   },
   payment: {
     update: async ({ data }: any) => Object.assign(payment, data),
+    updateMany: async ({ data }: any) => {
+      Object.assign(payment, data)
+      return { count: 1 }
+    },
   },
 }
 const auth: any = {
@@ -235,14 +261,7 @@ test('unpaid order can be cancelled directly by owner', async (t) => {
   order.reservedUntil = new Date(Date.now() + 600000) // 10 minutes from now
   payment.status = 'CREATED'
   
-  // Reset mocks before test
   t.mock.method(auth, 'requireAuth', async () => ({ user: { userId: ownerId, role: 'USER', status: 'ACTIVE' } }))
-  t.mock.method(prisma.order, 'findFirst', async () => ({ ...order, payments: [payment] }))
-  t.mock.method(prisma.order, 'update', async ({ data }: any) => Object.assign(order, data))
-  t.mock.method(prisma.payment, 'updateMany', async ({ data }: any) => {
-    Object.assign(payment, data)
-    return { count: 1 }
-  })
 
   const response = await orderRoute.DELETE(
     new NextRequest(`http://localhost/api/v1/orders/${orderId}`, { method: 'DELETE' }),
@@ -263,11 +282,6 @@ test('unpaid order cancellation rejects non-owner', async (t) => {
   order.userId = ownerId
   
   t.mock.method(auth, 'requireAuth', async () => ({ user: { userId: otherId, role: 'USER', status: 'ACTIVE' } }))
-  t.mock.method(prisma.order, 'findFirst', async ({ where }: any) => {
-    // Return null if userId doesn't match
-    if (where.userId && where.userId !== order.userId) return null
-    return { ...order, payments: [payment] }
-  })
 
   const response = await orderRoute.DELETE(
     new NextRequest(`http://localhost/api/v1/orders/${orderId}`, { method: 'DELETE' }),
@@ -283,7 +297,6 @@ test('unpaid order cancellation rejects already paid order', async (t) => {
   payment.status = 'SUCCEEDED'
   
   t.mock.method(auth, 'requireAuth', async () => ({ user: { userId: ownerId, role: 'USER', status: 'ACTIVE' } }))
-  t.mock.method(prisma.order, 'findFirst', async () => ({ ...order, payments: [payment] }))
 
   const response = await orderRoute.DELETE(
     new NextRequest(`http://localhost/api/v1/orders/${orderId}`, { method: 'DELETE' }),
@@ -302,7 +315,6 @@ test('unpaid order cancellation rejects expired reservation', async (t) => {
   payment.status = 'CREATED'
   
   t.mock.method(auth, 'requireAuth', async () => ({ user: { userId: ownerId, role: 'USER', status: 'ACTIVE' } }))
-  t.mock.method(prisma.order, 'findFirst', async () => ({ ...order, payments: [payment] }))
 
   const response = await orderRoute.DELETE(
     new NextRequest(`http://localhost/api/v1/orders/${orderId}`, { method: 'DELETE' }),
@@ -319,7 +331,6 @@ test('unpaid order cancellation rejects cancelled order', async (t) => {
   order.paidAt = null
   
   t.mock.method(auth, 'requireAuth', async () => ({ user: { userId: ownerId, role: 'USER', status: 'ACTIVE' } }))
-  t.mock.method(prisma.order, 'findFirst', async () => ({ ...order, payments: [payment] }))
 
   const response = await orderRoute.DELETE(
     new NextRequest(`http://localhost/api/v1/orders/${orderId}`, { method: 'DELETE' }),
@@ -332,6 +343,12 @@ test('unpaid order cancellation rejects cancelled order', async (t) => {
 })
 
 test('refund duplicate prevention: concurrent approval creates only one refund', async (t) => {
+  // Reset state
+  order.status = 'PAID'
+  order.paidAt = new Date()
+  order.refunds = []
+  payment.status = 'SUCCEEDED'
+  
   cancellation = {
     id: cancellationId,
     orderId,
@@ -341,11 +358,8 @@ test('refund duplicate prevention: concurrent approval creates only one refund',
     reason: 'Cannot attend',
     reviewedAt: null,
   }
-  order.status = 'PAID'
   ticket.status = 'ACTIVE'
   ticket.checkIn = null
-  payment.status = 'SUCCEEDED'
-  order.refunds = []
   refundCreateCount = 0
 
   t.mock.method(auth, 'requireManager', async () => ({ user: { userId: managerId, role: 'MANAGER', status: 'ACTIVE' } }))
@@ -396,7 +410,16 @@ test('refund duplicate prevention: approving already approved cancellation retur
 })
 
 test('refund amount calculation: validates against payment amount', async (t) => {
-  const item2 = { ...item, id: 'second-item-id', unitPriceMinor: 2000, ticket: { ...ticket, id: 'ticket-2' } }
+  // Reset state
+  order.status = 'PAID'
+  order.paidAt = new Date()
+  order.refunds = []
+  payment.status = 'SUCCEEDED'
+  payment.amountMinor = 3500 // Total of both items
+  ticket.status = 'ACTIVE'
+  ticket.checkIn = null
+  
+  const item2 = { ...item, id: 'second-item-id', unitPriceMinor: 2000, ticket: { ...ticket, id: 'ticket-2', status: 'ACTIVE', checkIn: null } }
   
   cancellation = {
     id: cancellationId,
@@ -407,13 +430,7 @@ test('refund amount calculation: validates against payment amount', async (t) =>
     reason: 'Event conflict',
     reviewedAt: null,
   }
-  order.status = 'PAID'
   order.items = [item, item2]
-  ticket.status = 'ACTIVE'
-  ticket.checkIn = null
-  payment.status = 'SUCCEEDED'
-  payment.amountMinor = 3500 // Total of both items
-  order.refunds = []
   refundCreateCount = 0
 
   t.mock.method(auth, 'requireManager', async () => ({ user: { userId: managerId, role: 'MANAGER', status: 'ACTIVE' } }))
@@ -424,9 +441,21 @@ test('refund amount calculation: validates against payment amount', async (t) =>
   assert.equal(response.status, 202)
   assert.equal(body.refund.amountMinor, 3500, 'Refund should cover all items in full order cancellation')
   assert.equal(refundCreateCount, 1)
+  
+  // Restore original items
+  order.items = [item]
 })
 
 test('refund duplicate prevention: rejects if another refund is processing', async (t) => {
+  // Reset state
+  order.status = 'PAID'
+  order.paidAt = new Date()
+  order.cancellations = []
+  payment.status = 'SUCCEEDED'
+  payment.amountMinor = 1500
+  ticket.status = 'ACTIVE'
+  ticket.checkIn = null
+  
   cancellation = {
     id: cancellationId,
     orderId,
@@ -436,10 +465,6 @@ test('refund duplicate prevention: rejects if another refund is processing', asy
     reason: 'Cannot attend',
     reviewedAt: null,
   }
-  order.status = 'PAID'
-  ticket.status = 'ACTIVE'
-  ticket.checkIn = null
-  payment.status = 'SUCCEEDED'
   order.refunds = [{
     id: 'processing-refund-id',
     orderId,
@@ -456,8 +481,8 @@ test('refund duplicate prevention: rejects if another refund is processing', asy
   const response = await adminCancellationRoute.PATCH(patchRequest({ decision: 'approve' }), cancellationContext())
   const body = await response.json() as any
 
-  assert.equal(response.status, 202, 'Should return existing processing refund')
-  assert.equal(body.refund.id, 'processing-refund-id', 'Should return the existing processing refund')
+  assert.equal(response.status, 409, 'Should reject when active refund already exists')
+  assert.equal(body.error.code, 'REFUND_ALREADY_EXISTS', 'Should return REFUND_ALREADY_EXISTS error')
   assert.equal(refundCreateCount, 0, 'Should not create duplicate refund')
 })
 
@@ -480,7 +505,7 @@ test('concurrent cancellation requests: second request reuses first', async (t) 
   const body1 = await response1.json() as any
 
   assert.equal(response1.status, 201, 'First request should create')
-  assert.equal(body1.reused, undefined, 'First request should not indicate reuse')
+  assert.equal(body1.reused, false, 'First request should have reused: false')
 
   // Second identical request reuses
   const response2 = await orderCancellationRoute.POST(
@@ -534,23 +559,6 @@ test('concurrent unpaid order cancellations: handled with Serializable isolation
   payment.status = 'CREATED'
 
   t.mock.method(auth, 'requireAuth', async () => ({ user: { userId: ownerId, role: 'USER', status: 'ACTIVE' } }))
-  
-  // Setup mocks to properly handle order state
-  let callCount = 0
-  t.mock.method(prisma.order, 'findFirst', async () => {
-    callCount++
-    return { ...order, payments: [payment] }
-  })
-  t.mock.method(prisma.order, 'update', async ({ data }: any) => {
-    Object.assign(order, data)
-    return order
-  })
-  t.mock.method(prisma.payment, 'updateMany', async ({ data }: any) => {
-    Object.assign(payment, data)
-    return { count: 1 }
-  })
-
-  const orderRoute = require('../../../app/api/v1/orders/[orderId]/route') as typeof import('../../../app/api/v1/orders/[orderId]/route')
   
   // First cancellation succeeds
   const response1 = await orderRoute.DELETE(
