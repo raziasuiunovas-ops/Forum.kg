@@ -171,6 +171,7 @@ model User {
   phone                    String?    @unique @db.VarChar(20) // Normalize to E.164
   phoneVerifiedAt          DateTime?
   email                    String?    @unique @db.VarChar(255) // Normalize to lowercase
+  passwordHash             String?    @db.VarChar(255) // bcrypt hash; NULL for phone/Google-only accounts
   role                     UserRole   @default(USER)
   status                   UserStatus @default(ACTIVE)
   preferredLocale          Locale     @default(RU)

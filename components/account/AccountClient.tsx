@@ -138,7 +138,7 @@ export function AccountClient({ locale, messages }: { locale: string; messages: 
             </div>
           )}
 
-          {(tab === 'tickets' || tab === 'orders' || tab === 'payments' || tab === 'notifications') && (
+          {(tab === 'orders' || tab === 'payments' || tab === 'notifications') && (
             <EmptyState
               Icon={TABS.find((x) => x.id === tab)!.Icon}
               title={t(`empty.${tab}`)}
@@ -147,6 +147,8 @@ export function AccountClient({ locale, messages }: { locale: string; messages: 
               href={`/${locale}/forums`}
             />
           )}
+
+          {tab === 'tickets' && <TicketsTab locale={locale} t={t} />}
 
           {tab === 'profile' && <ProfileForm me={me} onSaved={setMe} t={t} locale={locale} />}
         </section>
@@ -268,5 +270,102 @@ function ProfileForm({
         </div>
       </div>
     </form>
+  )
+}
+
+interface TicketDto {
+  id: string
+  ticketNumber: string
+  status: 'ACTIVE' | 'USED' | 'CANCELLED'
+  isExpired: boolean
+  isCheckedIn: boolean
+  forum: { slug: string; title: string; startsAt: string; venueName: string | null }
+  category: { code: string; name: string }
+  participant: { firstName: string; lastName: string }
+}
+
+function TicketsTab({ locale, t }: { locale: string; t: ReturnType<typeof makeT> }) {
+  const [tickets, setTickets] = useState<TicketDto[] | null>(null)
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    let alive = true
+    api<{ tickets: TicketDto[] }>('/api/v1/profile/tickets?limit=50').then((res) => {
+      if (!alive) return
+      if (res.ok && res.data) setTickets(res.data.tickets)
+      else setFailed(true)
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  if (failed) return <p className="text-sm text-slate-500">{t('tickets.loadError')}</p>
+  if (!tickets)
+    return (
+      <div className="flex items-center gap-3 py-10 text-sm text-slate-500" role="status">
+        <Loader2 className="h-5 w-5 animate-spin" /> {t('loading')}
+      </div>
+    )
+  if (tickets.length === 0)
+    return (
+      <EmptyState
+        Icon={Ticket}
+        title={t('empty.tickets')}
+        text={t('empty.ticketsText')}
+        cta={t('empty.browse')}
+        href={`/${locale}/forums`}
+      />
+    )
+
+  const dateFmt = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : locale === 'ky' ? 'ky-KG' : 'ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Asia/Bishkek',
+  })
+
+  return (
+    <div>
+      <h2 className="text-2xl font-black tracking-tight text-ink">{t('tickets.title')}</h2>
+      <ul className="mt-6 grid gap-5 md:grid-cols-2">
+        {tickets.map((tk) => {
+          const state = tk.status === 'CANCELLED' ? 'cancelled' : tk.status === 'USED' || tk.isCheckedIn ? 'used' : tk.isExpired ? 'expired' : 'active'
+          const badge = {
+            active: 'bg-emerald-50 text-emerald-700',
+            used: 'bg-slate-100 text-slate-600',
+            cancelled: 'bg-red-50 text-red-600',
+            expired: 'bg-amber-50 text-amber-700',
+          }[state]
+          return (
+            <li key={tk.id} className="overflow-hidden rounded-2xl bg-surface ring-1 ring-slate-200/70">
+              <div className="flex gap-4 p-5">
+                <div className="min-w-0 flex-1">
+                  <span className={`inline-block rounded-full px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider ${badge}`}>
+                    {t(`tickets.${state}`)}
+                  </span>
+                  <h3 className="mt-3 text-lg font-black leading-tight tracking-tight text-ink">{tk.forum.title}</h3>
+                  <p className="mt-1 text-xs text-slate-500">{dateFmt.format(new Date(tk.forum.startsAt))}</p>
+                  <dl className="mt-3 space-y-1 text-xs">
+                    <div className="flex gap-2"><dt className="text-slate-400">{t('tickets.participant')}:</dt><dd className="font-bold text-ink">{tk.participant.firstName} {tk.participant.lastName}</dd></div>
+                    <div className="flex gap-2"><dt className="text-slate-400">{t('tickets.category')}:</dt><dd className="font-bold text-ink">{tk.category.name}</dd></div>
+                    <div className="flex gap-2"><dt className="text-slate-400">{t('tickets.number')}:</dt><dd className="font-bold text-ink">{tk.ticketNumber}</dd></div>
+                  </dl>
+                </div>
+                {state === 'active' && (
+                  <div className="w-28 shrink-0">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={`/api/v1/tickets/${tk.id}/qr?size=240`} alt={`QR ${tk.ticketNumber}`} className="aspect-square w-full rounded-xl bg-white p-1.5 ring-1 ring-slate-200" />
+                    <p className="mt-1.5 text-center text-[10px] text-slate-400">{t('tickets.qrNote')}</p>
+                  </div>
+                )}
+              </div>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
   )
 }

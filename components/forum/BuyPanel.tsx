@@ -7,6 +7,7 @@ import { api } from '@/lib/client/api'
 import { makeT, type Messages } from '@/lib/i18n/client'
 
 export interface BuyCategory {
+  id: string
   code: string
   name: string
   priceMinor: number
@@ -17,12 +18,14 @@ export interface BuyCategory {
 export function BuyPanel({
   locale,
   slug,
+  isDemo,
   categories,
   maxPerAccount,
   messages,
 }: {
   locale: string
   slug: string
+  isDemo: boolean
   categories: BuyCategory[]
   maxPerAccount: number
   messages: Messages
@@ -32,7 +35,7 @@ export function BuyPanel({
   const firstFree = categories.find((c) => c.available > 0)
   const [code, setCode] = useState(firstFree?.code ?? categories[0]?.code)
   const [qty, setQty] = useState(1)
-  const [state, setState] = useState<'idle' | 'checking' | 'signedIn'>('idle')
+  const [state, setState] = useState<'idle' | 'checking' | 'demo'>('idle')
 
   const selected = categories.find((c) => c.code === code)
   const soldOutAll = !firstFree
@@ -42,10 +45,14 @@ export function BuyPanel({
   async function onBuy() {
     setState('checking')
     const res = await api('/api/v1/auth/session')
-    if (res.ok) {
-      setState('signedIn')
+    const checkout = `/${locale}/forums/${slug}/checkout?cat=${encodeURIComponent(code ?? '')}&qty=${qty}`
+    if (!res.ok) {
+      router.push(`/${locale}/login?next=${encodeURIComponent(checkout)}`)
+    } else if (isDemo) {
+      // Built-in demo events cannot be ordered (they are not in the database).
+      setState('demo')
     } else {
-      router.push(`/${locale}/login?next=${encodeURIComponent(`/${locale}/forums/${slug}`)}`)
+      router.push(checkout)
     }
   }
 
@@ -144,10 +151,10 @@ export function BuyPanel({
             <ArrowUpRight className="h-4 w-4 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
           </button>
 
-          {state === 'signedIn' && (
+          {state === 'demo' && (
             <div className="mt-4 rounded-2xl bg-amber-50 p-4 text-xs leading-relaxed text-amber-800" role="status">
-              <p className="font-bold">{t('soonTitle')}</p>
-              <p className="mt-1">{t('soonText')}</p>
+              <p className="font-bold">{t('demoTitle')}</p>
+              <p className="mt-1">{t('demoText')}</p>
             </div>
           )}
           <p className="mt-4 text-center text-[11px] text-slate-400">{t('perks')}</p>

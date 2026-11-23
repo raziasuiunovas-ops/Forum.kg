@@ -6,10 +6,15 @@
 import type { AppLocale } from '@/i18n/routing'
 import { MOCK_FORUMS } from './mock-data'
 import type { ForumCardData, ForumDetailData, MockForum } from './types'
+import { fetchForumCards, fetchForumDetail } from './api'
+
+/** Demo forums are shown while the database has no published forums (set FORUMS_DEMO_FALLBACK=false to disable). */
+const DEMO_FALLBACK = process.env.FORUMS_DEMO_FALLBACK !== 'false'
 
 function toCard(f: MockForum, locale: AppLocale): ForumCardData {
   return {
     id: f.id,
+    isDemo: true,
     slug: f.slug,
     bannerUrl: f.bannerUrl,
     bannerPosition: f.bannerPosition,
@@ -28,11 +33,15 @@ function toCard(f: MockForum, locale: AppLocale): ForumCardData {
 }
 
 export async function getUpcomingForums(locale: AppLocale): Promise<ForumCardData[]> {
-  return MOCK_FORUMS.map((f) => toCard(f, locale))
+  const real = await fetchForumCards(locale)
+  if (real && (real.length > 0 || !DEMO_FALLBACK)) return real
+  return DEMO_FALLBACK ? MOCK_FORUMS.map((f) => toCard(f, locale)) : []
 }
 
 export async function getForumBySlug(locale: AppLocale, slug: string): Promise<ForumDetailData | null> {
-  const f = MOCK_FORUMS.find((x) => x.slug === slug)
+  const real = await fetchForumDetail(locale, slug)
+  if (real) return real
+  const f = DEMO_FALLBACK ? MOCK_FORUMS.find((x) => x.slug === slug) : undefined
   if (!f) return null
   return {
     ...toCard(f, locale),
@@ -40,6 +49,7 @@ export async function getForumBySlug(locale: AppLocale, slug: string): Promise<F
     venueAddress: f.venueAddress[locale] ?? f.venueAddress.ru,
     maxTicketsPerAccount: f.maxTicketsPerAccount,
     categoriesFull: f.categories.map((c) => ({
+      id: `${f.id}-${c.code}`,
       code: c.code,
       name: c.name[locale] ?? c.name.ru,
       priceMinor: c.priceMinor,

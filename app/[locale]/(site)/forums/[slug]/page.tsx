@@ -9,6 +9,8 @@ import { formatEventDate, formatEventTime, formatMoneyMinor } from '@/lib/format
 import { BuyPanel } from '@/components/forum/BuyPanel'
 import type { Messages } from '@/lib/i18n/client'
 
+export const revalidate = 60
+
 export function generateStaticParams() {
   return locales.flatMap((locale) => getForumSlugs().map((slug) => ({ locale, slug })))
 }
@@ -53,7 +55,7 @@ export default async function ForumPage({ params }: { params: Promise<{ locale: 
             <ArrowLeft className="h-4 w-4" /> {t('back')}
           </Link>
           <p className="mt-8 text-[11px] font-bold uppercase tracking-[0.22em] text-white/70">
-            {forum.tag} · {forum.venueName.split(',')[0]}
+            {[forum.tag, forum.venueName.split(',')[0]].filter(Boolean).join(' · ')}
           </p>
           <h1 className="mt-3 max-w-3xl text-5xl font-black leading-[0.95] tracking-tighter sm:text-7xl">{forum.title}</h1>
           <ul className="mt-7 flex flex-wrap gap-x-7 gap-y-3 text-sm text-white/85">
@@ -98,9 +100,11 @@ export default async function ForumPage({ params }: { params: Promise<{ locale: 
           <BuyPanel
             locale={locale}
             slug={forum.slug}
+            isDemo={forum.isDemo}
             maxPerAccount={forum.maxTicketsPerAccount}
             messages={messages}
             categories={forum.categoriesFull.map((c) => ({
+              id: c.id,
               code: c.code,
               name: c.name,
               priceMinor: c.priceMinor,

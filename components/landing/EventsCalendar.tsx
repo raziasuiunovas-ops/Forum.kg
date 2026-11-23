@@ -38,7 +38,7 @@ export function EventsCalendar({ events, labels }: { events: EventView[]; labels
   const [tag, setTag] = useState<string>('all')
   const [query, setQuery] = useState('')
 
-  const tags = useMemo(() => Array.from(new Set(events.map((e) => e.tag))), [events])
+  const tags = useMemo(() => Array.from(new Set(events.map((e) => e.tag).filter(Boolean))), [events])
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return events.filter(
@@ -123,7 +123,7 @@ export function EventsCalendar({ events, labels }: { events: EventView[]; labels
 
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">
-                {featured.tag} · {featured.city}
+                {[featured.tag, featured.city].filter(Boolean).join(' · ')}
               </p>
               <h3 className="mt-3 max-w-md text-4xl font-black leading-[0.98] tracking-tighter sm:text-5xl">{featured.title}</h3>
               <p className="mt-4 max-w-md text-sm leading-relaxed text-white/70">{featured.description}</p>
@@ -159,7 +159,7 @@ export function EventsCalendar({ events, labels }: { events: EventView[]; labels
               >
                 <div className="flex flex-1 flex-col p-4 sm:p-5">
                   <p className="text-[10px] font-extrabold uppercase tracking-[0.15em] text-primary">
-                    {e.tag} / {e.dayMonth}
+                    {e.tag ? `${e.tag} / ` : ''}{e.dayMonth}
                   </p>
                   <h3 className="mt-2 text-xl font-black leading-tight tracking-tight text-ink">{e.title}</h3>
                   <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-slate-500">{e.description}</p>

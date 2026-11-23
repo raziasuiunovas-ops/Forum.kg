@@ -173,7 +173,9 @@
     "loggedAs": "You are signed in",
     "perks": "The QR ticket arrives in Telegram and in your account",
     "from": "from",
-    "kgs": "KGS"
+    "kgs": "KGS",
+    "demoTitle": "This is a demo event",
+    "demoText": "It is shown as an example and is not in the database yet, so it cannot be ordered. Real forums will appear once they are published in the admin panel."
   },
   "auth": {
     "back": "Back to home",
@@ -219,6 +221,35 @@
       "tooMany": "Too many attempts. Please wait a moment and try again.",
       "name": "Enter your first and last name.",
       "server": "The server is temporarily unavailable. Please try later."
+    },
+    "tabPhone": "Phone",
+    "tabEmail": "Email & password",
+    "emailLabel": "Email",
+    "emailPlaceholder": "name@example.com",
+    "passwordLabel": "Password",
+    "passwordHint": "At least 8 characters, letters and digits",
+    "confirmLabel": "Repeat password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "signIn": "Sign in",
+    "signUp": "Create account",
+    "signingIn": "Signing in...",
+    "signingUp": "Creating...",
+    "noAccount": "No account yet?",
+    "haveAccount": "Already have an account?",
+    "goRegister": "Register",
+    "goLogin": "Sign in",
+    "emailTitleLogin": "Sign in with email",
+    "emailTitleRegister": "Register",
+    "emailSubtitleLogin": "Enter the email and password of your account.",
+    "emailSubtitleRegister": "Create an account with email and password. Verify your phone later — it is required to buy tickets.",
+    "emailErrors": {
+      "invalidCredentials": "Incorrect email or password.",
+      "emailTaken": "An account with this email already exists. Sign in or use another email.",
+      "invalidEmail": "Enter a valid email.",
+      "weakPassword": "Password: 8–72 characters, at least one letter and one digit.",
+      "mismatch": "Passwords do not match.",
+      "suspended": "The account is suspended. Please contact support."
     }
   },
   "account": {
@@ -270,6 +301,19 @@
     "errors": {
       "generic": "The action failed. Please try again.",
       "name": "Enter your first and last name."
+    },
+    "tickets": {
+      "title": "My tickets",
+      "used": "Used",
+      "active": "Valid",
+      "cancelled": "Cancelled",
+      "expired": "Expired",
+      "checkedIn": "Checked in",
+      "participant": "Attendee",
+      "category": "Category",
+      "number": "Ticket number",
+      "qrNote": "Show the QR code at the entrance.",
+      "loadError": "Could not load tickets."
     }
   },
   "notFound": {
@@ -277,5 +321,57 @@
     "text": "The link may be outdated or the page has been moved.",
     "home": "Back to home",
     "events": "To events"
+  },
+  "checkout": {
+    "title": "Get your tickets",
+    "subtitle": "Enter the attendee and the category for each ticket.",
+    "ticket": "Ticket {n}",
+    "category": "Category",
+    "firstName": "Attendee first name",
+    "lastName": "Attendee last name",
+    "addTicket": "Add ticket",
+    "remove": "Remove",
+    "limit": "Up to {n} per account",
+    "total": "Total",
+    "pay": "Proceed to payment",
+    "paying": "Creating order...",
+    "secure": "Payment is made on a secure Finik page. Tickets are issued only after the payment is confirmed.",
+    "hold": "Seats are reserved for 10 minutes after the order is created.",
+    "back": "Back to the event",
+    "loading": "Checking sign-in...",
+    "demo": "This is a demo event; it cannot be ordered.",
+    "soldOut": "Sold out",
+    "left": "{n} left",
+    "errors": {
+      "names": "Enter a first and last name for every ticket.",
+      "generic": "The order could not be created. Please try again.",
+      "network": "Cannot reach the server. Check your connection.",
+      "MAX_TICKETS_PER_ACCOUNT_EXCEEDED": "The per-account ticket limit for this forum is exceeded.",
+      "CAPACITY_EXCEEDED": "There are no seats left.",
+      "CATEGORY_CAPACITY_EXCEEDED": "No seats left in the selected category.",
+      "FORUM_CAPACITY_EXCEEDED": "There are no seats left.",
+      "FORUM_ALREADY_STARTED": "The event has already started; sales are closed.",
+      "FORUM_NOT_AVAILABLE": "The event is not available for purchase.",
+      "CATEGORY_NOT_ACTIVE": "The selected category is not available.",
+      "FINIK_PAYMENT_UNAVAILABLE": "The payment service is temporarily unavailable. Please try again later.",
+      "VALIDATION_ERROR": "Please check the entered data.",
+      "UNAUTHORIZED": "Sign in to continue."
+    }
+  },
+  "payment": {
+    "checking": "Checking the payment...",
+    "waitTitle": "Waiting for payment confirmation",
+    "waitText": "This usually takes less than a minute. Please keep this page open.",
+    "paidTitle": "Payment successful!",
+    "paidText": "Your tickets are issued and available in your account. The QR code also arrives in Telegram if it is connected.",
+    "failedTitle": "Payment failed",
+    "failedText": "The money was not charged or will be returned by the bank. Please try ordering again.",
+    "expiredTitle": "Payment time expired",
+    "expiredText": "The seat reservation was released. Please place the order again.",
+    "unknown": "Could not determine the order status.",
+    "order": "Order",
+    "tickets": "My tickets",
+    "again": "To events",
+    "noOrder": "Order not found. Open your account to see your tickets."
   }
 }

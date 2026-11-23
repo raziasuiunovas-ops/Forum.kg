@@ -6,6 +6,8 @@ import { buildEventViews, getEventsLabels } from '@/lib/forums/views'
 import { EventsCalendar } from '@/components/landing/EventsCalendar'
 import { Eyebrow } from '@/components/landing/Eyebrow'
 
+export const revalidate = 60
+
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params
   if (!isAppLocale(locale)) return {}

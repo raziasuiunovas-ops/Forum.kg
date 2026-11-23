@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowRight, Loader2, Pencil } from 'lucide-react'
 import { api, resetCsrf, type ApiResult } from '@/lib/client/api'
+import { EmailAuthForm } from './EmailAuthForm'
 import { makeT, type Messages } from '@/lib/i18n/client'
 
 type Step = 'checking' | 'phone' | 'code' | 'profile'
@@ -35,6 +36,7 @@ export function LoginForm({ locale, messages }: { locale: string; messages: Mess
   const next = rawNext && rawNext.startsWith(`/${locale}/`) && !rawNext.startsWith('//') ? rawNext : `/${locale}/account`
 
   const [step, setStep] = useState<Step>('checking')
+  const [method, setMethod] = useState<'phone' | 'email'>('phone')
   const [phone, setPhone] = useState('')
   const [challengeId, setChallengeId] = useState('')
   const [digits, setDigits] = useState<string[]>(['', '', '', '', '', ''])
@@ -178,6 +180,27 @@ export function LoginForm({ locale, messages }: { locale: string; messages: Mess
   const primaryBtn =
     'group inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary text-sm font-bold text-white shadow-[0_14px_32px_-10px_hsl(var(--primary))] transition hover:-translate-y-0.5 hover:brightness-110 disabled:translate-y-0 disabled:opacity-60'
 
+  const GoogleButton = () => (
+    <>
+      <button
+        type="button"
+        onClick={google}
+        disabled={busy}
+        className="inline-flex h-12 w-full items-center justify-center gap-3 rounded-full border border-slate-200 bg-white text-sm font-bold text-ink transition hover:bg-slate-50 disabled:opacity-60"
+      >
+        <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden>
+          <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.3-1.6 3.8-5.5 3.8a6.1 6.1 0 1 1 0-12.2c1.9 0 3.2.8 3.9 1.5l2.7-2.6A9.8 9.8 0 0 0 12 2.2a9.8 9.8 0 1 0 0 19.6c5.7 0 9.4-4 9.4-9.6 0-.6-.1-1.1-.2-1.6H12z" />
+        </svg>
+        {t('google')}
+      </button>
+      {googleMsg && (
+        <p role="status" className="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-800">
+          {googleMsg}
+        </p>
+      )}
+    </>
+  )
+
   if (step === 'checking') {
     return (
       <div className="flex items-center justify-center gap-3 py-16 text-sm text-slate-500" role="status">
@@ -189,6 +212,50 @@ export function LoginForm({ locale, messages }: { locale: string; messages: Mess
   return (
     <div>
       {step === 'phone' && (
+        <div role="tablist" aria-label={t('title')} className="mb-6 grid grid-cols-2 gap-1 rounded-full bg-slate-100 p-1 text-xs font-bold">
+          {(['phone', 'email'] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              role="tab"
+              aria-selected={method === m}
+              onClick={() => {
+                setMethod(m)
+                setError(null)
+              }}
+              className={`h-9 rounded-full transition ${method === m ? 'bg-white text-ink shadow' : 'text-slate-500 hover:text-ink'}`}
+            >
+              {m === 'phone' ? t('tabPhone') : t('tabEmail')}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {step === 'phone' && method === 'email' && (
+        <div>
+          <EmailAuthForm
+            locale={locale}
+            messages={messages}
+            onSuccess={(u) => {
+              if (!u.firstName || !u.lastName) {
+                setFirst(u.firstName ?? '')
+                setLast(u.lastName ?? '')
+                setStep('profile')
+              } else {
+                router.replace(next)
+              }
+            }}
+          />
+          <div className="my-6 flex items-center gap-4 text-[11px] font-bold uppercase tracking-widest text-slate-400">
+            <span className="h-px flex-1 bg-slate-200" />
+            {t('or')}
+            <span className="h-px flex-1 bg-slate-200" />
+          </div>
+          {GoogleButton()}
+        </div>
+      )}
+
+      {step === 'phone' && method === 'phone' && (
         <form onSubmit={requestCode} noValidate>
           <h1 className="text-3xl font-black tracking-tight text-ink">{t('title')}</h1>
           <p className="mt-2 text-sm leading-relaxed text-slate-500">{t('subtitle')}</p>
@@ -234,22 +301,7 @@ export function LoginForm({ locale, messages }: { locale: string; messages: Mess
             <span className="h-px flex-1 bg-slate-200" />
           </div>
 
-          <button
-            type="button"
-            onClick={google}
-            disabled={busy}
-            className="inline-flex h-12 w-full items-center justify-center gap-3 rounded-full border border-slate-200 bg-white text-sm font-bold text-ink transition hover:bg-slate-50 disabled:opacity-60"
-          >
-            <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden>
-              <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.3-1.6 3.8-5.5 3.8a6.1 6.1 0 1 1 0-12.2c1.9 0 3.2.8 3.9 1.5l2.7-2.6A9.8 9.8 0 0 0 12 2.2a9.8 9.8 0 1 0 0 19.6c5.7 0 9.4-4 9.4-9.6 0-.6-.1-1.1-.2-1.6H12z" />
-            </svg>
-            {t('google')}
-          </button>
-          {googleMsg && (
-            <p role="status" className="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-800">
-              {googleMsg}
-            </p>
-          )}
+          {GoogleButton()}
           <p className="mt-6 text-center text-[11px] leading-relaxed text-slate-400">{t('terms')}</p>
         </form>
       )}

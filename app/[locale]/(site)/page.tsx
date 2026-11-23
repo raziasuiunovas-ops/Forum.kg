@@ -9,6 +9,8 @@ import { Steps } from '@/components/landing/Steps'
 import { Organizers } from '@/components/landing/Organizers'
 import { Faq } from '@/components/landing/Faq'
 
+export const revalidate = 60
+
 export default async function LandingPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params
   if (!isAppLocale(locale)) notFound()

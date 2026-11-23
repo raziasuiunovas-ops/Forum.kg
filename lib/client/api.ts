@@ -34,10 +34,15 @@ export function resetCsrf() {
 
 export async function api<T = unknown>(
   path: string,
-  opts: { method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'; body?: unknown; csrf?: boolean } = {},
+  opts: {
+    method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
+    body?: unknown
+    csrf?: boolean
+    headers?: Record<string, string>
+  } = {},
 ): Promise<ApiResult<T>> {
   const method = opts.method ?? 'GET'
-  const headers: Record<string, string> = {}
+  const headers: Record<string, string> = { ...(opts.headers ?? {}) }
   if (opts.body !== undefined) headers['Content-Type'] = 'application/json'
   if (method !== 'GET' && opts.csrf) {
     const token = await getCsrf()

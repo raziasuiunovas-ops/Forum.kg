@@ -29,6 +29,8 @@ export interface MockForum {
 
 export interface ForumCardData {
   id: string
+  /** true when shown from built-in demo data (real forums are not available yet) */
+  isDemo: boolean
   slug: string
   bannerUrl: string
   bannerPosition: string
@@ -49,5 +51,5 @@ export interface ForumDetailData extends ForumCardData {
   description: string
   venueAddress: string
   maxTicketsPerAccount: number
-  categoriesFull: { code: string; name: string; priceMinor: number; available: number }[]
+  categoriesFull: { id: string; code: string; name: string; priceMinor: number; available: number }[]
 }
