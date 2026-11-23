@@ -5,7 +5,7 @@
 import { cookies } from 'next/headers'
 import type { NextRequest } from 'next/server'
 import { z } from 'zod'
-import type { User } from '@prisma/client'
+import { Prisma, type User } from '@prisma/client'
 import { SessionService } from '@/lib/services/session.service'
 import { createAccessToken } from '@/lib/auth/session'
 import { SESSION_CONFIG } from '@/lib/auth/types'
@@ -102,4 +102,23 @@ export async function startSession(user: User, request: NextRequest) {
     maxAge: SESSION_CONFIG.REFRESH_COOKIE_MAX_AGE,
   })
   await initializeCsrfToken()
+}
+
+/**
+ * Maps an unexpected server error to a SAFE, specific code (no secrets, no query text) so the cause
+ * can be diagnosed from the browser. The error name/message is logged server-side (Vercel logs).
+ */
+export function describeAuthError(e: unknown, where: string): string {
+  let code = 'INTERNAL_ERROR'
+  if (e instanceof Prisma.PrismaClientKnownRequestError) {
+    if (e.code === 'P2022' || e.code === 'P2021') code = 'DB_SCHEMA_OUTDATED' // missing column/table
+    else if (['P1000', 'P1001', 'P1002', 'P1008', 'P1017', 'P2024'].includes(e.code)) code = 'DB_UNAVAILABLE'
+    else code = `DB_ERROR_${e.code}`
+  } else if (e instanceof Prisma.PrismaClientInitializationError) {
+    code = 'DB_UNAVAILABLE'
+  } else if (e instanceof Error && /JWT_SECRET|JWT_REFRESH_SECRET|ENCRYPTION|must be configured/i.test(e.message)) {
+    code = 'SERVER_MISCONFIGURED'
+  }
+  console.error(`[${where}] ${code}:`, e instanceof Error ? `${e.name}: ${e.message}`.slice(0, 300) : String(e))
+  return code
 }

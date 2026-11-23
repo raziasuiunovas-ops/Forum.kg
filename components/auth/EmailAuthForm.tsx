@@ -39,6 +39,9 @@ export function EmailAuthForm({
     if (res.code === 'EMAIL_TAKEN') return t('emailErrors.emailTaken')
     if (res.code === 'ACCOUNT_SUSPENDED') return t('emailErrors.suspended')
     if (res.code === 'VALIDATION_ERROR') return t('emailErrors.weakPassword')
+    if (res.code === 'DB_SCHEMA_OUTDATED') return t('errors.dbSchema')
+    if (res.code === 'DB_UNAVAILABLE') return t('errors.dbDown')
+    if (res.code === 'SERVER_MISCONFIGURED') return t('errors.misconfigured')
     if (res.status >= 500) return res.code ? `${t('errors.server')} (${res.code})` : t('errors.server')
     return t('errors.generic')
   }

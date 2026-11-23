@@ -8,7 +8,7 @@ import { UserStatus } from '@prisma/client'
 import { prisma } from '@/lib/db'
 import { randomBytes } from 'node:crypto'
 import { hashPassword, normalizeEmail, verifyPassword } from '@/lib/auth/password'
-import { loginEmailSchema, publicUser, startSession } from '@/lib/auth/email-auth'
+import { describeAuthError, loginEmailSchema, publicUser, startSession } from '@/lib/auth/email-auth'
 import { writeSecurityAuditEvent } from '@/lib/security/audit-logger'
 
 // A real bcrypt hash of a random value, created once per server instance. It is compared when the
@@ -70,7 +70,8 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json({ success: true, user: publicUser(user) }, { status: 200 })
-  } catch {
+  } catch (e) {
+    const code = describeAuthError(e, 'auth/email/login')
     writeSecurityAuditEvent({
       eventType: 'API_ERROR',
       result: 'error',
@@ -78,6 +79,6 @@ export async function POST(request: NextRequest) {
       reason: 'email_login_failure',
       statusCode: 500,
     })
-    return error('INTERNAL_ERROR', 'Внутренняя ошибка сервера', 500)
+    return error(code, 'Внутренняя ошибка сервера', 500)
   }
 }

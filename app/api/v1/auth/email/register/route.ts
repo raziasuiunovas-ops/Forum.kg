@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Prisma, UserRole, UserStatus, Locale } from '@prisma/client'
 import { prisma } from '@/lib/db'
 import { hashPassword, normalizeEmail } from '@/lib/auth/password'
-import { publicUser, registerEmailSchema, startSession } from '@/lib/auth/email-auth'
+import { describeAuthError, publicUser, registerEmailSchema, startSession } from '@/lib/auth/email-auth'
 import { writeSecurityAuditEvent } from '@/lib/security/audit-logger'
 
 function error(code: string, message: string, status: number, details?: unknown) {
@@ -63,6 +63,7 @@ export async function POST(request: NextRequest) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
       return error('EMAIL_TAKEN', 'Аккаунт с таким email уже существует', 409)
     }
+    const code = describeAuthError(e, 'auth/email/register')
     writeSecurityAuditEvent({
       eventType: 'API_ERROR',
       result: 'error',
@@ -70,6 +71,6 @@ export async function POST(request: NextRequest) {
       reason: 'email_register_failure',
       statusCode: 500,
     })
-    return error('INTERNAL_ERROR', 'Внутренняя ошибка сервера', 500)
+    return error(code, 'Внутренняя ошибка сервера', 500)
   }
 }

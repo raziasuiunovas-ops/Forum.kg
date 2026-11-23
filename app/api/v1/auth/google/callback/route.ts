@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Locale, UserRole, UserStatus } from '@prisma/client'
 import { prisma } from '@/lib/db'
-import { startSession } from '@/lib/auth/email-auth'
+import { describeAuthError, startSession } from '@/lib/auth/email-auth'
 import { writeSecurityAuditEvent } from '@/lib/security/audit-logger'
 import {
   GOOGLE_TOKEN_URL, OAUTH_COOKIE, parseIdToken, readGoogleConfig, safeEqual, safeNext,
@@ -100,7 +100,8 @@ export async function GET(request: NextRequest) {
     const res = NextResponse.redirect(new URL(safeNext(next, `/${locale}/account`), url.origin))
     res.cookies.delete({ name: OAUTH_COOKIE, path: '/api/v1/auth/google' })
     return res
-  } catch {
+  } catch (e) {
+    describeAuthError(e, 'auth/google/callback')
     return fail('google_failed', 'exception')
   }
 }

@@ -220,7 +220,10 @@
       "expired": "The code has expired. Request a new one.",
       "tooMany": "Too many attempts. Please wait a moment and try again.",
       "name": "Enter your first and last name.",
-      "server": "The server is temporarily unavailable. Please try later."
+      "server": "The server is temporarily unavailable. Please try later.",
+      "dbSchema": "The database is not up to date: the password column is missing. Run the migration (passwordHash column in the User table). (DB_SCHEMA_OUTDATED)",
+      "dbDown": "Cannot connect to the database. Check DATABASE_URL. (DB_UNAVAILABLE)",
+      "misconfigured": "The server is not fully configured: check JWT_SECRET and JWT_REFRESH_SECRET in Vercel. (SERVER_MISCONFIGURED)"
     },
     "tabPhone": "Phone",
     "tabEmail": "Email & password",
