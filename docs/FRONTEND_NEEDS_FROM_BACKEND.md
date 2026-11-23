@@ -5,6 +5,15 @@
 ## 0. Исправлено фронтендом
 - `admin/verify-2fa`: вызов `verifyCode` был без `await` (уже исправлено и в последнем main).
 
+## 0b. Вход через Google (готово)
+`/api/v1/auth/google/login` и `/callback` реализованы (code + PKCE, проверка id_token, привязка по подтверждённому email).
+Нужны `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`; redirect URI: `https://<домен>/api/v1/auth/google/callback`.
+Требование ТЗ (BR-16) о подтверждении телефона после Google-входа пока не реализовано (нет эндпоинта привязки телефона).
+
+## 0c. ВАЖНО: Upstash Redis
+В production `middleware.ts` через `lib/security/api-rate-limit.ts` отвечает **503 на любой /api/***, если не заданы
+`UPSTASH_REDIS_REST_URL` и `UPSTASH_REDIS_REST_TOKEN` (fail closed). Без них не работают вход, админка и заказы.
+
 ## 1. Вход по email и паролю (новое)
 - `prisma/schema.prisma`: `User.passwordHash String?` и миграция `20261123130000_add_user_password_hash`
   (нужно выполнить `prisma migrate deploy` на Neon).

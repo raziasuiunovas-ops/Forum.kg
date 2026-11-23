@@ -44,7 +44,9 @@ export function LoginForm({ locale, messages }: { locale: string; messages: Mess
   const [last, setLast] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [googleMsg, setGoogleMsg] = useState<string | null>(null)
+  // Google redirects back here with ?error=... when sign-in could not be completed
+  const urlError = search.get('error')
+  const googleMsg = urlError && urlError.startsWith('google_') ? t(`googleErrors.${urlError}`) : null
   const [resendIn, setResendIn] = useState(0)
   const boxes = useRef<(HTMLInputElement | null)[]>([])
 
@@ -158,21 +160,10 @@ export function LoginForm({ locale, messages }: { locale: string; messages: Mess
     router.replace(next)
   }
 
-  async function google() {
-    setGoogleMsg(null)
+  function google() {
+    // Full-page navigation: the server redirects to Google and, after consent, back to the callback.
     setBusy(true)
-    try {
-      const res = await fetch('/api/v1/auth/google/login', { redirect: 'manual' })
-      if (res.type === 'opaqueredirect' || (res.status >= 300 && res.status < 400)) {
-        window.location.href = '/api/v1/auth/google/login'
-        return
-      }
-      setGoogleMsg(t('googleUnavailable'))
-    } catch {
-      setGoogleMsg(t('errors.network'))
-    } finally {
-      setBusy(false)
-    }
+    window.location.href = `/api/v1/auth/google/login?locale=${encodeURIComponent(locale)}&next=${encodeURIComponent(next)}`
   }
 
   const inputCls =

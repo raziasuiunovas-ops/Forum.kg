@@ -250,6 +250,13 @@
       "weakPassword": "Password: 8–72 characters, at least one letter and one digit.",
       "mismatch": "Passwords do not match.",
       "suspended": "The account is suspended. Please contact support."
+    },
+    "googleErrors": {
+      "google_not_configured": "Google sign-in is not configured on the server yet. Sign in with your phone or email.",
+      "google_failed": "Could not sign in with Google. Please try again.",
+      "google_cancelled": "Google sign-in was cancelled.",
+      "google_account_exists": "An account with this email was created with a password. Sign in with email and password.",
+      "google_suspended": "The account is suspended. Please contact support."
     }
   },
   "account": {
