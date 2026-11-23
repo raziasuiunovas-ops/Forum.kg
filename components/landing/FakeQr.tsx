@@ -1,4 +1,4 @@
-﻿/** Decorative QR-like pattern for mockups (NOT a real, scannable code). */
+/** Decorative QR-like pattern for mockups (NOT a real, scannable code). */
 function rng(seed: number) {
   let a = seed
   return () => {

@@ -1,4 +1,4 @@
-﻿import { getT } from '@/lib/i18n/server'
+import { getT } from '@/lib/i18n/server'
 import { getUpcomingForums } from '@/lib/forums'
 import {
   formatDay,

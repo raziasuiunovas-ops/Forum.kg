@@ -1,4 +1,4 @@
-﻿import { getT } from '@/lib/i18n/server'
+import { getT } from '@/lib/i18n/server'
 import type { AppLocale } from '@/i18n/routing'
 
 export async function Marquee({ locale }: { locale: AppLocale }) {

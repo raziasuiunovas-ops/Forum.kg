@@ -1,4 +1,4 @@
-﻿import Link from 'next/link'
+import Link from 'next/link'
 import { ArrowRight, ArrowUpRight, Check } from 'lucide-react'
 import { getT } from '@/lib/i18n/server'
 import type { AppLocale } from '@/i18n/routing'

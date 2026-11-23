@@ -1,4 +1,4 @@
-﻿import { ForumStatus, Prisma } from '@prisma/client'
+import { ForumStatus, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/db'
 
 export const publicEventSelect = {

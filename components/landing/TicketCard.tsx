@@ -1,4 +1,4 @@
-﻿import { LogoMark } from '@/components/layout/Logo'
+import { LogoMark } from '@/components/layout/Logo'
 import { FakeQr } from './FakeQr'
 
 /** Decorative "access pass" ticket used in the hero. */

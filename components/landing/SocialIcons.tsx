@@ -1,4 +1,4 @@
-﻿import { Facebook, Instagram, Linkedin, MessageCircle, Send } from 'lucide-react'
+import { Facebook, Instagram, Linkedin, MessageCircle, Send } from 'lucide-react'
 import type { SocialLinkView } from '@/lib/site/settings'
 
 const ICONS = {

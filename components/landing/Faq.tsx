@@ -1,4 +1,4 @@
-﻿import { ArrowUpRight, Mail } from 'lucide-react'
+import { ArrowUpRight, Mail } from 'lucide-react'
 import { getT } from '@/lib/i18n/server'
 import type { AppLocale } from '@/i18n/routing'
 import { Reveal } from '@/components/motion/Reveal'

@@ -1,4 +1,4 @@
-﻿import { CreditCard, QrCode, Send } from 'lucide-react'
+import { CreditCard, QrCode, Send } from 'lucide-react'
 import { getT } from '@/lib/i18n/server'
 import type { AppLocale } from '@/i18n/routing'
 

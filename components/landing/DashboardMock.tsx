@@ -1,4 +1,4 @@
-﻿/** Decorative organizer dashboard preview (demo numbers). */
+/** Decorative organizer dashboard preview (demo numbers). */
 export function DashboardMock({
   labels,
 }: {
