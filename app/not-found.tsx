@@ -1,34 +1,19 @@
-/**
- * Custom 404 Not Found Page
- */
+import Link from 'next/link'
 
 export default function NotFound() {
   return (
-    <div style={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
-      alignItems: 'center', 
-      justifyContent: 'center', 
-      minHeight: '100vh',
-      fontFamily: 'system-ui, sans-serif'
-    }}>
-      <h1 style={{ fontSize: '4rem', margin: 0 }}>404</h1>
-      <p style={{ fontSize: '1.5rem', color: '#666' }}>
-        Страница не найдена
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 text-center">
+      <h1 className="text-9xl font-bold text-foreground">404</h1>
+      <h2 className="mt-4 text-2xl font-semibold text-foreground">Страница не найдена</h2>
+      <p className="mt-2 text-muted-foreground">
+        Страница, которую вы ищете, не существует или была перемещена.
       </p>
-      <a 
-        href="/" 
-        style={{ 
-          marginTop: '2rem', 
-          padding: '0.75rem 1.5rem', 
-          backgroundColor: '#0070f3', 
-          color: 'white', 
-          textDecoration: 'none', 
-          borderRadius: '0.5rem' 
-        }}
+      <Link
+        href="/ru"
+        className="mt-8 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
       >
         Вернуться на главную
-      </a>
+      </Link>
     </div>
   )
 }

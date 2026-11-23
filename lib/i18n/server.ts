@@ -7,7 +7,17 @@ import { createTranslator } from 'next-intl'
 import type { AppLocale } from '@/i18n/routing'
 
 export async function loadMessages(locale: AppLocale) {
-  return (await import(`@/messages/${locale}.json`)).default as Record<string, unknown>
+  // Use explicit imports for Next.js build compatibility
+  switch (locale) {
+    case 'ru':
+      return (await import('../../messages/ru.json')).default as Record<string, unknown>
+    case 'ky':
+      return (await import('../../messages/ky.json')).default as Record<string, unknown>
+    case 'en':
+      return (await import('../../messages/en.json')).default as Record<string, unknown>
+    default:
+      return (await import('../../messages/ru.json')).default as Record<string, unknown>
+  }
 }
 
 export async function getT(locale: AppLocale, namespace: string) {

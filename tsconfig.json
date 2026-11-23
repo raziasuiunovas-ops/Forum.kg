@@ -34,6 +34,7 @@
     "components/**/*.tsx",
     "i18n/**/*.ts",
     "lib/**/*.ts",
+    "messages/**/*.json",
     "middleware.ts",
     "next-env.d.ts",
     ".next/types/**/*.ts"

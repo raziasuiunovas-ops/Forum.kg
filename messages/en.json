@@ -1,5 +1,147 @@
 {
   "app": {
     "name": "FORUM.KG"
+  },
+  "nav": {
+    "events": "Events",
+    "how": "How it works",
+    "organizers": "For organizers",
+    "contacts": "Contact",
+    "cabinet": "My account",
+    "language": "Language",
+    "menu": "Open menu"
+  },
+  "hero": {
+    "eyebrow": "Kyrgyzstan's events platform",
+    "line1": "EVENTS",
+    "line2": "THAT",
+    "line3": "BRING US TOGETHER",
+    "subtitle": "Discover new ideas, meet people who share your interests, and take part in events shaping the future.",
+    "ctaPrimary": "Explore events",
+    "ctaSecondary": "For organizers",
+    "communityTitle": "The FORUM.KG community",
+    "communityText": "People, ideas, and events in one place",
+    "ticketLabel": "E-TICKET",
+    "badgeTitle": "Your ticket, always at hand",
+    "badgeText": "Simple and secure",
+    "discover": "DISCOVER"
+  },
+  "marquee": {
+    "1": "Ideas meet",
+    "2": "Knowledge inspires",
+    "3": "People shape the future",
+    "4": "Events bring us together"
+  },
+  "events": {
+    "eyebrow": "Events calendar",
+    "title": "Find your next event",
+    "subtitle": "Forums and meetups worth adding to your calendar.",
+    "all": "All events",
+    "search": "Search events",
+    "featured": "Featured",
+    "ticketsFrom": "Tickets from",
+    "from": "from {price}",
+    "left": "{count} spots left",
+    "soldOut": "Sold out",
+    "empty": "No matching events right now. Try changing your search or filters."
+  },
+  "perks": {
+    "qr": {
+      "title": "Digital ticket",
+      "text": "Your ticket and QR code are always available in your account."
+    },
+    "payment": {
+      "title": "Easy payment",
+      "text": "Pay for tickets online and receive confirmation."
+    },
+    "telegram": {
+      "title": "Stay in the loop",
+      "text": "Get event news and important reminders."
+    }
+  },
+  "steps": {
+    "eyebrow": "Easy to get started",
+    "title": "Join in <accent>three steps</accent>",
+    "text": "Choose an event that interests you, get your ticket online, and join us there.",
+    "cta": "Browse events",
+    "items": {
+      "1": {
+        "title": "Choose an event",
+        "text": "Browse the calendar and find a forum that interests you."
+      },
+      "2": {
+        "title": "Get your ticket",
+        "text": "Choose the ticket that suits you and complete checkout online."
+      },
+      "3": {
+        "title": "Meet and take part",
+        "text": "Show your digital ticket at the entrance and join the event."
+      }
+    }
+  },
+  "organizers": {
+    "eyebrow": "For event creators",
+    "title1": "Your forum.",
+    "title2": "More possibilities.",
+    "text": "Publish your event on FORUM.KG and help people find the meetups that matter to them.",
+    "points": {
+      "1": "An event page with the schedule and details",
+      "2": "Online registration and ticket sales",
+      "3": "An attendee list and ticket statuses",
+      "4": "Sales information in one place"
+    },
+    "cta": "Contact our team",
+    "mock": {
+      "forum": "Forum",
+      "active": "Active",
+      "sold": "Tickets sold",
+      "registered": "Attendees",
+      "revenue": "Revenue",
+      "dynamics": "Registration activity"
+    }
+  },
+  "faq": {
+    "eyebrow": "Frequently asked questions",
+    "title": "Have questions",
+    "text": "Need help with a ticket or attending an event? Write to us and we will point you in the right direction.",
+    "items": {
+      "1": {
+        "q": "What is FORUM.KG?",
+        "a": "It is a platform for discovering forums and other events in Kyrgyzstan, finding event details, and getting tickets online."
+      },
+      "2": {
+        "q": "How do I register for an event?",
+        "a": "Choose an event from the calendar, open its page, and follow the instructions for the ticket type you want. Keep your digital ticket after checkout."
+      },
+      "3": {
+        "q": "How do I use my digital ticket?",
+        "a": "Show the ticket's QR code at the entrance. The organizer will scan it when checking in attendees."
+      },
+      "4": {
+        "q": "What if I have a question about an event?",
+        "a": "Email us at the address shown on this page. We can help find the information you need or point you to the event organizer."
+      }
+    }
+  },
+  "footer": {
+    "tagline": "Where people, ideas, and events come together.",
+    "platform": {
+      "title": "For attendees",
+      "all": "All events",
+      "how": "How it works",
+      "buy": "Choose a ticket"
+    },
+    "organizers": {
+      "title": "For organizers",
+      "create": "List an event",
+      "features": "Platform features",
+      "contacts": "Get in touch"
+    },
+    "contacts": {
+      "title": "Contact",
+      "address": "Bishkek, Kyrgyzstan"
+    },
+    "rights": "© FORUM.KG. All rights reserved.",
+    "madeFor": "Creating opportunities to connect"
   }
 }
