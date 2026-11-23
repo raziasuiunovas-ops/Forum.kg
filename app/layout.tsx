@@ -1,22 +1,11 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import './globals.css'
+/**
+ * Root layout that redirects / to /[locale] structure.
+ * Actual layout is in app/[locale]/layout.tsx
+ */
+import { redirect } from 'next/navigation'
+import { defaultLocale } from '@/i18n/routing'
 
-const inter = Inter({ subsets: ['latin', 'cyrillic'] })
-
-export const metadata: Metadata = {
-  title: process.env.NEXT_PUBLIC_APP_NAME || 'Forum',
-  description: process.env.NEXT_PUBLIC_APP_DESCRIPTION || 'Forum Application',
-}
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  return (
-    <html lang="ru">
-      <body className={inter.className}>{children}</body>
-    </html>
-  )
+export default function RootLayout() {
+  // Redirect root to default locale
+  redirect(`/${defaultLocale}`)
 }

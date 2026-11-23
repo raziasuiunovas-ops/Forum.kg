@@ -141,9 +141,104 @@ export function categoryCreateData(names: string[] | undefined, priceMinor: numb
   }))
 }
 
-/** Lock the parent forum so competing RSVP operations serialize per event. */
+/**
+ * Lock the parent Forum row as the serialization point for every operation
+ * that reserves, releases, or issues event seats. Call this before any other
+ * query in the capacity-changing transaction.
+ */
 export async function lockEventRow(tx: Prisma.TransactionClient, forumId: string): Promise<void> {
-  await tx.$queryRaw(Prisma.sql`SELECT "id" FROM "Forum" WHERE "id" = ${forumId} FOR UPDATE`)
+  await tx.$queryRaw(Prisma.sql`SELECT "id" FROM "Forum" WHERE "id" = ${forumId}::uuid FOR UPDATE`)
+}
+
+/** Lock related rows after the Forum row, using the shared lock order. */
+export async function lockOrderRow(tx: Prisma.TransactionClient, orderId: string): Promise<void> {
+  await tx.$queryRaw(Prisma.sql`SELECT "id" FROM "Order" WHERE "id" = ${orderId}::uuid FOR UPDATE`)
+}
+
+export async function lockOrderPayments(tx: Prisma.TransactionClient, orderId: string): Promise<void> {
+  await tx.$queryRaw(Prisma.sql`
+    SELECT "id" FROM "Payment" WHERE "orderId" = ${orderId}::uuid ORDER BY "id" FOR UPDATE
+  `)
+}
+
+export interface CapacitySnapshot {
+  occupied: number
+  categories: Map<string, number>
+}
+
+interface CapacityCountRow {
+  forumId: string
+  categoryId: string | null
+  occupied: number | bigint
+}
+
+/**
+ * Use one SQL definition for both the overall event capacity and category
+ * availability. A ticket row replaces its OrderItem hold, so the item is only
+ * counted when no ticket exists. USED tickets still consume a seat.
+ */
+export async function getCapacitySnapshots(
+  tx: Prisma.TransactionClient,
+  forumIds: string[],
+  now: Date,
+  options: { excludeOrderId?: string } = {}
+): Promise<Map<string, CapacitySnapshot>> {
+  if (forumIds.length === 0) return new Map()
+
+  const rows = await tx.$queryRaw<CapacityCountRow[]>(Prisma.sql`
+    WITH occupied_seats AS (
+      SELECT
+        o."forumId",
+        oi."ticketCategoryId" AS "categoryId",
+        COUNT(*) AS occupied
+      FROM "OrderItem" oi
+      INNER JOIN "Order" o ON o.id = oi."orderId"
+      LEFT JOIN "Ticket" t ON t."orderItemId" = oi.id
+      WHERE
+        o."forumId" = ANY(${forumIds}::uuid[])
+        AND (
+          (o.status = 'PENDING_PAYMENT' AND o."reservedUntil" > ${now})
+          OR o.status IN ('PAID', 'PARTIALLY_CANCELLED')
+        )
+        AND (t.id IS NULL OR t.status IN ('ACTIVE', 'USED'))
+        ${options.excludeOrderId ? Prisma.sql`AND o.id != ${options.excludeOrderId}::uuid` : Prisma.empty}
+      GROUP BY o."forumId", oi."ticketCategoryId"
+    )
+    SELECT
+      "forumId"::text,
+      "categoryId"::text,
+      occupied
+    FROM occupied_seats
+  `)
+
+  const snapshots = new Map<string, CapacitySnapshot>()
+  for (const id of forumIds) {
+    snapshots.set(id, { occupied: 0, categories: new Map() })
+  }
+
+  for (const row of rows) {
+    const snap = snapshots.get(row.forumId)!
+    const count = typeof row.occupied === 'bigint' ? Number(row.occupied) : row.occupied
+    snap.occupied += count
+    if (row.categoryId) snap.categories.set(row.categoryId, count)
+  }
+
+  return snapshots
+}
+
+/**
+ * Wraps a capacity-sensitive transaction and ensures proper error handling.
+ * Use this for operations like order creation, payment processing, cancellations.
+ */
+export async function withCapacityTransaction<T>(
+  prisma: { $transaction: (fn: (tx: Prisma.TransactionClient) => Promise<T>, options?: { maxWait?: number; timeout?: number; isolationLevel?: Prisma.TransactionIsolationLevel }) => Promise<T> },
+  fn: (tx: Prisma.TransactionClient) => Promise<T>
+): Promise<T> {
+  return prisma.$transaction(fn, {
+    maxWait: 5000,
+    timeout: 10000,
+    isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+  })
 }
 
 /** Count occupied seats across RSVPs, issued tickets, and unexpired/unissued orders. */
@@ -152,24 +247,6 @@ export async function countOccupiedSeats(
   forumId: string,
   now: Date
 ): Promise<number> {
-  const [registrations, tickets, orderHolds] = await Promise.all([
-    tx.eventRegistration.count({ where: { forumId } }),
-    tx.ticket.count({ where: { forumId, status: { in: [TicketStatus.ACTIVE, TicketStatus.USED] } } }),
-    tx.orderItem.count({
-      where: {
-        ticket: { is: null },
-        order: {
-          is: {
-            forumId,
-            OR: [
-              { status: OrderStatus.PENDING_PAYMENT, reservedUntil: { gt: now } },
-              { status: { in: [OrderStatus.PAID, OrderStatus.PARTIALLY_CANCELLED] } },
-            ],
-          },
-        },
-      },
-    }),
-  ])
-
-  return registrations + tickets + orderHolds
+  const snapshots = await getCapacitySnapshots(tx, [forumId], now)
+  return snapshots.get(forumId)?.occupied ?? 0
 }

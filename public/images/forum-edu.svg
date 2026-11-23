@@ -1,0 +1,11 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 700" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1c0f5c"/><stop offset=".55" stop-color="#5a32c4"/><stop offset="1" stop-color="#a06bf2"/></linearGradient>
+  </defs>
+  <rect width="700" height="700" fill="url(#g)"/>
+  <circle cx="540" cy="140" r="190" fill="#fff" opacity=".07"/><circle cx="90" cy="520" r="210" fill="#fff" opacity=".06"/>
+  <text x="70" y="300" font-family="Inter,Arial,sans-serif" font-weight="800" font-size="66" fill="#fff" opacity=".95">Educa-</text>
+  <text x="70" y="370" font-family="Inter,Arial,sans-serif" font-weight="800" font-size="66" fill="#fff" opacity=".95">tion</text>
+  <g fill="#0f0638"><circle cx="40" cy="660" r="46"/><circle cx="150" cy="678" r="52"/><circle cx="270" cy="656" r="46"/><circle cx="390" cy="680" r="52"/><circle cx="510" cy="656" r="46"/><circle cx="630" cy="680" r="52"/><rect y="672" width="700" height="40"/></g>
+  <rect x="420" y="380" width="14" height="190" fill="#0f0638"/><circle cx="427" cy="370" r="22" fill="#0f0638"/><rect x="395" y="394" width="64" height="120" rx="22" fill="#0f0638"/>
+</svg>

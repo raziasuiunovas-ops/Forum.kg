@@ -51,6 +51,10 @@ const config: Config = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        // Landing page semantic tokens
+        surface: 'hsl(var(--surface))',
+        ink: 'hsl(var(--ink))',
+        footer: 'hsl(var(--footer))',
       },
       borderRadius: {
         lg: 'var(--radius)',
