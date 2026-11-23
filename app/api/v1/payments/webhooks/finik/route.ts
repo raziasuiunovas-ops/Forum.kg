@@ -181,7 +181,12 @@ export async function POST(request: NextRequest) {
         return { outcome: 'mismatch' as const }
       }
 
-      if (payment.status === PaymentStatus.SUCCEEDED) {
+      if (
+        payment.status === PaymentStatus.SUCCEEDED ||
+        payment.status === PaymentStatus.REFUND_PENDING ||
+        payment.status === PaymentStatus.PARTIALLY_REFUNDED ||
+        payment.status === PaymentStatus.REFUNDED
+      ) {
         await tx.paymentWebhookEvent.update({ where: { id: webhookEvent.id }, data: { status: WebhookEventStatus.IGNORED } })
         return { outcome: 'already-paid' as const }
       }

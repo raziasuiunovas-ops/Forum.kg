@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify 2FA code
-    const verifyResult = Admin2FAService.verifyCode(pendingToken, code)
+    const verifyResult = await Admin2FAService.verifyCode(pendingToken, code)
 
     if (!verifyResult.success) {
       // Map error codes to user-friendly messages

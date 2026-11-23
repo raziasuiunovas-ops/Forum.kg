@@ -14,12 +14,25 @@ interface RouteContext {
   }>
 }
 
+const PRIVATE_QR_HEADERS = {
+  'Cache-Control': 'private, no-store, no-cache, max-age=0, must-revalidate',
+  Pragma: 'no-cache',
+  Vary: 'Cookie, Authorization',
+}
+
+function privateJson(body: unknown, status: number): NextResponse {
+  return NextResponse.json(body, { status, headers: PRIVATE_QR_HEADERS })
+}
+
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
     // Authenticate user
     const authResult = await requireAuth(request)
     
     if ('headers' in authResult) {
+      authResult.headers.set('Cache-Control', PRIVATE_QR_HEADERS['Cache-Control'])
+      authResult.headers.set('Pragma', PRIVATE_QR_HEADERS.Pragma)
+      authResult.headers.set('Vary', PRIVATE_QR_HEADERS.Vary)
       return authResult
     }
 
@@ -28,14 +41,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     // Validate UUID format
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ticketId)) {
-      return NextResponse.json(
+      return privateJson(
         {
           error: {
             code: 'INVALID_TICKET_ID',
             message: 'Неверный формат ID билета',
           },
         },
-        { status: 400 }
+        400
       )
     }
 
@@ -86,41 +99,41 @@ export async function GET(request: NextRequest, context: RouteContext) {
     })
 
     if (!ticket) {
-      return NextResponse.json(
+      return privateJson(
         {
           error: {
             code: 'TICKET_NOT_FOUND',
             message: 'Билет не найден',
           },
         },
-        { status: 404 }
+        404
       )
     }
 
     // Authorization: only ticket owner can view
     if (ticket.buyerId !== user.userId && user.role !== 'SUPER_ADMIN') {
-      return NextResponse.json(
+      return privateJson(
         {
           error: {
             code: 'FORBIDDEN',
             message: 'Нет доступа к этому билету',
           },
         },
-        { status: 403 }
+        403
       )
     }
 
     // SECURITY: Check if order is paid
     // Never expose QR for unpaid tickets
     if (!ticket.orderItem.order.paidAt) {
-      return NextResponse.json(
+      return privateJson(
         {
           error: {
             code: 'ORDER_NOT_PAID',
             message: 'Заказ не оплачен. QR-код будет доступен после оплаты.',
           },
         },
-        { status: 402 } // 402 Payment Required
+        402 // Payment Required
       )
     }
 
@@ -128,31 +141,22 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const now = new Date()
     const isExpired = ticket.expiresAt < now
 
-    // Decrypt QR token using AES-256-GCM
-    // This replaces the insecure Base64 decoding
-    // SECURITY NOTE: QR token is sensitive - only return to authenticated owner
-    let qrToken: string
-    try {
-      qrToken = decryptQRToken(ticket.qrTokenEncrypted)
-    } catch (error) {
-      console.error('[SECURITY] Failed to decrypt QR token for ticket:', ticket.id)
-      // Never log the error details which might contain key information
-      return NextResponse.json(
-        {
+    const canUseQr = ticket.status === 'ACTIVE' && ticket.expiresAt > now
+    let qrData: string | null = null
+    if (canUseQr) {
+      try {
+        const qrToken = decryptQRToken(ticket.qrTokenEncrypted)
+        qrData = `FORUM.KG|${ticket.ticketNumber}|${qrToken}`
+      } catch {
+        console.error('[SECURITY] Failed to decrypt QR token for ticket:', ticket.id)
+        return privateJson({
           error: {
             code: 'QR_DECRYPTION_FAILED',
             message: 'Не удалось расшифровать QR-код. Обратитесь в поддержку.',
           },
-        },
-        { status: 500 }
-      )
+        }, 500)
+      }
     }
-
-    // Build QR data URL for client
-    // Format: FORUM.KG|{ticketNumber}|{qrToken}
-    // SECURITY: This contains sensitive token - only returned to authenticated owner
-    // Frontend must NOT log or expose this value
-    const qrData = `FORUM.KG|${ticket.ticketNumber}|${qrToken}`
 
     // Transform to API response
     const response = {
@@ -196,17 +200,17 @@ export async function GET(request: NextRequest, context: RouteContext) {
         : null,
     }
 
-    return NextResponse.json(response)
+    return privateJson(response, 200)
   } catch (error) {
     console.error('Error fetching ticket:', error)
-    return NextResponse.json(
+    return privateJson(
       {
         error: {
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Не удалось получить данные билета',
         },
       },
-      { status: 500 }
+      500
     )
   }
 }

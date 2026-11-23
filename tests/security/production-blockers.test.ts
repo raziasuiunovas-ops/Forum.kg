@@ -102,11 +102,11 @@ test('Blocker #2: QR endpoint checks ticket ownership', () => {
   // Verify ownership check exists in implementation
   // Code: if (ticket.buyerId !== user.userId && user.role !== 'SUPER_ADMIN')
   
-  const ticketBuyerId = 'user-123'
-  const requestUserId = 'user-456' // Different user
-  const userRole = 'USER'
+  const ticketBuyerId: string = 'user-123'
+  const requestUserId: string = 'user-456' // Different user
+  const userRole: string = 'USER'
   
-  // This should fail ownership check
+  // This should fail ownership check (intentional mismatch for test)
   const isOwner = ticketBuyerId === requestUserId
   const isSuperAdmin = userRole === 'SUPER_ADMIN'
   const hasAccess = isOwner || isSuperAdmin

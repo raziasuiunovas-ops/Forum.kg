@@ -150,7 +150,7 @@ test('QR endpoint rejects non-owner access', () => {
   }
   
   const requestUserId = 'user-789' // Different user
-  const userRole = 'USER'
+  const userRole: string = 'USER'
   
   // Check ownership
   const isOwner = ticket.buyerId === requestUserId
@@ -167,7 +167,7 @@ test('QR endpoint allows SUPER_ADMIN access', () => {
   }
   
   const requestUserId = 'user-789' // Different user
-  const userRole = 'SUPER_ADMIN'
+  const userRole: string = 'SUPER_ADMIN'
   
   // Check ownership
   const isOwner = ticket.buyerId === requestUserId

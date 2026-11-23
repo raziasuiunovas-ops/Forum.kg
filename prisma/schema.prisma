@@ -276,7 +276,7 @@ model Forum {
   createdAt            DateTime    @default(now())
   updatedAt            DateTime    @updatedAt
 
-  createdBy         User               @relation("ForumCreator", fields: [createdById], references: [id])
+  createdBy         User                @relation("ForumCreator", fields: [createdById], references: [id])
   translations      ForumTranslation[]
   categories        TicketCategory[]
   orders            Order[]
@@ -675,23 +675,23 @@ enum SessionRevokeReason {
 }
 
 model Session {
-  id               String                @id @default(uuid()) @db.Uuid
-  userId           String                @db.Uuid
-  refreshTokenHash String                @unique @db.VarChar(64)
-  userAgent        String?               @db.Text
-  ipAddress        String?               @db.VarChar(45)
-  createdAt        DateTime              @default(now())
+  id               String               @id @default(uuid()) @db.Uuid
+  userId           String               @db.Uuid
+  refreshTokenHash String               @unique @db.VarChar(64)
+  userAgent        String?              @db.Text
+  ipAddress        String?              @db.VarChar(45)
+  createdAt        DateTime             @default(now())
   expiresAt        DateTime
-  lastUsedAt       DateTime              @default(now())
+  lastUsedAt       DateTime             @default(now())
   revokedAt        DateTime?
   revokedReason    SessionRevokeReason?
-  sessionFamilyId  String                @db.Uuid
-  generationNumber Int                   @default(0)
-  parentSessionId  String?               @db.Uuid
+  sessionFamilyId  String               @db.Uuid
+  generationNumber Int                  @default(0)
+  parentSessionId  String?              @db.Uuid
 
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parentSession  Session?  @relation("SessionChain", fields: [parentSessionId], references: [id], onDelete: Restrict)
-  childSessions  Session[] @relation("SessionChain")
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentSession Session?  @relation("SessionChain", fields: [parentSessionId], references: [id], onDelete: Restrict)
+  childSessions Session[] @relation("SessionChain")
 
   @@index([userId, revokedAt, expiresAt])
   @@index([sessionFamilyId, generationNumber])
@@ -700,14 +700,14 @@ model Session {
 
 // Admin 2FA Code Storage (persistent, multi-instance safe)
 model Admin2FACode {
-  id            String    @id @default(uuid()) @db.Uuid
-  pendingToken  String    @unique @db.VarChar(255) // base64url encoded token
-  username      String    @db.VarChar(100)
-  codeHash      String    @db.VarChar(128) // SHA-256 hash of 6-digit code
-  chatId        String    @db.VarChar(64)
-  attempts      Int       @default(0)
-  expiresAt     DateTime
-  createdAt     DateTime  @default(now())
+  id           String   @id @default(uuid()) @db.Uuid
+  pendingToken String   @unique @db.VarChar(255) // base64url encoded token
+  username     String   @db.VarChar(100)
+  codeHash     String   @db.VarChar(128) // SHA-256 hash of 6-digit code
+  chatId       String   @db.VarChar(64)
+  attempts     Int      @default(0)
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
 
   @@index([expiresAt]) // For cleanup queries
   @@index([username, createdAt]) // For rate limiting queries
@@ -765,9 +765,9 @@ model Post {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  topic   Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  author  User  @relation("PostAuthor", fields: [authorId], references: [id], onDelete: Restrict)
-  parent  Post? @relation("PostReplies", fields: [parentId], references: [id], onDelete: Restrict)
+  topic   Topic  @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  author  User   @relation("PostAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  parent  Post?  @relation("PostReplies", fields: [parentId], references: [id], onDelete: Restrict)
   replies Post[] @relation("PostReplies")
 
   @@index([topicId, deletedAt, createdAt])
@@ -776,15 +776,15 @@ model Post {
 }
 
 model EventRegistration {
-  id                 String   @id @default(uuid()) @db.Uuid
-  forumId            String   @db.Uuid
-  userId             String   @db.Uuid
-  attendeeFirstName  String   @db.VarChar(100)
-  attendeeLastName   String   @db.VarChar(100)
-  attendeePhone      String   @db.VarChar(20)
-  attendeeEmail      String?  @db.VarChar(255)
-  additionalInfo     String?  @db.Text
-  createdAt          DateTime @default(now())
+  id                String   @id @default(uuid()) @db.Uuid
+  forumId           String   @db.Uuid
+  userId            String   @db.Uuid
+  attendeeFirstName String   @db.VarChar(100)
+  attendeeLastName  String   @db.VarChar(100)
+  attendeePhone     String   @db.VarChar(20)
+  attendeeEmail     String?  @db.VarChar(255)
+  additionalInfo    String?  @db.Text
+  createdAt         DateTime @default(now())
 
   forum Forum @relation(fields: [forumId], references: [id], onDelete: Cascade)
   user  User  @relation("EventRegistrationUser", fields: [userId], references: [id], onDelete: Cascade)
