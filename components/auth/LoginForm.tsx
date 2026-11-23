@@ -36,7 +36,9 @@ export function LoginForm({ locale, messages }: { locale: string; messages: Mess
   const next = rawNext && rawNext.startsWith(`/${locale}/`) && !rawNext.startsWith('//') ? rawNext : `/${locale}/account`
 
   const [step, setStep] = useState<Step>('checking')
-  const [method, setMethod] = useState<'phone' | 'email'>('phone')
+  // Phone sign-in needs an SMS provider (not selected yet), so it is hidden unless explicitly enabled.
+  const phoneEnabled = process.env.NEXT_PUBLIC_ENABLE_PHONE_LOGIN === 'true'
+  const [method, setMethod] = useState<'phone' | 'email'>('email')
   const [phone, setPhone] = useState('')
   const [challengeId, setChallengeId] = useState('')
   const [digits, setDigits] = useState<string[]>(['', '', '', '', '', ''])
@@ -46,7 +48,8 @@ export function LoginForm({ locale, messages }: { locale: string; messages: Mess
   const [error, setError] = useState<string | null>(null)
   // Google redirects back here with ?error=... when sign-in could not be completed
   const urlError = search.get('error')
-  const googleMsg = urlError && urlError.startsWith('google_') ? t(`googleErrors.${urlError}`) : null
+  const [googleErr, setGoogleErr] = useState<string | null>(null)
+  const googleMsg = googleErr ?? (urlError && urlError.startsWith('google_') ? t(`googleErrors.${urlError}`) : null)
   const [resendIn, setResendIn] = useState(0)
   const boxes = useRef<(HTMLInputElement | null)[]>([])
 
@@ -57,7 +60,7 @@ export function LoginForm({ locale, messages }: { locale: string; messages: Mess
       if (res.code === 'INVALID_OTP') return t('errors.invalidCode')
       if (res.code === 'OTP_EXPIRED' || res.code === 'OTP_ALREADY_USED') return t('errors.expired')
       if (res.code === 'INVALID_PHONE') return t('errors.invalidPhone')
-      if (res.status >= 500) return t('errors.server')
+      if (res.status >= 500) return res.code ? `${t('errors.server')} (${res.code})` : t('errors.server')
       return t(fallbackKey)
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -160,10 +163,22 @@ export function LoginForm({ locale, messages }: { locale: string; messages: Mess
     router.replace(next)
   }
 
-  function google() {
-    // Full-page navigation: the server redirects to Google and, after consent, back to the callback.
+  async function google() {
+    setGoogleErr(null)
     setBusy(true)
-    window.location.href = `/api/v1/auth/google/login?locale=${encodeURIComponent(locale)}&next=${encodeURIComponent(next)}`
+    const target = `/api/v1/auth/google/login?locale=${encodeURIComponent(locale)}&next=${encodeURIComponent(next)}`
+    try {
+      // Probe without following the redirect: if the API is down/limited we show a message instead of raw JSON.
+      const probe = await fetch(target, { redirect: 'manual' })
+      if (probe.type === 'opaqueredirect' || (probe.status >= 300 && probe.status < 400)) {
+        window.location.href = target // full-page navigation to Google (and back to the callback)
+        return
+      }
+      setGoogleErr(probe.status >= 500 ? `${t('errors.server')} (HTTP ${probe.status})` : t('errors.generic'))
+    } catch {
+      setGoogleErr(t('errors.network'))
+    }
+    setBusy(false)
   }
 
   const inputCls =
@@ -202,9 +217,9 @@ export function LoginForm({ locale, messages }: { locale: string; messages: Mess
 
   return (
     <div>
-      {step === 'phone' && (
+      {step === 'phone' && phoneEnabled && (
         <div role="tablist" aria-label={t('title')} className="mb-6 grid grid-cols-2 gap-1 rounded-full bg-slate-100 p-1 text-xs font-bold">
-          {(['phone', 'email'] as const).map((m) => (
+          {(['email', 'phone'] as const).map((m) => (
             <button
               key={m}
               type="button"
@@ -246,7 +261,7 @@ export function LoginForm({ locale, messages }: { locale: string; messages: Mess
         </div>
       )}
 
-      {step === 'phone' && method === 'phone' && (
+      {step === 'phone' && phoneEnabled && method === 'phone' && (
         <form onSubmit={requestCode} noValidate>
           <h1 className="text-3xl font-black tracking-tight text-ink">{t('title')}</h1>
           <p className="mt-2 text-sm leading-relaxed text-slate-500">{t('subtitle')}</p>

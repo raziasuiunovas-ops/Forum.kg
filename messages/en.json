@@ -257,7 +257,9 @@
       "google_cancelled": "Google sign-in was cancelled.",
       "google_account_exists": "An account with this email was created with a password. Sign in with email and password.",
       "google_suspended": "The account is suspended. Please contact support."
-    }
+    },
+    "tabRegister": "Register",
+    "tabLogin": "Sign in"
   },
   "account": {
     "loading": "Loading your account...",

@@ -257,7 +257,9 @@
       "google_cancelled": "Вход через Google отменён.",
       "google_account_exists": "Аккаунт с этим email уже создан с паролем. Войдите по email и паролю.",
       "google_suspended": "Аккаунт заблокирован. Свяжитесь с поддержкой."
-    }
+    },
+    "tabRegister": "Регистрация",
+    "tabLogin": "Вход"
   },
   "account": {
     "loading": "Загружаем кабинет...",

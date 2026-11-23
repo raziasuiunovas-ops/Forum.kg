@@ -22,7 +22,7 @@ export function EmailAuthForm({
   onSuccess: (user: { firstName?: string | null; lastName?: string | null }) => void
 }) {
   const t = makeT(messages)
-  const [mode, setMode] = useState<'login' | 'register'>('login')
+  const [mode, setMode] = useState<'login' | 'register'>('register')
   const [first, setFirst] = useState('')
   const [last, setLast] = useState('')
   const [email, setEmail] = useState('')
@@ -39,7 +39,7 @@ export function EmailAuthForm({
     if (res.code === 'EMAIL_TAKEN') return t('emailErrors.emailTaken')
     if (res.code === 'ACCOUNT_SUSPENDED') return t('emailErrors.suspended')
     if (res.code === 'VALIDATION_ERROR') return t('emailErrors.weakPassword')
-    if (res.status >= 500) return t('errors.server')
+    if (res.status >= 500) return res.code ? `${t('errors.server')} (${res.code})` : t('errors.server')
     return t('errors.generic')
   }
 
@@ -81,6 +81,23 @@ export function EmailAuthForm({
 
   return (
     <form onSubmit={submit} noValidate>
+      <div role="tablist" className="mb-6 grid grid-cols-2 gap-1 rounded-full bg-slate-100 p-1 text-xs font-bold">
+        {(['register', 'login'] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            role="tab"
+            aria-selected={mode === m}
+            onClick={() => {
+              setMode(m)
+              setError(null)
+            }}
+            className={`h-9 rounded-full transition ${mode === m ? 'bg-white text-ink shadow' : 'text-slate-500 hover:text-ink'}`}
+          >
+            {m === 'register' ? t('tabRegister') : t('tabLogin')}
+          </button>
+        ))}
+      </div>
       <h1 className="text-3xl font-black tracking-tight text-ink">
         {isReg ? t('emailTitleRegister') : t('emailTitleLogin')}
       </h1>
@@ -180,19 +197,6 @@ export function EmailAuthForm({
         )}
       </button>
 
-      <p className="mt-5 text-center text-xs text-slate-500">
-        {isReg ? t('haveAccount') : t('noAccount')}{' '}
-        <button
-          type="button"
-          onClick={() => {
-            setMode(isReg ? 'login' : 'register')
-            setError(null)
-          }}
-          className="font-bold text-primary"
-        >
-          {isReg ? t('goLogin') : t('goRegister')}
-        </button>
-      </p>
     </form>
   )
 }
