@@ -2,9 +2,8 @@
 
 Файл для бэкенд-разработчика. Всё, что ниже, уже подключено или подготовлено на стороне фронтенда.
 
-## 0. Исправлено фронтендом (проверьте)
-- `app/api/v1/admin/verify-2fa/route.ts`: `Admin2FAService.verifyCode` стал `async`, а вызов был без `await`.
-  `next build` падал с ошибкой типов (а вход админа по коду всегда отвечал 401). Добавлен `await`.
+## 0. Исправлено фронтендом
+- `admin/verify-2fa`: вызов `verifyCode` был без `await` (уже исправлено и в последнем main).
 
 ## 1. Вход по email и паролю (новое)
 - `prisma/schema.prisma`: `User.passwordHash String?` и миграция `20261123130000_add_user_password_hash`
@@ -17,9 +16,9 @@
   «привязать и подтвердить телефон» (`OtpPurpose.VERIFY_PHONE` у авторизованного пользователя): сейчас
   `verify-otp` по номеру создаёт/находит отдельный аккаунт.
 
-## 2. QR-код билета — заглушка (блокирует вход на мероприятие)
-`GET /api/v1/tickets/{id}/qr` возвращает «placeholder SVG», а не настоящий QR. Сканер (`/admin/scanner`)
-ждёт строку `FORUM.KG|<ticketNumber>|<token>` внутри настоящего QR-кода. Нужна генерация (например, пакет `qrcode`).
+## 2. QR-код билета
+Настоящий QR уже генерируется (пакет `qrcode`). Сканер (`/admin/scanner`) ждёт в QR строку `FORUM.KG|<ticketNumber>|<token>`.
+Нужно проверить на реальном билете, что сканирование камерой проходит через `POST /api/v1/check-in/validate`.
 
 ## 3. API админ-панели (не реализовано)
 Интерфейс готов (`components/admin/*`), данные пока в `lib/admin/store.ts` (localStorage).
