@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Loader2, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react'
 import { api, resetCsrf, type ApiResult } from '@/lib/client/api'
 
 /** Admin sign-in: login + password, then a one-time code that is sent to Telegram (backend: /admin/login, /admin/verify-2fa). */
@@ -12,6 +12,7 @@ export function AdminLogin({ locale }: { locale: string }) {
   const [step, setStep] = useState<'credentials' | 'code'>('credentials')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [showPass, setShowPass] = useState(false)
   const [pending, setPending] = useState('')
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
@@ -70,7 +71,13 @@ export function AdminLogin({ locale }: { locale: string }) {
               <label htmlFor="adm-user" className="mt-6 block text-xs font-bold text-ink">Логин</label>
               <input id="adm-user" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} className={input} />
               <label htmlFor="adm-pass" className="mt-4 block text-xs font-bold text-ink">Пароль</label>
-              <input id="adm-pass" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} className={input} />
+              <div className="relative">
+                <input id="adm-pass" type={showPass ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} className={`${input} pr-12`} />
+                <button type="button" onClick={() => setShowPass((v) => !v)} aria-label={showPass ? 'Скрыть пароль' : 'Показать пароль'} className="absolute right-3 top-1/2 mt-0.5 -translate-y-1/2 rounded-full p-1.5 text-slate-400 transition hover:text-ink">
+                  {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {password.length > 40 && <p className="mt-2 text-[11px] font-semibold text-amber-600">Пароль очень длинный. Не вставили ли вы хеш (строку, начинающуюся с $2a$) вместо пароля?</p>}
               {error && <p role="alert" className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-xs font-semibold text-red-600">{error}</p>}
               <button type="submit" disabled={busy} className={submit}>{busy ? <><Loader2 className="h-4 w-4 animate-spin" /> Проверяем...</> : 'Продолжить'}</button>
             </form>
