@@ -86,6 +86,36 @@ export const OTP_ERRORS = {
     message: 'Слишком много запросов. Попробуйте позже',
     statusCode: 429,
   },
+  REQUEST_IN_PROGRESS: {
+    code: 'OTP_REQUEST_IN_PROGRESS',
+    message: 'Отправка предыдущего кода ещё не подтверждена. Попробуйте позже',
+    statusCode: 409,
+  },
+  SMS_NOT_CONFIGURED: {
+    code: 'SMS_NOT_CONFIGURED',
+    message: 'Отправка SMS временно недоступна',
+    statusCode: 503,
+  },
+  SMS_DELIVERY_FAILED: {
+    code: 'SMS_DELIVERY_FAILED',
+    message: 'Не удалось отправить код. Запросите новый код позже',
+    statusCode: 502,
+  },
+  PHONE_ALREADY_IN_USE: {
+    code: 'PHONE_ALREADY_IN_USE',
+    message: 'Этот номер уже используется другим аккаунтом',
+    statusCode: 409,
+  },
+  PHONE_NOT_CURRENT: {
+    code: 'PHONE_NOT_CURRENT',
+    message: 'Номер не соответствует текущему аккаунту',
+    statusCode: 409,
+  },
+  PHONE_UNCHANGED: {
+    code: 'PHONE_UNCHANGED',
+    message: 'Новый номер должен отличаться от текущего',
+    statusCode: 409,
+  },
 } as const
 
 // Validation Errors

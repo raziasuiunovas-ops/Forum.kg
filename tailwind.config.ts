@@ -62,6 +62,18 @@ const config: Config = {
         sm: 'calc(var(--radius) - 4px)',
       },
       keyframes: {
+        float: {
+          '0%,100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-14px)' },
+        },
+        'float-rot': {
+          '0%,100%': { transform: 'translateY(0) rotate(-6deg)' },
+          '50%': { transform: 'translateY(-12px) rotate(-4deg)' },
+        },
+        twinkle: {
+          '0%,100%': { opacity: '.35', transform: 'scale(.8)' },
+          '50%': { opacity: '1', transform: 'scale(1.15)' },
+        },
         'accordion-down': {
           from: { height: '0' },
           to: { height: 'var(--radix-accordion-content-height)' },
@@ -72,6 +84,9 @@ const config: Config = {
         },
       },
       animation: {
+        float: 'float 6s ease-in-out infinite',
+        'float-rot': 'float-rot 7s ease-in-out infinite',
+        twinkle: 'twinkle 3s ease-in-out infinite',
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
       },

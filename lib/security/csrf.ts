@@ -125,7 +125,10 @@ export function shouldSkipCsrf(pathname: string): boolean {
 /**
  * Verify CSRF token
  */
-export async function verifyCsrfToken(request: NextRequest): Promise<boolean> {
+export async function verifyCsrfToken(
+  request: NextRequest,
+  options: { respectSkippedPaths?: boolean } = {}
+): Promise<boolean> {
   const method = request.method.toUpperCase()
 
   // Skip CSRF check for safe methods
@@ -135,7 +138,7 @@ export async function verifyCsrfToken(request: NextRequest): Promise<boolean> {
 
   // Skip for configured paths
   const pathname = new URL(request.url).pathname
-  if (shouldSkipCsrf(pathname)) {
+  if (options.respectSkippedPaths !== false && shouldSkipCsrf(pathname)) {
     return true
   }
 

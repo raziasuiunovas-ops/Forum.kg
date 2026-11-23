@@ -7,10 +7,10 @@ import { TiltCard } from '@/components/motion/TiltCard'
 import { TicketCard } from './TicketCard'
 
 const AVATARS = [
-  ['╨Р', 'from-blue-500 to-indigo-500'],
-  ['╨Ь', 'from-violet-500 to-fuchsia-500'],
-  ['╨С', 'from-teal-400 to-cyan-500'],
-  ['╨Ъ', 'from-purple-500 to-indigo-600'],
+  ['А', 'from-blue-500 to-indigo-500'],
+  ['М', 'from-violet-500 to-fuchsia-500'],
+  ['Б', 'from-teal-400 to-cyan-500'],
+  ['К', 'from-purple-500 to-indigo-600'],
 ] as const
 
 export async function Hero({ locale, settings }: { locale: AppLocale; settings: SiteSettingsView }) {

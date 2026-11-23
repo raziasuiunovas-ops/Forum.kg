@@ -2,146 +2,376 @@
   "app": {
     "name": "FORUM.KG"
   },
+  "common": {
+    "currency": "KGS"
+  },
   "nav": {
     "events": "Events",
     "how": "How it works",
     "organizers": "For organizers",
-    "contacts": "Contact",
+    "contacts": "Contacts",
     "cabinet": "My account",
-    "language": "Language",
-    "menu": "Open menu"
+    "menu": "Menu",
+    "language": "Language"
   },
   "hero": {
-    "eyebrow": "Kyrgyzstan's events platform",
-    "line1": "EVENTS",
-    "line2": "THAT",
-    "line3": "BRING US TOGETHER",
-    "subtitle": "Discover new ideas, meet people who share your interests, and take part in events shaping the future.",
+    "eyebrow": "A NEW ERA OF EVENTS IN KYRGYZSTAN",
+    "line1": "People",
+    "line2": "Ideas",
+    "line3": "Future",
+    "subtitle": "A place for meetings that change everything. Discover the country's key forums, find your people and get a ticket in a couple of clicks.",
     "ctaPrimary": "Explore events",
-    "ctaSecondary": "For organizers",
-    "communityTitle": "The FORUM.KG community",
-    "communityText": "People, ideas, and events in one place",
-    "ticketLabel": "E-TICKET",
-    "badgeTitle": "Your ticket, always at hand",
-    "badgeText": "Simple and secure",
-    "discover": "DISCOVER"
+    "ctaSecondary": "Create a forum",
+    "communityTitle": "Meetings that unite",
+    "communityText": "Kyrgyzstan ┬╖ knowledge ┬╖ community",
+    "discover": "DISCOVER",
+    "ticketLabel": "YOUR ACCESS PASS",
+    "badgeTitle": "Your seat is ready!",
+    "badgeText": "QR ticket in Telegram"
   },
   "marquee": {
-    "1": "Ideas meet",
-    "2": "Knowledge inspires",
-    "3": "People shape the future",
-    "4": "Events bring us together"
+    "1": "Ideas become reality",
+    "2": "Meet. Learn. Connect.",
+    "3": "Events without borders",
+    "4": "The future starts here"
   },
   "events": {
-    "eyebrow": "Events calendar",
-    "title": "Find your next event",
-    "subtitle": "Forums and meetups worth adding to your calendar.",
+    "eyebrow": "01 / EVENT CALENDAR",
+    "title": "Worth seeing in person",
+    "subtitle": "Forums where new ideas, connections and opportunities are born. Choose your event.",
     "all": "All events",
-    "search": "Search events",
-    "featured": "Featured",
+    "search": "Search events...",
+    "featured": "Editor's pick",
     "ticketsFrom": "Tickets from",
-    "from": "from {price}",
-    "left": "{count} spots left",
+    "from": "from {price} KGS",
+    "left": "{count, plural, one {# seat} other {# seats}} left",
     "soldOut": "Sold out",
-    "empty": "No matching events right now. Try changing your search or filters."
+    "empty": "Nothing found for your search",
+    "viewAll": "All forums"
   },
   "perks": {
     "qr": {
-      "title": "Digital ticket",
-      "text": "Your ticket and QR code are always available in your account."
+      "title": "QR instead of paper",
+      "text": "One code тАФ fast entry to the event"
     },
     "payment": {
-      "title": "Easy payment",
-      "text": "Pay for tickets online and receive confirmation."
+      "title": "Online payment",
+      "text": "Convenient ticket checkout"
     },
     "telegram": {
-      "title": "Stay in the loop",
-      "text": "Get event news and important reminders."
+      "title": "Ticket in Telegram",
+      "text": "Important details always at hand"
     }
   },
   "steps": {
-    "eyebrow": "Easy to get started",
-    "title": "Join in <accent>three steps</accent>",
-    "text": "Choose an event that interests you, get your ticket online, and join us there.",
-    "cta": "Browse events",
+    "eyebrow": "02 / SIMPLE AND CONVENIENT",
+    "title": "From interest to meeting тАФ <accent>in 3 steps.</accent>",
+    "text": "No complicated registrations or extra actions. Choose an event тАФ we simplified the rest.",
+    "cta": "Choose your forum",
     "items": {
       "1": {
-        "title": "Choose an event",
-        "text": "Browse the calendar and find a forum that interests you."
+        "title": "Discover an event",
+        "text": "Explore the schedule, filter forums by topic and pick what interests you."
       },
       "2": {
-        "title": "Get your ticket",
-        "text": "Choose the ticket that suits you and complete checkout online."
+        "title": "Get your ticket online",
+        "text": "Choose a ticket category, fill in your details and pay in a convenient way."
       },
       "3": {
-        "title": "Meet and take part",
-        "text": "Show your digital ticket at the entrance and join the event."
+        "title": "Receive your QR code",
+        "text": "The ticket arrives in Telegram and in your account. Show the QR code at the entrance."
       }
     }
   },
   "organizers": {
-    "eyebrow": "For event creators",
+    "eyebrow": "FORUM.KG / FOR ORGANIZERS",
     "title1": "Your forum.",
-    "title2": "More possibilities.",
-    "text": "Publish your event on FORUM.KG and help people find the meetups that matter to them.",
+    "title2": "Our engine.",
+    "text": "Publish events, sell tickets and manage attendees. Everything for a great event тАФ in one platform.",
     "points": {
-      "1": "An event page with the schedule and details",
-      "2": "Online registration and ticket sales",
-      "3": "An attendee list and ticket statuses",
-      "4": "Sales information in one place"
+      "1": "Ticket sales",
+      "2": "Real-time analytics",
+      "3": "QR entry control",
+      "4": "Tickets in Telegram"
     },
-    "cta": "Contact our team",
+    "cta": "Become an organizer",
     "mock": {
-      "forum": "Forum",
+      "forum": "Bishkek Digital Forum 2026",
       "active": "Active",
-      "sold": "Tickets sold",
-      "registered": "Attendees",
+      "sold": "Sold",
+      "registered": "Registrations",
       "revenue": "Revenue",
-      "dynamics": "Registration activity"
+      "dynamics": "Sales trend"
     }
   },
   "faq": {
-    "eyebrow": "Frequently asked questions",
-    "title": "Have questions",
-    "text": "Need help with a ticket or attending an event? Write to us and we will point you in the right direction.",
+    "eyebrow": "03 / WE ARE HERE",
+    "title": "Still have questions",
+    "text": "We collected answers to the most important ones. And if a question remains, our team will help.",
     "items": {
       "1": {
-        "q": "What is FORUM.KG?",
-        "a": "It is a platform for discovering forums and other events in Kyrgyzstan, finding event details, and getting tickets online."
+        "q": "How do I get my ticket after payment?",
+        "a": "An electronic ticket with a QR code will be available in Telegram and in your account once the payment is confirmed."
       },
       "2": {
-        "q": "How do I register for an event?",
-        "a": "Choose an event from the calendar, open its page, and follow the instructions for the ticket type you want. Keep your digital ticket after checkout."
+        "q": "Do I need to print the QR code?",
+        "a": "No. Just show the QR code on your phone screen at the entrance and staff will scan it."
       },
       "3": {
-        "q": "How do I use my digital ticket?",
-        "a": "Show the ticket's QR code at the entrance. The organizer will scan it when checking in attendees."
+        "q": "How can an organizer publish a forum?",
+        "a": "Email us тАФ we will help you create the event, set up ticket categories and open sales."
       },
       "4": {
-        "q": "What if I have a question about an event?",
-        "a": "Email us at the address shown on this page. We can help find the information you need or point you to the event organizer."
+        "q": "Which languages does the platform support?",
+        "a": "The platform is available in Russian, Kyrgyz and English. You can switch the language in the site header."
       }
     }
   },
   "footer": {
-    "tagline": "Where people, ideas, and events come together.",
+    "tagline": "A new gathering point for those who create the future of Kyrgyzstan.",
     "platform": {
-      "title": "For attendees",
-      "all": "All events",
+      "title": "Platform",
+      "all": "All forums",
       "how": "How it works",
-      "buy": "Choose a ticket"
+      "buy": "Buy a ticket"
     },
     "organizers": {
       "title": "For organizers",
-      "create": "List an event",
-      "features": "Platform features",
-      "contacts": "Get in touch"
+      "create": "Create an event",
+      "features": "Features",
+      "contacts": "Contacts"
     },
     "contacts": {
-      "title": "Contact",
+      "title": "Contacts",
       "address": "Bishkek, Kyrgyzstan"
     },
-    "rights": "© FORUM.KG. All rights reserved.",
-    "madeFor": "Creating opportunities to connect"
+    "rights": "┬й 2026 FORUM.KG ┬╖ Design concept",
+    "madeFor": "Made for people who meet"
+  },
+  "forumsPage": {
+    "eyebrow": "EVENT LISTINGS",
+    "title": "All forums",
+    "subtitle": "Pick an event, filter by topic and get your ticket online."
+  },
+  "forum": {
+    "back": "All events",
+    "about": "About the event",
+    "when": "Date and time",
+    "where": "Venue",
+    "tickets": "Tickets",
+    "category": "Category",
+    "quantity": "Quantity",
+    "limit": "Up to {n} per account",
+    "total": "Total",
+    "buy": "Buy ticket",
+    "left": "{n} left",
+    "soldOut": "Sold out",
+    "soldOutNote": "Tickets for this event are sold out.",
+    "checking": "Checking sign-in...",
+    "soonTitle": "Payment is coming soon",
+    "soonText": "Online payment via Finik is being connected. As soon as it is ready you will be able to get your ticket here.",
+    "loggedAs": "You are signed in",
+    "perks": "The QR ticket arrives in Telegram and in your account",
+    "from": "from",
+    "kgs": "KGS",
+    "demoTitle": "This is a demo event",
+    "demoText": "It is shown as an example and is not in the database yet, so it cannot be ordered. Real forums will appear once they are published in the admin panel."
+  },
+  "auth": {
+    "back": "Back to home",
+    "language": "Language",
+    "heroLine1": "Sign in.",
+    "heroLine2": "Get your ticket.",
+    "heroText": "One account for all forums: QR tickets, order history and notifications about new events.",
+    "perk1": "QR tickets in your account",
+    "perk2": "Tickets in Telegram",
+    "perk3": "Online payment",
+    "title": "Sign in or register",
+    "subtitle": "Enter your phone number and we will send a verification code. A new account is created automatically.",
+    "phoneLabel": "Phone number",
+    "phonePlaceholder": "700 123 456",
+    "getCode": "Get code",
+    "sending": "Sending...",
+    "or": "or",
+    "google": "Continue with Google",
+    "googleChecking": "Connecting to Google...",
+    "googleUnavailable": "Google sign-in is not configured on the server yet. Please sign in with your phone number.",
+    "terms": "By continuing you agree to the platform terms of use.",
+    "codeTitle": "Enter the code",
+    "codeSubtitle": "We sent a 6-digit code to {phone}.",
+    "codeLabel": "Verification code",
+    "verify": "Verify",
+    "verifying": "Verifying...",
+    "resend": "Resend code",
+    "resendIn": "Resend in {s}s",
+    "changePhone": "Change number",
+    "profileTitle": "Tell us about yourself",
+    "profileSubtitle": "First and last name are needed to issue tickets.",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "save": "Save and continue",
+    "saving": "Saving...",
+    "checkingSession": "Checking sign-in...",
+    "errors": {
+      "generic": "Something went wrong. Please try again.",
+      "network": "Cannot reach the server. Check your connection and try again.",
+      "invalidPhone": "Enter a valid number: 9 digits after +996.",
+      "invalidCode": "Incorrect code. Check it and try again.",
+      "expired": "The code has expired. Request a new one.",
+      "tooMany": "Too many attempts. Please wait a moment and try again.",
+      "name": "Enter your first and last name.",
+      "server": "The server is temporarily unavailable. Please try later."
+    },
+    "tabPhone": "Phone",
+    "tabEmail": "Email & password",
+    "emailLabel": "Email",
+    "emailPlaceholder": "name@example.com",
+    "passwordLabel": "Password",
+    "passwordHint": "At least 8 characters, letters and digits",
+    "confirmLabel": "Repeat password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "signIn": "Sign in",
+    "signUp": "Create account",
+    "signingIn": "Signing in...",
+    "signingUp": "Creating...",
+    "noAccount": "No account yet?",
+    "haveAccount": "Already have an account?",
+    "goRegister": "Register",
+    "goLogin": "Sign in",
+    "emailTitleLogin": "Sign in with email",
+    "emailTitleRegister": "Register",
+    "emailSubtitleLogin": "Enter the email and password of your account.",
+    "emailSubtitleRegister": "Create an account with email and password. Verify your phone later тАФ it is required to buy tickets.",
+    "emailErrors": {
+      "invalidCredentials": "Incorrect email or password.",
+      "emailTaken": "An account with this email already exists. Sign in or use another email.",
+      "invalidEmail": "Enter a valid email.",
+      "weakPassword": "Password: 8тАУ72 characters, at least one letter and one digit.",
+      "mismatch": "Passwords do not match.",
+      "suspended": "The account is suspended. Please contact support."
+    }
+  },
+  "account": {
+    "loading": "Loading your account...",
+    "hello": "Hello, {name}!",
+    "helloNoName": "Welcome!",
+    "subtitle": "Your tickets, orders and profile settings are here.",
+    "tabs": {
+      "overview": "Overview",
+      "tickets": "My tickets",
+      "orders": "Orders",
+      "payments": "Payments",
+      "notifications": "Notifications",
+      "profile": "Profile"
+    },
+    "overview": {
+      "tickets": "Active tickets",
+      "orders": "Orders",
+      "notifications": "New notifications",
+      "cta": "Find a forum",
+      "nextTitle": "Upcoming events",
+      "nextText": "Open the listings and get your first ticket."
+    },
+    "empty": {
+      "tickets": "You have no tickets yet",
+      "ticketsText": "After payment your QR tickets will appear here and arrive in Telegram.",
+      "orders": "No orders yet",
+      "ordersText": "Get a ticket for any forum and the order will appear here.",
+      "payments": "No payments yet",
+      "paymentsText": "Payment history appears after your first purchase.",
+      "notifications": "No notifications yet",
+      "notificationsText": "We will let you know about new forums, payments and event changes.",
+      "browse": "Browse forums"
+    },
+    "profile": {
+      "title": "Profile",
+      "phone": "Phone",
+      "verified": "verified",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "language": "Preferred language",
+      "save": "Save",
+      "saving": "Saving...",
+      "saved": "Changes saved",
+      "telegram": "Telegram",
+      "telegramText": "Connecting Telegram to receive tickets is coming soon."
+    },
+    "logout": "Log out",
+    "errors": {
+      "generic": "The action failed. Please try again.",
+      "name": "Enter your first and last name."
+    },
+    "tickets": {
+      "title": "My tickets",
+      "used": "Used",
+      "active": "Valid",
+      "cancelled": "Cancelled",
+      "expired": "Expired",
+      "checkedIn": "Checked in",
+      "participant": "Attendee",
+      "category": "Category",
+      "number": "Ticket number",
+      "qrNote": "Show the QR code at the entrance.",
+      "loadError": "Could not load tickets."
+    }
+  },
+  "notFound": {
+    "title": "Page not found",
+    "text": "The link may be outdated or the page has been moved.",
+    "home": "Back to home",
+    "events": "To events"
+  },
+  "checkout": {
+    "title": "Get your tickets",
+    "subtitle": "Enter the attendee and the category for each ticket.",
+    "ticket": "Ticket {n}",
+    "category": "Category",
+    "firstName": "Attendee first name",
+    "lastName": "Attendee last name",
+    "addTicket": "Add ticket",
+    "remove": "Remove",
+    "limit": "Up to {n} per account",
+    "total": "Total",
+    "pay": "Proceed to payment",
+    "paying": "Creating order...",
+    "secure": "Payment is made on a secure Finik page. Tickets are issued only after the payment is confirmed.",
+    "hold": "Seats are reserved for 10 minutes after the order is created.",
+    "back": "Back to the event",
+    "loading": "Checking sign-in...",
+    "demo": "This is a demo event; it cannot be ordered.",
+    "soldOut": "Sold out",
+    "left": "{n} left",
+    "errors": {
+      "names": "Enter a first and last name for every ticket.",
+      "generic": "The order could not be created. Please try again.",
+      "network": "Cannot reach the server. Check your connection.",
+      "MAX_TICKETS_PER_ACCOUNT_EXCEEDED": "The per-account ticket limit for this forum is exceeded.",
+      "CAPACITY_EXCEEDED": "There are no seats left.",
+      "CATEGORY_CAPACITY_EXCEEDED": "No seats left in the selected category.",
+      "FORUM_CAPACITY_EXCEEDED": "There are no seats left.",
+      "FORUM_ALREADY_STARTED": "The event has already started; sales are closed.",
+      "FORUM_NOT_AVAILABLE": "The event is not available for purchase.",
+      "CATEGORY_NOT_ACTIVE": "The selected category is not available.",
+      "FINIK_PAYMENT_UNAVAILABLE": "The payment service is temporarily unavailable. Please try again later.",
+      "VALIDATION_ERROR": "Please check the entered data.",
+      "UNAUTHORIZED": "Sign in to continue."
+    }
+  },
+  "payment": {
+    "checking": "Checking the payment...",
+    "waitTitle": "Waiting for payment confirmation",
+    "waitText": "This usually takes less than a minute. Please keep this page open.",
+    "paidTitle": "Payment successful!",
+    "paidText": "Your tickets are issued and available in your account. The QR code also arrives in Telegram if it is connected.",
+    "failedTitle": "Payment failed",
+    "failedText": "The money was not charged or will be returned by the bank. Please try ordering again.",
+    "expiredTitle": "Payment time expired",
+    "expiredText": "The seat reservation was released. Please place the order again.",
+    "unknown": "Could not determine the order status.",
+    "order": "Order",
+    "tickets": "My tickets",
+    "again": "To events",
+    "noOrder": "Order not found. Open your account to see your tickets."
   }
 }
