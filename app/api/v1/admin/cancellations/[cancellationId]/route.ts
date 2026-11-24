@@ -140,8 +140,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
       // Finik's refund API is not available/verified. Persist the request as pending,
       // revoke admission only after manager approval, and never report refund success.
+      const { randomUUID } = await import('node:crypto')
       const refund = await tx.refund.create({
         data: {
+          id: randomUUID(),
           orderId: cancellation.orderId,
           paymentId: payment.id,
           ticketId: cancellation.ticketId,
