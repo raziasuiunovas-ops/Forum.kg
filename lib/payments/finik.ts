@@ -35,10 +35,13 @@ export function readFinikConfig(env: Readonly<Record<string, string | undefined>
   const privateKey = (env.FINIK_PRIVATE_KEY ?? env.FINIK_PRIVATE_PEM)?.trim().replace(/\\n/g, '\n')
   const publicKey = (environment === 'beta' ? env.FINIK_BETA_PUBLIC_KEY : env.FINIK_PROD_PUBLIC_KEY)
     ?.trim().replace(/\\n/g, '\n')
-  const redirectUrl = env.FINIK_REDIRECT_URL?.trim()
-  const webhookUrl = env.FINIK_WEBHOOK_URL?.trim()
+  
+  // Auto-generate URLs if not provided
+  const baseUrl = env.NEXT_PUBLIC_APP_URL || 'https://forum-kg-ten.vercel.app'
+  const redirectUrl = env.FINIK_REDIRECT_URL?.trim() || `${baseUrl}/payment/result`
+  const webhookUrl = env.FINIK_WEBHOOK_URL?.trim() || `${baseUrl}/api/v1/payments/webhooks/finik`
 
-  if (!environment || !apiKey || !accountId || !privateKey || !publicKey || !redirectUrl || !webhookUrl) {
+  if (!environment || !apiKey || !accountId || !privateKey) {
     throw new Error('Finik is not configured')
   }
 
@@ -47,9 +50,9 @@ export function readFinikConfig(env: Readonly<Record<string, string | undefined>
     throw new Error('Finik is not configured')
   }
 
-  // Validate RSA public key format (PEM)
-  if (!publicKey.includes('BEGIN PUBLIC KEY') && !publicKey.includes('BEGIN RSA PUBLIC KEY')) {
-    throw new Error('Finik is not configured')
+  // Public key validation only if provided
+  if (publicKey && !publicKey.includes('BEGIN PUBLIC KEY') && !publicKey.includes('BEGIN RSA PUBLIC KEY')) {
+    throw new Error('Invalid Finik public key format')
   }
 
   validateHttpsUrl(redirectUrl)
@@ -60,7 +63,7 @@ export function readFinikConfig(env: Readonly<Record<string, string | undefined>
     apiKey,
     accountId,
     privateKey,
-    publicKey,
+    publicKey: publicKey || '', // Empty string if not provided
     redirectUrl,
     webhookUrl,
     apiBaseUrl: environment === 'beta'
