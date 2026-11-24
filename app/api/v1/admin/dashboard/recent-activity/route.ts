@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
           Forum: {
             select: {
               id: true,
-              translations: {
+              ForumTranslation: {
                 where: { locale: 'RU' },
                 select: { title: true },
                 take: 1,
@@ -159,7 +159,7 @@ export async function GET(request: NextRequest) {
               lastName: true,
             },
           },
-          translations: {
+          ForumTranslation: {
             where: { locale: 'RU' },
             select: { title: true },
             take: 1,
@@ -237,7 +237,7 @@ export async function GET(request: NextRequest) {
     // Event registrations
     recentRegistrations.forEach((reg) => {
       const userName = `${reg.attendeeFirstName} ${reg.attendeeLastName}`.trim()
-      const eventTitle = reg.Forum.translations[0]?.title || 'Мероприятие'
+      const eventTitle = reg.Forum.ForumTranslation[0]?.title || 'Мероприятие'
       activities.push({
         id: reg.id,
         type: 'EVENT_REGISTRATION' as ActivityType,
@@ -271,7 +271,7 @@ export async function GET(request: NextRequest) {
     // Forums
     recentForums.forEach((forum) => {
       const creatorName = `${forum.User.firstName} ${forum.User.lastName || ''}`.trim()
-      const forumTitle = forum.translations[0]?.title || forum.slug
+      const forumTitle = forum.ForumTranslation[0]?.title || forum.slug
       activities.push({
         id: forum.id,
         type: 'FORUM_CREATED' as ActivityType,
