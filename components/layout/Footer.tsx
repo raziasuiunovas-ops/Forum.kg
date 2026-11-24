@@ -79,9 +79,18 @@ export async function Footer({ locale, settings }: { locale: AppLocale; settings
 
         <div className="mt-4 flex flex-col items-start justify-between gap-2 border-t border-white/10 pt-5 text-xs text-white/50 sm:flex-row sm:items-center">
           <p>{t('rights')}</p>
-          <p className="inline-flex items-center gap-1">
-            {t('madeFor')} <ArrowUpRight className="h-3 w-3" />
-          </p>
+          <div className="flex items-center gap-4">
+            <a 
+              href={`/${locale}/admin/login`} 
+              className="opacity-30 transition hover:opacity-100 hover:text-white"
+              title="Админ-панель"
+            >
+              Admin
+            </a>
+            <p className="inline-flex items-center gap-1">
+              {t('madeFor')} <ArrowUpRight className="h-3 w-3" />
+            </p>
+          </div>
         </div>
       </div>
     </footer>
