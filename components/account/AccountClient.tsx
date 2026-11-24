@@ -129,8 +129,8 @@ export function AccountClient({ locale, messages }: { locale: string; messages: 
                 </Link>
               </div>
               <div className="rounded-2xl bg-surface p-6">
-                <p className="text-xs font-bold uppercase tracking-widest text-primary">{t('profile.phone')}</p>
-                <p className="mt-3 text-lg font-black text-ink">{me.phone}</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-primary">{me.phone ? t('profile.phone') : 'Email'}</p>
+                <p className="mt-3 break-all text-lg font-black text-ink">{me.phone ?? me.email}</p>
                 {me.phoneVerifiedAt && (
                   <p className="mt-1 text-xs font-semibold text-emerald-600">✓ {t('profile.verified')}</p>
                 )}
@@ -227,9 +227,9 @@ function ProfileForm({
     <form onSubmit={save} className="max-w-md" noValidate>
       <h2 className="text-2xl font-black tracking-tight text-ink">{t('profile.title')}</h2>
 
-      <p className="mt-6 text-xs font-bold text-ink">{t('profile.phone')}</p>
+      <p className="mt-6 text-xs font-bold text-ink">{me.phone ? t('profile.phone') : 'Email'}</p>
       <p className="mt-2 flex h-12 items-center justify-between rounded-xl bg-slate-100 px-4 text-sm font-semibold text-slate-600">
-        {me.phone}
+        {me.phone ?? me.email}
         {me.phoneVerifiedAt && <span className="text-xs text-emerald-600">✓ {t('profile.verified')}</span>}
       </p>
 

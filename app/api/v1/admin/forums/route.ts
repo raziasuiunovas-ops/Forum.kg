@@ -12,6 +12,7 @@ import { requireManager } from '@/lib/auth/middleware'
 import { forumCreateSchema, forumQuerySchema } from '@/lib/api/schemas/forum'
 import { ForumStatus, Locale, Prisma } from '@prisma/client'
 import { error as jsonError } from '@/lib/api/response'
+import { revalidatePublicForums } from '@/lib/forums/revalidate'
 
 /**
  * GET - List all forums with filtering and pagination
@@ -305,6 +306,7 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    revalidatePublicForums()
     return NextResponse.json(
       {
         message: 'Мероприятие успешно создано',

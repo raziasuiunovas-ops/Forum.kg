@@ -1,19 +1,25 @@
 'use client'
 
-import { useState } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
-import { actions, useAdminState } from '@/lib/admin/store'
+import { useCallback, useEffect, useState } from 'react'
+import { Plus, RefreshCw, Trash2 } from 'lucide-react'
+import { createForum, listForums, setForumStatus, updateForum } from '@/lib/admin/api'
 import { dateTime, fromLocalInput, money, toLocalInput } from '@/lib/admin/format'
 import type { AdminCategory, AdminForum, ForumStatus, L10n, Loc } from '@/lib/admin/types'
 import { useAdminUser } from '../AdminShell'
-import { Badge, Card, DataTable, DemoBanner, Field, Modal, PageHeader, btn, field } from '../ui'
+import { Badge, Card, DataTable, Field, Modal, PageHeader, btn, field } from '../ui'
 import { FORUM_LABEL, FORUM_TONE } from './labels'
 
 const LOCS: { id: Loc; label: string }[] = [{ id: 'ru', label: 'Русский' }, { id: 'ky', label: 'Кыргызча' }, { id: 'en', label: 'English' }]
 const empty = (): L10n => ({ ru: '', ky: '', en: '' })
 
+const TRANSLIT: Record<string, string> = {
+  а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'yo', ж: 'zh', з: 'z', и: 'i', й: 'y', к: 'k', л: 'l', м: 'm', н: 'n', ң: 'ng',
+  о: 'o', ө: 'o', п: 'p', р: 'r', с: 's', т: 't', у: 'u', ү: 'u', ф: 'f', х: 'h', ц: 'ts', ч: 'ch', ш: 'sh', щ: 'sch', ъ: '', ы: 'y',
+  ь: '', э: 'e', ю: 'yu', я: 'ya',
+}
 const slugify = (s: string) =>
-  s.toLowerCase().replace(/[а-яё]/g, (c) => 'abvgdeezijklmnoprstufhcchhyyyeua'[('абвгдеёжзийклмнопрстуфхцчшщъыьэюя'.indexOf(c) % 32)] ?? '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `forum-${Date.now()}`
+  (s.toLowerCase().replace(/[а-яёңөү]/g, (c) => TRANSLIT[c] ?? '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80) || 'forum') +
+  `-${Math.random().toString(36).slice(2, 6)}`
 
 function blank(): AdminForum {
   return {
@@ -26,17 +32,37 @@ function blank(): AdminForum {
 }
 
 export function Forums() {
-  const { forums } = useAdminState()
-  const { actor } = useAdminUser()
+  useAdminUser()
+  const [forums, setForums] = useState<AdminForum[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [editing, setEditing] = useState<AdminForum | null>(null)
   const [isNew, setIsNew] = useState(false)
+
+  const reload = useCallback(async () => {
+    setLoading(true)
+    const r = await listForums()
+    if (r.ok) { setForums(r.data!); setError('') } else setError(r.error!)
+    setLoading(false)
+  }, [])
+  useEffect(() => { void reload() }, [reload])
+
+  async function changeStatus(f: AdminForum, status: ForumStatus) {
+    const r = await setForumStatus(f.id, status)
+    if (!r.ok) return alert(r.error)
+    void reload()
+  }
 
   return (
     <div>
       <PageHeader title="Форумы" text="Создание, редактирование и публикация форумов. Время событий — Asia/Bishkek.">
         <button type="button" className={btn.primary} onClick={() => { setEditing(blank()); setIsNew(true) }}><Plus className="h-4 w-4" /> Создать форум</button>
       </PageHeader>
-      <DemoBanner />
+      {error && <p role="alert" className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{error}</p>}
+      <div className="mb-3 flex items-center gap-3 text-xs text-slate-500">
+        <button type="button" className={btn.soft} onClick={() => void reload()}><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Обновить</button>
+        {!loading && !error && forums.length === 0 && <span>Форумов пока нет — создайте первый.</span>}
+      </div>
       <Card>
         <DataTable
           rows={forums}
@@ -51,30 +77,31 @@ export function Forums() {
               key: 'a', header: '', cell: (f) => (
                 <div className="flex flex-wrap justify-end gap-2">
                   <button type="button" className={btn.soft} onClick={() => { setEditing(f); setIsNew(false) }}>Изменить</button>
-                  {(f.status === 'DRAFT' || f.status === 'SCHEDULED') && <button type="button" className={btn.ok} onClick={() => actions.setForumStatus(f.id, 'PUBLISHED', actor)}>Опубликовать</button>}
-                  {f.status === 'PUBLISHED' && <button type="button" className={btn.danger} onClick={() => confirm(`Отменить форум «${f.title.ru}»?`) && actions.setForumStatus(f.id, 'CANCELLED', actor)}>Отменить</button>}
+                  {(f.status === 'DRAFT' || f.status === 'SCHEDULED') && <button type="button" className={btn.ok} onClick={() => void changeStatus(f, 'PUBLISHED')}>Опубликовать</button>}
+                  {f.status === 'PUBLISHED' && <button type="button" className={btn.danger} onClick={() => confirm(`Отменить форум «${f.title.ru}»?`) && void changeStatus(f, 'CANCELLED')}>Отменить</button>}
                 </div>
               ),
             },
           ]}
         />
       </Card>
-      {editing && <ForumForm initial={editing} isNew={isNew} onClose={() => setEditing(null)} actor={actor} />}
+      {editing && <ForumForm initial={editing} isNew={isNew} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); void reload() }} />}
     </div>
   )
 }
 
-function ForumForm({ initial, isNew, onClose, actor }: { initial: AdminForum; isNew: boolean; onClose: () => void; actor: string }) {
+function ForumForm({ initial, isNew, onClose, onSaved }: { initial: AdminForum; isNew: boolean; onClose: () => void; onSaved: () => void }) {
   const [f, setF] = useState<AdminForum>(initial)
   const [loc, setLoc] = useState<Loc>('ru')
   const [publish, setPublish] = useState<'draft' | 'now' | 'scheduled'>(initial.status === 'PUBLISHED' ? 'now' : initial.status === 'SCHEDULED' ? 'scheduled' : 'draft')
   const [errors, setErrors] = useState<string[]>([])
+  const [saving, setSaving] = useState(false)
 
   const set = <K extends keyof AdminForum>(k: K, v: AdminForum[K]) => setF((x) => ({ ...x, [k]: v }))
   const setL = (k: 'title' | 'shortDescription' | 'description' | 'program', v: string) => setF((x) => ({ ...x, [k]: { ...x[k], [loc]: v } }))
   const setCat = (i: number, patch: Partial<AdminCategory>) => setF((x) => ({ ...x, categories: x.categories.map((c, idx) => (idx === i ? { ...c, ...patch } : c)) }))
 
-  function save(e: React.FormEvent) {
+  async function save(e: React.FormEvent) {
     e.preventDefault()
     const errs: string[] = []
     if (!f.title.ru.trim()) errs.push('Укажите название на русском (русский язык обязателен).')
@@ -84,17 +111,26 @@ function ForumForm({ initial, isNew, onClose, actor }: { initial: AdminForum; is
     if (!f.venueName.trim() || !f.venueAddress.trim()) errs.push('Укажите место и адрес.')
     if (!Number.isInteger(f.capacity) || f.capacity < 1) errs.push('Вместимость — положительное целое число.')
     if (!Number.isInteger(f.maxTicketsPerAccount) || f.maxTicketsPerAccount < 1) errs.push('Лимит билетов на аккаунт — положительное целое число.')
+    if (isNew && f.startsAt && new Date(f.startsAt) <= new Date()) errs.push('Дата начала должна быть в будущем.')
     if (!f.qrExpiresAt) errs.push('Укажите срок действия QR (обязательно).')
+    else if (f.startsAt && f.qrExpiresAt < f.startsAt) errs.push('Срок действия QR должен быть не раньше начала форума.')
     if (f.categories.length < 1) errs.push('Нужна хотя бы одна категория билетов.')
-    if (f.categories.some((c) => c.priceMinor < 0 || !c.code.trim())) errs.push('Проверьте категории: название и цена.')
+    if (f.categories.some((c) => c.priceMinor < 0 || !/^[A-Z_]+$/.test(c.code))) errs.push('Проверьте категории: код латиницей (STANDARD, VIP, ...) и цена.')
+    if (new Set(f.categories.map((c) => c.code)).size !== f.categories.length) errs.push('Коды категорий не должны повторяться.')
     const catSum = f.categories.reduce((a, c) => a + (c.capacity ?? 0), 0)
     if (f.categories.every((c) => c.capacity !== null) && catSum > f.capacity) errs.push('Сумма мест по категориям превышает общую вместимость.')
     if (publish === 'scheduled' && !f.publishAt) errs.push('Укажите время публикации.')
     if (errs.length) return setErrors(errs)
 
     const status: ForumStatus = publish === 'now' ? 'PUBLISHED' : publish === 'scheduled' ? 'SCHEDULED' : f.status === 'PUBLISHED' || f.status === 'SCHEDULED' ? 'DRAFT' : f.status
-    actions.saveForum({ ...f, status, slug: f.slug || slugify(f.title.en || f.title.ru), publishAt: publish === 'scheduled' ? f.publishAt : null }, actor)
-    onClose()
+    const slug = f.slug || slugify(f.title.en || f.title.ru)
+    const payload = { ...f, status, slug: slug.length >= 3 ? slug : `${slug}-forum`, publishAt: publish === 'scheduled' ? f.publishAt : null }
+    setSaving(true)
+    setErrors([])
+    const r = isNew ? await createForum(payload) : await updateForum(payload)
+    setSaving(false)
+    if (!r.ok) return setErrors([r.error!])
+    onSaved()
   }
 
   return (
@@ -113,7 +149,7 @@ function ForumForm({ initial, isNew, onClose, actor }: { initial: AdminForum; is
         <Field label={`Программа (${loc.toUpperCase()}, необязательно)`}><textarea className={`${field} h-24 py-2`} value={f.program[loc]} onChange={(e) => setL('program', e.target.value)} /></Field>
 
         <div className="grid gap-4 sm:grid-cols-[1fr_8rem]">
-          <Field label="Обложка (URL изображения) *" hint="Загрузка файлов в хранилище будет добавлена вместе с серверной частью.">
+          <Field label="Обложка (URL изображения) *" hint="Ссылка на картинку (https://...) или путь на сайте (/images/...).">
             <input className={field} value={f.bannerUrl} onChange={(e) => set('bannerUrl', e.target.value)} placeholder="/images/forum-tech.webp или https://..." />
           </Field>
           {f.bannerUrl && /* eslint-disable-next-line @next/next/no-img-element */ <img src={f.bannerUrl} alt="" className="h-20 w-full rounded-lg object-cover ring-1 ring-slate-200 sm:mt-6" />}
@@ -158,7 +194,7 @@ function ForumForm({ initial, isNew, onClose, actor }: { initial: AdminForum; is
         {errors.length > 0 && <ul role="alert" className="list-disc space-y-1 rounded-xl bg-red-50 py-3 pl-8 pr-4 text-xs font-semibold text-red-600">{errors.map((e) => <li key={e}>{e}</li>)}</ul>}
         <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
           <button type="button" className={btn.soft} onClick={onClose}>Отмена</button>
-          <button type="submit" className={btn.primary}>Сохранить</button>
+          <button type="submit" disabled={saving} className={btn.primary}>{saving ? 'Сохранение…' : 'Сохранить'}</button>
         </div>
       </form>
     </Modal>
