@@ -71,9 +71,9 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         include: {
           Order: {
             include: {
-              items: { include: { ticket: { include: { checkIn: { select: { id: true } } } } } },
-              payments: { orderBy: { createdAt: 'desc' } },
-              refunds: { orderBy: { createdAt: 'desc' } },
+              OrderItem: { include: { Ticket: { include: { CheckIn: { select: { id: true } } } } } },
+              Payment: { orderBy: { createdAt: 'desc' } },
+              Refund: { orderBy: { createdAt: 'desc' } },
             },
           },
         },
@@ -119,19 +119,19 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         return { kind: 'order_not_refundable' }
       }
 
-      const payment = cancellation.Order.payments.find((candidate) => candidate.status === PaymentStatus.SUCCEEDED)
+      const payment = cancellation.Order.Payment.find((candidate) => candidate.status === PaymentStatus.SUCCEEDED)
       if (!payment) return { kind: 'order_not_refundable' }
 
       const targetItems = cancellation.ticketId === null
-        ? cancellation.Order.items
-        : cancellation.Order.items.filter(({ ticket }) => ticket?.id === cancellation.ticketId)
-      if (targetItems.length === 0 || targetItems.some(({ ticket }) => !ticket || ticket.status !== TicketStatus.ACTIVE || ticket.checkIn !== null)) {
+        ? cancellation.Order.OrderItem
+        : cancellation.Order.OrderItem.filter(({ Ticket }) => Ticket?.id === cancellation.ticketId)
+      if (targetItems.length === 0 || targetItems.some(({ Ticket }) => !Ticket || Ticket.status !== TicketStatus.ACTIVE || Ticket.CheckIn !== null)) {
         return { kind: 'ticket_not_cancellable' }
       }
 
       if (priorRefund) return { kind: 'refund_already_exists' }
       const amountMinor = targetItems.reduce((sum, item) => sum + item.unitPriceMinor, 0)
-      const outstandingRefundable = payment.amountMinor - cancellation.Order.refunds
+      const outstandingRefundable = payment.amountMinor - cancellation.Order.Refund
         .filter((refund) => activeRefundStatuses.includes(refund.status))
         .reduce((sum, refund) => sum + refund.amountMinor, 0)
       if (!Number.isSafeInteger(amountMinor) || amountMinor <= 0 || amountMinor > outstandingRefundable) {
@@ -161,8 +161,8 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       })
       if (ticketsUpdated.count !== affectedTicketIds.length) throw new Error('CANCELLATION_STATE_CHANGED')
 
-      const allTicketItemsCancelled = cancellation.Order.items.every(({ ticket }) =>
-        ticket !== null && (ticket.status === TicketStatus.CANCELLED || affectedTicketIds.includes(ticket.id)))
+      const allTicketItemsCancelled = cancellation.Order.OrderItem.every(({ Ticket }) =>
+        Ticket !== null && (Ticket.status === TicketStatus.CANCELLED || affectedTicketIds.includes(Ticket.id)))
       await tx.order.update({
         where: { id: cancellation.orderId },
         data: { status: allTicketItemsCancelled ? OrderStatus.CANCELLED : OrderStatus.PARTIALLY_CANCELLED },
