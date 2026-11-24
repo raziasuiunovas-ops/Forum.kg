@@ -157,34 +157,45 @@ export async function GET(request: Request) {
   const locale: AppLocale = isAppLocale(l) ? l : 'ru'
   const slug = url.searchParams.get('slug')
 
-  // For home page: return static image
+  // For home page: redirect to static image in public/
   if (!slug) {
     const imageMap: Record<AppLocale, string> = {
-      ru: 'opengraph-ru.jpg',
-      ky: 'opengraph-kg.jpg',
-      en: 'opengraph-en.jpg',
+      ru: '/opengraph-ru.jpg',
+      ky: '/opengraph-kg.jpg',
+      en: '/opengraph-en.jpg',
     }
-    const imagePath = join(process.cwd(), 'public/og', imageMap[locale])
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                    (process.env.VERCEL_PROJECT_PRODUCTION_URL && `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`) ||
+                    (process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`) ||
+                    'http://localhost:3000'
     
+    const imageUrl = `${baseUrl.replace(/\/$/, '')}${imageMap[locale]}`
+    
+    // Fetch and return the image
     try {
-      const imageBuffer = await readFile(imagePath)
-      return new NextResponse(imageBuffer, {
-        headers: {
-          'Content-Type': 'image/jpeg',
-          'Cache-Control': 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800',
-        },
-      })
-    } catch {
-      // Fallback to generated image if static file not found
-      const element = homeImage(locale)
-      return new ImageResponse(element, {
-        ...SIZE,
-        fonts: await loadFonts(),
-        headers: {
-          'Cache-Control': 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800',
-        },
-      })
+      const response = await fetch(imageUrl)
+      if (response.ok) {
+        const imageBuffer = await response.arrayBuffer()
+        return new NextResponse(imageBuffer, {
+          headers: {
+            'Content-Type': 'image/jpeg',
+            'Cache-Control': 'public, max-age=31536000, immutable',
+          },
+        })
+      }
+    } catch (error) {
+      console.error('[OG Image] Failed to fetch static image:', error)
     }
+    
+    // Fallback to generated image if static file not found
+    const element = homeImage(locale)
+    return new ImageResponse(element, {
+      ...SIZE,
+      fonts: await loadFonts(),
+      headers: {
+        'Cache-Control': 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800',
+      },
+    })
   }
 
   // For forum pages: generate dynamic image

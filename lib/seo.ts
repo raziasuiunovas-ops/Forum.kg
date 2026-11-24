@@ -137,7 +137,24 @@ export function buildMetadata(input: BuildMetadataInput): Metadata {
   const base = siteUrl()
   const url = `${base}/${locale}${path}`
   const title = input.absoluteTitle || input.title.includes(SITE_NAME) ? input.title : `${input.title} — ${SITE_NAME}`
-  const image = input.image ?? `/og?l=${locale}`
+  
+  // For home page, use static image; otherwise use /og route
+  let image: string
+  if (input.image) {
+    image = input.image
+  } else if (path === '') {
+    // Home page: use static images
+    const staticImages: Record<AppLocale, string> = {
+      ru: '/opengraph-ru.jpg',
+      ky: '/opengraph-kg.jpg',
+      en: '/opengraph-en.jpg',
+    }
+    image = staticImages[locale]
+  } else {
+    // Other pages: use /og route
+    image = `/og?l=${locale}`
+  }
+  
   const imageUrl = image.startsWith('http') ? image : `${base}${image}`
   const alt = input.imageAlt ?? title
 
@@ -161,7 +178,7 @@ export function buildMetadata(input: BuildMetadataInput): Metadata {
       description,
       locale: OG_LOCALE[locale],
       alternateLocale: locales.filter((l) => l !== locale).map((l) => OG_LOCALE[l]),
-      images: [{ url: imageUrl, width: 1200, height: 630, alt, type: 'image/png' }],
+      images: [{ url: imageUrl, width: 1200, height: 630, alt, type: 'image/jpeg' }],
     },
     twitter: {
       card: 'summary_large_image',
