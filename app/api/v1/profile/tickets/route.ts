@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
       return authResult
     }
 
-    const user = authResult.user
+    const user = authResult.User
     const { searchParams } = new URL(request.url)
 
     const validation = listTicketsSchema.safeParse({
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
         {
           error: {
             code: 'VALIDATION_ERROR',
-            message: 'Ошибка валидации параметров',
+            message: 'РћС€РёР±РєР° РІР°Р»РёРґР°С†РёРё РїР°СЂР°РјРµС‚СЂРѕРІ',
             details: validation.error.format(),
           },
         },
@@ -60,10 +60,10 @@ export async function GET(request: NextRequest) {
 
     // Get tickets with pagination
     const [tickets, total] = await Promise.all([
-      prisma.ticket.findMany({
+      prisma.Ticket.findMany({
         where,
         include: {
-          forum: {
+          Forum: {
             select: {
               id: true,
               slug: true,
@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
               participantFirstName: true,
               participantLastName: true,
               unitPriceMinor: true,
-              ticketCategory: {
+              TicketCategory: {
                 select: {
                   code: true,
                   translations: {
@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
         skip,
         take: limit,
       }),
-      prisma.ticket.count({ where }),
+      prisma.Ticket.count({ where }),
     ])
 
     // Check expiry for each ticket
@@ -120,17 +120,17 @@ export async function GET(request: NextRequest) {
         issuedAt: ticket.issuedAt.toISOString(),
         expiresAt: ticket.expiresAt.toISOString(),
         usedAt: ticket.usedAt?.toISOString() || null,
-        forum: {
-          id: ticket.forum.id,
-          slug: ticket.forum.slug,
-          title: ticket.forum.translations[0]?.title || 'Untitled',
-          startsAt: ticket.forum.startsAt.toISOString(),
-          endsAt: ticket.forum.endsAt?.toISOString() || null,
-          venueName: ticket.forum.venueName,
+        Forum: {
+          id: ticket.Forum.id,
+          slug: ticket.Forum.slug,
+          title: ticket.Forum.translations[0]?.title || 'Untitled',
+          startsAt: ticket.Forum.startsAt.toISOString(),
+          endsAt: ticket.Forum.endsAt?.toISOString() || null,
+          venueName: ticket.Forum.venueName,
         },
-        category: {
-          code: ticket.orderItem.ticketCategory.code,
-          name: ticket.orderItem.ticketCategory.translations[0]?.name || ticket.orderItem.ticketCategory.code,
+        TopicCategory: {
+          code: ticket.orderItem.TicketCategory.code,
+          name: ticket.orderItem.TicketCategory.translations[0]?.name || ticket.orderItem.TicketCategory.code,
         },
         participant: {
           firstName: ticket.orderItem.participantFirstName,
@@ -145,7 +145,7 @@ export async function GET(request: NextRequest) {
     const totalPages = Math.ceil(total / limit)
 
     return NextResponse.json({
-      tickets: ticketsWithExpiry,
+      Ticket: ticketsWithExpiry,
       pagination: {
         page,
         limit,
@@ -156,12 +156,12 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Error fetching user tickets:', error)
+    console.error('Error fetching user Ticket:', error)
     return NextResponse.json(
       {
         error: {
           code: 'INTERNAL_SERVER_ERROR',
-          message: 'Не удалось получить список билетов',
+          message: 'РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ СЃРїРёСЃРѕРє Р±РёР»РµС‚РѕРІ',
         },
       },
       { status: 500 }

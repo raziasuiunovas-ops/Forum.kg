@@ -3,11 +3,18 @@
  * Works without custom domain using SendGrid's verified sender
  */
 
-import sgMail from '@sendgrid/mail'
+let sgMail: any = null
 
-// Initialize SendGrid
-if (process.env.SENDGRID_API_KEY) {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY)
+try {
+  // Dynamic import to avoid errors if @sendgrid/mail is not installed
+  sgMail = require('@sendgrid/mail')
+  
+  // Initialize SendGrid
+  if (process.env.SENDGRID_API_KEY) {
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY)
+  }
+} catch (error) {
+  console.warn('[Email Service] @sendgrid/mail not installed. Run: npm install @sendgrid/mail')
 }
 
 const SITE_NAME = 'FORUM.KG'
@@ -108,6 +115,11 @@ export async function sendPasswordResetEmail(
   locale: string = 'ru'
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    if (!sgMail) {
+      console.error('[Email Service] SendGrid not initialized. Install with: npm install @sendgrid/mail')
+      return { success: false, error: 'SendGrid not installed' }
+    }
+
     if (!process.env.SENDGRID_API_KEY) {
       console.error('[Email Service] SENDGRID_API_KEY not configured')
       return { success: false, error: 'Email service not configured' }
@@ -128,7 +140,7 @@ export async function sendPasswordResetEmail(
     console.log('[Email Service] Password reset email sent via SendGrid')
     return { success: true }
   } catch (error: any) {
-    console.error('[Email Service] SendGrid error:', error.response?.body || error)
+    console.error('[Email Service] SendGrid error:', error.response?.body || error.message || error)
     return { success: false, error: error.message || 'Failed to send email' }
   }
 }

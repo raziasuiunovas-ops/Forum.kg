@@ -29,9 +29,11 @@ export default async function ResetPasswordPage({ params }: { params: Promise<{ 
       <div className="absolute -left-40 top-0 -z-10 h-[30rem] w-[30rem] animate-glow rounded-full bg-primary/30 blur-[120px]" aria-hidden />
 
       {/* brand side */}
-      <section className="relative hidden flex-col justify-between p-12 lg:flex">
-        <Logo locale={locale} name={settings.displayName} logoUrl={settings.logoUrl} />
-        <div>
+      <section className="relative hidden flex-col justify-center p-12 lg:flex">
+        <div className="absolute top-12 left-12">
+          <Logo locale={locale} name={settings.displayName} logoUrl={settings.logoUrl} />
+        </div>
+        <div className="max-w-md">
           <h2 className="text-[clamp(2.5rem,5vw,4.5rem)] font-black uppercase leading-[0.9] tracking-tighter">
             <span className="block animate-fade-up">{t('resetPasswordTitle')}</span>
           </h2>

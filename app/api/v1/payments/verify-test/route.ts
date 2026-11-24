@@ -49,10 +49,10 @@ export async function POST(request: NextRequest) {
     const { orderNumber, simulateSuccess } = validation.data
 
     // Find order
-    const order = await prisma.order.findFirst({
+    const order = await prisma.Order.findFirst({
       where: { orderNumber },
       include: {
-        payments: {
+        Payment: {
           orderBy: { createdAt: 'desc' },
           take: 1,
         },
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
       webhookResult,
     })
   } catch (error) {
-    console.error('Error verifying test payment:', error)
+    console.error('Error verifying test Payment:', error)
     return NextResponse.json(
       {
         error: {
