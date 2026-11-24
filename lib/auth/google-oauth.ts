@@ -15,6 +15,8 @@ export interface GoogleConfig {
   clientId: string
   clientSecret: string
   redirectUri: string
+  /** Token endpoint; overridable only for local end-to-end tests. */
+  tokenUrl: string
 }
 
 /** Returns null when Google sign-in is not configured. */
@@ -30,6 +32,7 @@ export function readGoogleConfig(
     clientId,
     clientSecret,
     redirectUri: env.GOOGLE_REDIRECT_URI?.trim() || `${base}/api/v1/auth/google/callback`,
+    tokenUrl: env.GOOGLE_TOKEN_URL?.trim() || GOOGLE_TOKEN_URL,
   }
 }
 

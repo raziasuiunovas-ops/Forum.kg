@@ -9,7 +9,7 @@ import { prisma } from '@/lib/db'
 import { describeAuthError, startSession } from '@/lib/auth/email-auth'
 import { writeSecurityAuditEvent } from '@/lib/security/audit-logger'
 import {
-  GOOGLE_TOKEN_URL, OAUTH_COOKIE, parseIdToken, readGoogleConfig, safeEqual, safeNext,
+  OAUTH_COOKIE, parseIdToken, readGoogleConfig, safeEqual, safeNext,
 } from '@/lib/auth/google-oauth'
 
 const LOCALES = ['ru', 'ky', 'en']
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     if (!code || !returnedState || !safeEqual(returnedState, state)) return fail('google_failed', 'bad_state')
 
     // 1. Exchange the authorization code (server-to-server, uses the client secret + PKCE verifier)
-    const tokenRes = await fetch(GOOGLE_TOKEN_URL, {
+    const tokenRes = await fetch(cfg.tokenUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({

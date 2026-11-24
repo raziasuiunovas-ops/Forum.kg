@@ -27,7 +27,7 @@ export async function GET(
     const { searchParams } = new URL(request.url)
 
     const validation = getForumSchema.safeParse({
-      locale: searchParams.get('locale'),
+      locale: searchParams.get('locale') ?? undefined,
     })
 
     if (!validation.success) {
