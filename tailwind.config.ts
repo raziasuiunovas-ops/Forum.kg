@@ -70,6 +70,7 @@ const config: Config = {
         twinkle: { '0%,100%': { opacity: '.35', transform: 'scale(.8)' }, '50%': { opacity: '1', transform: 'scale(1.15)' } },
         glow: { '0%,100%': { opacity: '.55' }, '50%': { opacity: '.95' } },
         draw: { from: { strokeDashoffset: '1' }, to: { strokeDashoffset: '0' } },
+        'slide-in-right': { from: { transform: 'translateX(100%)' }, to: { transform: 'translateX(0)' } },
         'accordion-down': {
           from: { height: '0' },
           to: { height: 'var(--radix-accordion-content-height)' },
@@ -88,6 +89,7 @@ const config: Config = {
         twinkle: 'twinkle 3s ease-in-out infinite',
         glow: 'glow 5s ease-in-out infinite',
         draw: 'draw 2.4s ease-out .4s both',
+        'slide-in-right': 'slide-in-right 0.3s ease-out',
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
       },

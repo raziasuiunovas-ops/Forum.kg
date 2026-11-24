@@ -6,7 +6,7 @@ import { api } from '@/lib/client/api'
 import { actions, useAdminState } from '@/lib/admin/store'
 import { dateTime } from '@/lib/admin/format'
 import { useAdminUser } from '../AdminShell'
-import { Card, DataTable, Field, PageHeader, btn, field } from '../ui'
+import { Card, DataTable, Field, PageHeader, btn, field, select } from '../ui'
 
 interface RealForum { id: string; title: string }
 interface Result {
@@ -130,7 +130,7 @@ export function Scanner() {
         <Card title="Сканирование">
           <Field label="Форум">
             {forums && forums.length > 0 ? (
-              <select className={field} value={forumId} onChange={(e) => setForumId(e.target.value)}>{forums.map((f) => <option key={f.id} value={f.id}>{f.title}</option>)}</select>
+              <select className={select} value={forumId} onChange={(e) => setForumId(e.target.value)}>{forums.map((f) => <option key={f.id} value={f.id}>{f.title}</option>)}</select>
             ) : (
               <input className={field} value={forumId} onChange={(e) => setForumId(e.target.value.trim())} placeholder="UUID форума (в базе нет опубликованных форумов)" />
             )}

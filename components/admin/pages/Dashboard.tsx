@@ -32,13 +32,16 @@ export function Dashboard({ locale }: { locale: string }) {
 
   return (
     <div>
-      <PageHeader title="Дашборд" text="Ключевые показатели по всем форумам или по одному.">
+      <PageHeader title="Панель управления" text="Ключевые показатели по всем форумам или по одному." />
+      
+      <div className="mb-6 flex items-center gap-3">
         <select aria-label="Форум" value={forumId} onChange={(e) => setForumId(e.target.value)} className={`${field} w-64`}>
           <option value="all">Все форумы</option>
           {allForums.map((f) => <option key={f.id} value={f.id}>{f.title.ru}</option>)}
         </select>
         <button type="button" className={btn.soft} onClick={() => void reload()}><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Обновить</button>
-      </PageHeader>
+      </div>
+      
       {error && <p role="alert" className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">{error}</p>}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

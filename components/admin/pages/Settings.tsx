@@ -6,6 +6,7 @@ import { actions, useAdminState } from '@/lib/admin/store'
 import type { Loc, SiteSettingsData } from '@/lib/admin/types'
 import { useAdminUser } from '../AdminShell'
 import { Card, DemoBanner, Field, PageHeader, btn, field } from '../ui'
+import { ImageUpload } from '../ImageUpload'
 
 const HEX = /^#[0-9a-fA-F]{6}$/
 
@@ -60,9 +61,15 @@ export function Settings() {
       <form onSubmit={save} noValidate className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
         <div className="space-y-6">
           <Card title="Основное">
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-4">
               <Field label="Название сайта"><input className={field} value={s.displayName} onChange={(e) => set('displayName', e.target.value)} /></Field>
-              <Field label="Логотип (URL)"><input className={field} value={s.logoUrl} onChange={(e) => set('logoUrl', e.target.value)} placeholder="https://..." /></Field>
+              <ImageUpload
+                label="Логотип сайта"
+                hint="Загрузите изображение логотипа или введите URL"
+                value={s.logoUrl}
+                onChange={(url) => set('logoUrl', url)}
+                aspectRatio="auto"
+              />
             </div>
           </Card>
           <Card title="Цвета">
@@ -73,7 +80,13 @@ export function Settings() {
             </div>
           </Card>
           <Card title="Фото на главной">
-            <Field label="Главное фото (URL)" hint="Фото баннеров форумов задаются в карточке форума."><input className={field} value={s.heroImageUrl} onChange={(e) => set('heroImageUrl', e.target.value)} /></Field>
+            <ImageUpload
+              label="Главное фото (героя)"
+              hint="Баннеры форумов задаются в карточке форума"
+              value={s.heroImageUrl}
+              onChange={(url) => set('heroImageUrl', url)}
+              aspectRatio="wide"
+            />
           </Card>
           <Card title="Тексты">
             <div role="tablist" className="mb-4 inline-flex rounded-lg bg-slate-100 p-1 text-xs font-bold">

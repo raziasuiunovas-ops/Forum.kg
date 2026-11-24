@@ -5,6 +5,10 @@ import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react'
 
 export const field =
   'h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-ink outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/25 disabled:bg-slate-50'
+
+export const select =
+  'h-10 w-full cursor-pointer appearance-none rounded-lg border border-slate-200 bg-white bg-[url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'16\' height=\'16\' viewBox=\'0 0 16 16\'%3E%3Cpath fill=\'%23475569\' d=\'M4.427 6.427l3.396 3.396a.25.25 0 00.354 0l3.396-3.396A.25.25 0 0011.396 6H4.604a.25.25 0 00-.177.427z\'/%3E%3C/svg%3E")] bg-[length:16px_16px] bg-[center_right_0.75rem] bg-no-repeat py-2 pl-3 pr-10 text-sm font-medium text-ink shadow-sm outline-none transition-all duration-200 hover:border-primary/50 hover:bg-slate-50 focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/25 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-50'
+
 export const btn = {
   primary: 'inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-50',
   soft: 'inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-3 text-xs font-bold text-ink transition hover:bg-slate-200 disabled:opacity-50',
@@ -147,11 +151,11 @@ export function DataTable<T extends { id: string }>({
 
   return (
     <div>
-      <div className="mb-3 flex flex-wrap items-center gap-3">
+      <div className="mb-3 grid gap-3 sm:grid-cols-2">
         {searchText && (
-          <div className="relative w-full sm:w-72">
+          <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input value={q} onChange={(e) => { setQ(e.target.value); setPage(0) }} placeholder="Поиск..." aria-label="Поиск" className={`${field} pl-9`} />
+            <input value={q} onChange={(e) => { setQ(e.target.value); setPage(0) }} placeholder="Поиск..." aria-label="Поиск" className={`${field} w-full pl-9`} />
           </div>
         )}
         {toolbar}

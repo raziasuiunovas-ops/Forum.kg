@@ -7,6 +7,7 @@ import { dateTime, fromLocalInput, money, toLocalInput } from '@/lib/admin/forma
 import type { AdminCategory, AdminForum, ForumStatus, L10n, Loc } from '@/lib/admin/types'
 import { useAdminUser } from '../AdminShell'
 import { Badge, Card, DataTable, Field, Modal, PageHeader, btn, field } from '../ui'
+import { ImageUpload } from '../ImageUpload'
 import { FORUM_LABEL, FORUM_TONE } from './labels'
 
 const LOCS: { id: Loc; label: string }[] = [{ id: 'ru', label: 'Русский' }, { id: 'ky', label: 'Кыргызча' }, { id: 'en', label: 'English' }]
@@ -148,12 +149,13 @@ function ForumForm({ initial, isNew, onClose, onSaved }: { initial: AdminForum; 
         <Field label={`Полное описание (${loc.toUpperCase()})`}><textarea className={`${field} h-28 py-2`} value={f.description[loc]} onChange={(e) => setL('description', e.target.value)} /></Field>
         <Field label={`Программа (${loc.toUpperCase()}, необязательно)`}><textarea className={`${field} h-24 py-2`} value={f.program[loc]} onChange={(e) => setL('program', e.target.value)} /></Field>
 
-        <div className="grid gap-4 sm:grid-cols-[1fr_8rem]">
-          <Field label="Обложка (URL изображения) *" hint="Ссылка на картинку (https://...) или путь на сайте (/images/...).">
-            <input className={field} value={f.bannerUrl} onChange={(e) => set('bannerUrl', e.target.value)} placeholder="/images/forum-tech.webp или https://..." />
-          </Field>
-          {f.bannerUrl && /* eslint-disable-next-line @next/next/no-img-element */ <img src={f.bannerUrl} alt="" className="h-20 w-full rounded-lg object-cover ring-1 ring-slate-200 sm:mt-6" />}
-        </div>
+        <ImageUpload
+          label="Обложка форума *"
+          hint="Загрузите изображение с устройства или введите URL"
+          value={f.bannerUrl}
+          onChange={(url) => set('bannerUrl', url)}
+          aspectRatio="video"
+        />
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Начало (время Бишкека) *"><input type="datetime-local" className={field} value={toLocalInput(f.startsAt)} onChange={(e) => set('startsAt', fromLocalInput(e.target.value))} /></Field>

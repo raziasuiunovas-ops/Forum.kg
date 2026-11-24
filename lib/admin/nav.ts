@@ -2,7 +2,7 @@ import type { StaffRole } from './types'
 
 /** Navigation per spec section 8.1. `roles` = who may see the section. */
 export const NAV: { id: string; label: string; roles: StaffRole[] }[] = [
-  { id: '', label: 'Дашборд', roles: ['SUPER_ADMIN', 'MANAGER'] },
+  { id: '', label: 'Панель управления', roles: ['SUPER_ADMIN', 'MANAGER'] },
   { id: 'forums', label: 'Форумы', roles: ['SUPER_ADMIN', 'MANAGER'] },
   { id: 'orders', label: 'Заказы и отмены', roles: ['SUPER_ADMIN', 'MANAGER'] },
   { id: 'payments', label: 'Платежи', roles: ['SUPER_ADMIN', 'MANAGER'] },

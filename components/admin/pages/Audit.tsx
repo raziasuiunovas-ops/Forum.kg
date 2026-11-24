@@ -25,9 +25,12 @@ export function Audit() {
           pageSize={12}
           searchText={(a) => `${a.action} ${a.target} ${a.actor}`}
           toolbar={
-            <div className="flex flex-wrap items-center gap-2">
-              <input type="date" aria-label="Дата" className={`${field} w-44`} value={day} onChange={(e) => setDay(e.target.value)} />
-              <select aria-label="Сотрудник" className={`${field} w-52`} value={actor} onChange={(e) => setActor(e.target.value)}><option value="all">Все сотрудники</option>{actors.map((a) => <option key={a}>{a}</option>)}</select>
+            <div className="flex flex-wrap gap-2 sm:justify-end">
+              <input type="date" aria-label="Дата" className={`${field} w-full sm:w-44`} value={day} onChange={(e) => setDay(e.target.value)} />
+              <select aria-label="Сотрудник" className={`${field} w-full sm:w-52`} value={actor} onChange={(e) => setActor(e.target.value)}>
+                <option value="all">Все сотрудники</option>
+                {actors.map((a) => <option key={a}>{a}</option>)}
+              </select>
             </div>
           }
           columns={[

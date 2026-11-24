@@ -5,7 +5,7 @@ import { actions, useAdminState } from '@/lib/admin/store'
 import { dateTime, money } from '@/lib/admin/format'
 import type { CancellationRequest } from '@/lib/admin/types'
 import { useAdminUser } from '../AdminShell'
-import { Badge, Card, DataTable, DemoBanner, Field, Modal, PageHeader, btn, field } from '../ui'
+import { Badge, Card, DataTable, DemoBanner, Field, Modal, PageHeader, btn, field, select } from '../ui'
 import { CANCEL_LABEL, CANCEL_TONE, ORDER_LABEL, ORDER_TONE, REFUND_LABEL } from './labels'
 
 export function Orders() {
@@ -35,7 +35,7 @@ export function Orders() {
             rows={s.orders.filter((o) => status === 'all' || o.status === status)}
             searchText={(o) => `${o.number} ${o.userName} ${forumName(o.forumId)}`}
             toolbar={
-              <select aria-label="Статус" value={status} onChange={(e) => setStatus(e.target.value)} className={`${field} w-56`}>
+              <select aria-label="Статус" value={status} onChange={(e) => setStatus(e.target.value)} className={select}>
                 <option value="all">Все статусы</option>
                 {Object.entries(ORDER_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
@@ -74,7 +74,7 @@ export function Orders() {
                     </>)}
                     {c.status === 'APPROVED' && !c.ticketsInvalidated && <button className={btn.danger} onClick={() => confirm('Аннулировать билеты? Они больше не будут проходить на входе.') && actions.invalidateCancellationTickets(c.id, actor)}>Аннулировать билеты</button>}
                     {c.ticketsInvalidated && c.refund !== 'SUCCEEDED' && (
-                      <select aria-label="Статус возврата" value={c.refund} onChange={(e) => actions.setRefund(c.id, e.target.value as CancellationRequest['refund'], actor)} className={`${field} !h-9 w-40 text-xs`}>
+                      <select aria-label="Статус возврата" value={c.refund} onChange={(e) => actions.setRefund(c.id, e.target.value as CancellationRequest['refund'], actor)} className={`${select} !h-9 !text-xs`}>
                         {Object.entries(REFUND_LABEL).map(([k, v]) => <option key={k} value={k}>Возврат: {v}</option>)}
                       </select>
                     )}

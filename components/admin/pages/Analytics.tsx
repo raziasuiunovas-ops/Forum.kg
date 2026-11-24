@@ -5,7 +5,7 @@ import { Download } from 'lucide-react'
 import { useAdminState } from '@/lib/admin/store'
 import { SALES_SERIES } from '@/lib/admin/mock'
 import { dateTime, downloadCsv, money } from '@/lib/admin/format'
-import { AreaChart, Card, DemoBanner, PageHeader, Stat, btn, field } from '../ui'
+import { AreaChart, Card, DemoBanner, PageHeader, Stat, btn, field, select } from '../ui'
 
 export function Analytics() {
   const s = useAdminState()
@@ -28,7 +28,7 @@ export function Analytics() {
   return (
     <div>
       <PageHeader title="Аналитика и экспорт" text="Продажи, категории билетов и выгрузка данных в CSV.">
-        <select aria-label="Форум" className={`${field} w-64`} value={forumId} onChange={(e) => setForumId(e.target.value)}><option value="all">Все форумы</option>{s.forums.map((f) => <option key={f.id} value={f.id}>{f.title.ru}</option>)}</select>
+        <select aria-label="Форум" className={select} value={forumId} onChange={(e) => setForumId(e.target.value)}><option value="all">Все форумы</option>{s.forums.map((f) => <option key={f.id} value={f.id}>{f.title.ru}</option>)}</select>
       </PageHeader>
       <DemoBanner />
       <div className="grid gap-4 sm:grid-cols-3">

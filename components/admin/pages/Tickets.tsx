@@ -22,21 +22,21 @@ export function Tickets() {
     <div>
       <PageHeader title="Билеты" text="Выданные билеты. Ручное аннулирование записывается в журнал аудита." />
       <DemoBanner />
+      <div className="mb-4">
+        <select aria-label="Статус" value={status} onChange={(e) => setStatus(e.target.value)} className={`${field} w-56`}>
+          <option value="all">Все статусы</option>
+          {Object.entries(TICKET_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+        </select>
+      </div>
       <Card>
         <DataTable
           rows={rows}
           searchText={(t) => `${t.number} ${t.participant} ${t.buyerName}`}
           toolbar={
-            <div className="flex flex-wrap gap-2">
-              <select aria-label="Форум" value={forum} onChange={(e) => setForum(e.target.value)} className={`${field} w-56`}>
-                <option value="all">Все форумы</option>
-                {s.forums.map((f) => <option key={f.id} value={f.id}>{f.title.ru}</option>)}
-              </select>
-              <select aria-label="Статус" value={status} onChange={(e) => setStatus(e.target.value)} className={`${field} w-48`}>
-                <option value="all">Все статусы</option>
-                {Object.entries(TICKET_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
-            </div>
+            <select aria-label="Форум" value={forum} onChange={(e) => setForum(e.target.value)} className={field}>
+              <option value="all">Все форумы</option>
+              {s.forums.map((f) => <option key={f.id} value={f.id}>{f.title.ru}</option>)}
+            </select>
           }
           columns={[
             { key: 'n', header: 'Номер', sortValue: (t) => t.number, cell: (t) => <code className="text-xs font-bold text-ink">{t.number}</code> },

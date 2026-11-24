@@ -55,18 +55,10 @@ export async function GET(request: NextRequest) {
           ],
         },
         include: {
-          translations: {
-            where: {
-              locale,
-            },
-          },
+          translations: true, // Load all translations, not just requested locale
           categories: {
             include: {
-              translations: {
-                where: {
-                  locale,
-                },
-              },
+              translations: true, // Load all translations for categories too
             },
             orderBy: {
               sortOrder: 'asc',
@@ -101,7 +93,8 @@ export async function GET(request: NextRequest) {
 
     // Transform to API format
     const forumsWithTranslations = forums.map((forum) => {
-      const translation = forum.translations[0] // Primary locale
+      // Find translation for requested locale, fallback to RU
+      const translation = forum.translations.find((t) => t.locale === locale)
       const fallbackTranslation = forum.translations.find((t) => t.locale === Locale.RU)
 
       // Calculate available tickets
@@ -131,7 +124,7 @@ export async function GET(request: NextRequest) {
         description: translation?.description || fallbackTranslation?.description || null,
         program: translation?.program || fallbackTranslation?.program || null,
         categories: forum.categories.map((cat) => {
-          const catTranslation = cat.translations[0]
+          const catTranslation = cat.translations.find((t) => t.locale === locale)
           const catFallback = cat.translations.find((t) => t.locale === Locale.RU)
           
           return {

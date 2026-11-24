@@ -28,11 +28,7 @@ export function Payments() {
           rows={rows}
           searchText={(p) => `${p.userName} ${p.orderNumber} ${p.providerRef} ${forumName(p.forumId)}`}
           toolbar={
-            <div className="flex items-center gap-2">
-              <label htmlFor="pay-day" className="text-xs font-bold text-ink">Дата:</label>
-              <input id="pay-day" type="date" value={day} onChange={(e) => setDay(e.target.value)} className={`${field} w-44`} />
-              {day && <button type="button" className={btn.soft} onClick={() => setDay('')}>Сбросить</button>}
-            </div>
+            <input type="date" value={day} onChange={(e) => setDay(e.target.value)} className={field} />
           }
           columns={[
             { key: 'u', header: 'Плательщик', sortValue: (p) => p.userName, cell: (p) => <b>{p.userName}</b> },
