@@ -286,6 +286,8 @@ export async function POST(request: NextRequest) {
             keyHash,
             fingerprint,
             status: OrderIdempotencyStatus.PROCESSING,
+            createdAt: new Date(),
+            updatedAt: new Date(),
           },
           select: { id: true },
         })
@@ -430,6 +432,8 @@ export async function POST(request: NextRequest) {
             totalMinor,
             currency: 'KGS',
             reservedUntil,
+            createdAt: new Date(),
+            updatedAt: new Date(),
             items: {
               create: items.map((item) => {
                 const category = categoryMap.get(item.ticketCategoryId)!
@@ -468,6 +472,8 @@ export async function POST(request: NextRequest) {
             status: PaymentStatus.CREATED,
             amountMinor: totalMinor,
             currency: 'KGS',
+            createdAt: new Date(),
+            updatedAt: new Date(),
           },
         })
 

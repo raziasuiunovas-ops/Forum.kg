@@ -133,10 +133,13 @@ export function translationRows(input: {
 
 export function categoryCreateData(names: string[] | undefined, priceMinor: number) {
   const categoryNames = names?.length ? names : ['Standard']
+  const now = new Date()
   return categoryNames.map((name, index) => ({
     code: `CATEGORY_${index + 1}`,
     priceMinor,
     currency: 'KGS',
+    createdAt: now,
+    updatedAt: now,
     translations: { create: [{ locale: 'RU' as const, name }] },
   }))
 }

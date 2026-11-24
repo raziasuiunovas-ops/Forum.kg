@@ -130,6 +130,8 @@ export const POST = withErrorHandler(async (request: NextRequest, context: Repli
           authorId: authResult.user.userId,
           parentId: input.parentId,
           content: input.content as Prisma.InputJsonValue,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
         select: replyPublicSelect,
       })

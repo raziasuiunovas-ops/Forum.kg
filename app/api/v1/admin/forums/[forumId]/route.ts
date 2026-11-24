@@ -298,6 +298,8 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
               capacity: category.capacity || null,
               isActive: category.isActive,
               sortOrder: category.sortOrder,
+              createdAt: new Date(),
+              updatedAt: new Date(),
             },
           })
 
@@ -335,8 +337,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         })
 
         for (const user of users) {
+          const { randomUUID } = await import('node:crypto')
           await tx.notification.create({
             data: {
+              id: randomUUID(),
               userId: user.id,
               forumId,
               type: NotificationType.FORUM_PUBLISHED,
@@ -364,8 +368,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         })
 
         for (const user of ticketHolders) {
+          const { randomUUID } = await import('node:crypto')
           await tx.notification.create({
             data: {
+              id: randomUUID(),
               userId: user.id,
               forumId,
               type: NotificationType.FORUM_UPDATED,
@@ -378,8 +384,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       }
 
       // Log audit event
+      const { randomUUID } = await import('node:crypto')
       await tx.auditLog.create({
         data: {
+          id: randomUUID(),
           actorId: authResult.user.userId,
           action: 'FORUM_UPDATED',
           targetType: 'Forum',
@@ -492,8 +500,10 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
         })
 
         for (const user of ticketHolders) {
+          const { randomUUID } = await import('node:crypto')
           await tx.notification.create({
             data: {
+              id: randomUUID(),
               userId: user.id,
               forumId,
               type: NotificationType.FORUM_CANCELLED,
@@ -505,8 +515,10 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
         }
 
         // Log audit event
+        const { randomUUID } = await import('node:crypto')
         await tx.auditLog.create({
           data: {
+            id: randomUUID(),
             actorId: authResult.user.userId,
             action: 'FORUM_CANCELLED',
             targetType: 'Forum',
@@ -535,8 +547,10 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
         await tx.forum.delete({ where: { id: forumId } })
 
         // Log audit event
+        const { randomUUID } = await import('node:crypto')
         await tx.auditLog.create({
           data: {
+            id: randomUUID(),
             actorId: authResult.user.userId,
             action: 'FORUM_DELETED',
             targetType: 'Forum',

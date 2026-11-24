@@ -119,6 +119,8 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       tags: input.tags ?? [],
       isPinned: moderator ? input.isPinned : false,
       isLocked: moderator ? input.isLocked : false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     },
     select: topicPublicSelect,
   })

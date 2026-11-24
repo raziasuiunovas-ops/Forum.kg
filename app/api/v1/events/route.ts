@@ -124,6 +124,8 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
         tags: input.tags ?? [],
         publishedAt: input.isPublished ? now : null,
         createdById: authResult.user.userId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
         translations: { create: translationRows(input) },
         categories: { create: categoryCreateData(input.categories, priceMinor) },
       },
