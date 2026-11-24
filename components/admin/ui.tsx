@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react'
+import { Select as CustomSelect } from './Select'
+
+export { CustomSelect as Select }
 
 export const field =
   'h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-ink outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/25 disabled:bg-slate-50'

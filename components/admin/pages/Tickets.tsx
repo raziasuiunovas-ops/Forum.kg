@@ -5,7 +5,7 @@ import { actions, useAdminState } from '@/lib/admin/store'
 import { dateTime } from '@/lib/admin/format'
 import type { AdminTicket } from '@/lib/admin/types'
 import { useAdminUser } from '../AdminShell'
-import { Badge, Card, DataTable, DemoBanner, Field, Modal, PageHeader, btn, field, select } from '../ui'
+import { Badge, Card, DataTable, DemoBanner, Field, Modal, PageHeader, Select, btn, field, select } from '../ui'
 import { TICKET_LABEL, TICKET_TONE } from './labels'
 
 export function Tickets() {
@@ -28,18 +28,24 @@ export function Tickets() {
           searchText={(t) => `${t.number} ${t.participant} ${t.buyerName}`}
           toolbar={
             <>
-              <div className="flex-1 min-w-[180px] max-w-md">
-                <select aria-label="Форум" value={forum} onChange={(e) => setForum(e.target.value)} className={`${select} w-full`}>
-                  <option value="all">Все форумы</option>
-                  {s.forums.map((f) => <option key={f.id} value={f.id}>{f.title.ru}</option>)}
-                </select>
-              </div>
-              <div className="flex-1 min-w-[180px] max-w-md">
-                <select aria-label="Статус" value={status} onChange={(e) => setStatus(e.target.value)} className={`${select} w-full`}>
-                  <option value="all">Все статусы</option>
-                  {Object.entries(TICKET_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                </select>
-              </div>
+              <Select
+                value={forum}
+                onChange={(value) => setForum(value)}
+                options={[
+                  { value: 'all', label: 'Все форумы' },
+                  ...s.forums.map((f) => ({ value: f.id, label: f.title.ru }))
+                ]}
+                aria-label="Форум"
+              />
+              <Select
+                value={status}
+                onChange={(value) => setStatus(value)}
+                options={[
+                  { value: 'all', label: 'Все статусы' },
+                  ...Object.entries(TICKET_LABEL).map(([k, v]) => ({ value: k, label: v }))
+                ]}
+                aria-label="Статус"
+              />
             </>
           }
           columns={[

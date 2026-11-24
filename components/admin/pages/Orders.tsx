@@ -5,7 +5,7 @@ import { actions, useAdminState } from '@/lib/admin/store'
 import { dateTime, money } from '@/lib/admin/format'
 import type { CancellationRequest } from '@/lib/admin/types'
 import { useAdminUser } from '../AdminShell'
-import { Badge, Card, DataTable, DemoBanner, Field, Modal, PageHeader, btn, field, select } from '../ui'
+import { Badge, Card, DataTable, DemoBanner, Field, Modal, PageHeader, Select, btn, field, select } from '../ui'
 import { CANCEL_LABEL, CANCEL_TONE, ORDER_LABEL, ORDER_TONE, REFUND_LABEL } from './labels'
 
 export function Orders() {
@@ -35,12 +35,15 @@ export function Orders() {
             rows={s.orders.filter((o) => status === 'all' || o.status === status)}
             searchText={(o) => `${o.number} ${o.userName} ${forumName(o.forumId)}`}
             toolbar={
-              <div className="flex-1 min-w-[180px] max-w-md">
-                <select aria-label="Статус" value={status} onChange={(e) => setStatus(e.target.value)} className={`${select} w-full`}>
-                  <option value="all">Все статусы</option>
-                  {Object.entries(ORDER_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                </select>
-              </div>
+              <Select
+                value={status}
+                onChange={(value) => setStatus(value)}
+                options={[
+                  { value: 'all', label: 'Все статусы' },
+                  ...Object.entries(ORDER_LABEL).map(([k, v]) => ({ value: k, label: v }))
+                ]}
+                aria-label="Статус"
+              />
             }
             columns={[
               { key: 'n', header: 'Номер', sortValue: (o) => o.number, cell: (o) => <b>{o.number}</b> },
