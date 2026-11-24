@@ -5,14 +5,14 @@ import { getT } from '@/lib/i18n/server'
 import { buildEventViews, getEventsLabels } from '@/lib/forums/views'
 import { EventsCalendar } from '@/components/landing/EventsCalendar'
 import { Eyebrow } from '@/components/landing/Eyebrow'
+import { pageMetadata } from '@/lib/seo'
 
 export const revalidate = 60
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params
   if (!isAppLocale(locale)) return {}
-  const t = await getT(locale, 'forumsPage')
-  return { title: `${t('title')} — FORUM.KG`, description: t('subtitle') }
+  return pageMetadata(locale, 'forums', '/forums')
 }
 
 export default async function ForumsPage({ params }: { params: Promise<{ locale: string }> }) {

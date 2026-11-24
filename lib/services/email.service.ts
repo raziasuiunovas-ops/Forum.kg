@@ -19,9 +19,16 @@ export async function sendPasswordResetEmail(
   token: string,
   locale: string = 'ru'
 ): Promise<EmailResult> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL 
-    ? `https://${process.env.VERCEL_URL}` 
-    : 'http://localhost:3000'
+  // Determine base URL
+  let baseUrl = process.env.NEXT_PUBLIC_APP_URL
+  
+  if (!baseUrl && process.env.VERCEL_URL) {
+    baseUrl = `https://${process.env.VERCEL_URL}`
+  }
+  
+  if (!baseUrl) {
+    baseUrl = 'http://localhost:3000'
+  }
   
   const resetLink = `${baseUrl}/${locale}/reset-password?token=${encodeURIComponent(token)}`
 
@@ -98,6 +105,8 @@ export async function sendPasswordResetEmail(
   // Try SendGrid first
   if (process.env.SENDGRID_API_KEY && process.env.SENDGRID_FROM_EMAIL) {
     try {
+      console.log('[Email] Attempting to send via SendGrid to:', email)
+      
       const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
         method: 'POST',
         headers: {
@@ -121,24 +130,32 @@ export async function sendPasswordResetEmail(
       })
 
       if (response.ok || response.status === 202) {
+        console.log('[Email] ✅ Successfully sent via SendGrid')
         return { success: true }
       }
 
       const errorText = await response.text()
-      console.error('[SendGrid] Failed to send email:', response.status, errorText)
+      console.error('[SendGrid] ❌ Failed to send email:', response.status, errorText)
+      
+      // Don't fall through to Resend if SendGrid is configured - return the error
       return { 
         success: false, 
         error: `SendGrid error: ${response.status}` 
       }
     } catch (error) {
-      console.error('[SendGrid] Exception:', error)
-      // Fall through to try Resend
+      console.error('[SendGrid] ❌ Exception:', error)
+      return { 
+        success: false, 
+        error: `SendGrid exception: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      }
     }
   }
 
   // Try Resend as fallback
   if (process.env.RESEND_API_KEY) {
     try {
+      console.log('[Email] Attempting to send via Resend to:', email)
+      
       const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -146,7 +163,7 @@ export async function sendPasswordResetEmail(
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: 'FORUM.KG <noreply@forum.kg>',
+          from: 'FORUM.KG <onboarding@resend.dev>', // Resend's free test domain
           to: [email],
           subject: t.subject,
           html: htmlContent,
@@ -154,17 +171,18 @@ export async function sendPasswordResetEmail(
       })
 
       if (response.ok) {
+        console.log('[Email] ✅ Successfully sent via Resend')
         return { success: true }
       }
 
       const errorText = await response.text()
-      console.error('[Resend] Failed to send email:', response.status, errorText)
+      console.error('[Resend] ❌ Failed to send email:', response.status, errorText)
       return { 
         success: false, 
         error: `Resend error: ${response.status}` 
       }
     } catch (error) {
-      console.error('[Resend] Exception:', error)
+      console.error('[Resend] ❌ Exception:', error)
       return { 
         success: false, 
         error: 'Failed to send email via Resend' 

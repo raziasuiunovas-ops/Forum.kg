@@ -41,17 +41,20 @@ test('Finik payment creation signs the Web SDK request and returns the payment r
     fetcher: async (url, requestInit) => {
       requestUrl = String(url)
       init = requestInit
-      return new Response(null, { status: 302, headers: { location: 'https://qr.finik/test-payment' } })
+      return new Response(null, { status: 302, headers: { location: 'https://qr.finik/test-payment?session=abc123' } })
     },
   })
 
   assert.equal(requestUrl, 'https://beta.api.acquiring.averspay.kg/v1/payment')
-  assert.equal(result.paymentUrl, 'https://qr.finik/test-payment')
+  assert.equal(result.paymentUrl, 'https://qr.finik/test-payment?session=abc123')
   assert.equal(init?.redirect, 'manual')
   const body = JSON.parse(String(init?.body))
   assert.equal(body.PaymentId, paymentInput.paymentId)
   assert.equal(body.Amount, 123.45)
-  assert.equal(body.Currency, 'KGS')
+  assert.equal(body.Currency, undefined) // No Currency on top level
+  assert.equal(body.Data.endDate, undefined) // No endDate
+  assert.equal(body.Data.additionalData, undefined) // No additionalData
+  assert.equal(body.Data.currencies, undefined) // No currencies
   const headers = init?.headers as Record<string, string>
   const verifier = createVerify('RSA-SHA256')
   verifier.update(createFinikCanonicalString({
@@ -128,6 +131,76 @@ test('Finik payment creation logs errors safely without exposing credentials', a
   assert.equal(typeof loggedData.apiKey, 'undefined')
   assert.equal(typeof loggedData.privateKey, 'undefined')
   assert.equal(typeof loggedData.signature, 'undefined')
+})
+
+test('Finik payment creation accepts 201 response with JSON paymentUrl', async () => {
+  const result = await createFinikPayment(paymentInput, {
+    env: finikEnv(),
+    fetcher: async () => new Response(
+      JSON.stringify({ paymentUrl: 'https://payment.averspay.kg/pay?id=xyz' }),
+      { status: 201, headers: { 'content-type': 'application/json' } }
+    ),
+  })
+  assert.equal(result.paymentUrl, 'https://payment.averspay.kg/pay?id=xyz')
+})
+
+test('Finik payment creation accepts redirect with query parameters', async () => {
+  const result = await createFinikPayment(paymentInput, {
+    env: finikEnv(),
+    fetcher: async () => new Response(null, {
+      status: 302,
+      headers: { location: 'https://qr.finik.kg/pay?session=abc&token=xyz' }
+    }),
+  })
+  assert.equal(result.paymentUrl, 'https://qr.finik.kg/pay?session=abc&token=xyz')
+})
+
+test('Finik payment creation accepts various redirect status codes', async () => {
+  for (const status of [301, 302, 303, 307, 308]) {
+    const result = await createFinikPayment(paymentInput, {
+      env: finikEnv(),
+      fetcher: async () => new Response(null, {
+        status,
+        headers: { location: 'https://qr.finik.kg/pay' }
+      }),
+    })
+    assert.equal(result.paymentUrl, 'https://qr.finik.kg/pay')
+  }
+})
+
+test('Finik payment creation logs ErrorMessage from response body on error', async (t) => {
+  let loggedData: any
+  t.mock.method(console, 'error', (_message: string, data: unknown) => { loggedData = data })
+  
+  await assert.rejects(
+    createFinikPayment(paymentInput, {
+      env: finikEnv(),
+      fetcher: async () => new Response(
+        JSON.stringify({ ErrorMessage: 'Invalid account configuration' }),
+        { status: 400, headers: { 'content-type': 'application/json' } }
+      ),
+    }),
+    /Finik rejected the payment request/
+  )
+  
+  assert.ok(loggedData)
+  assert.equal(loggedData.status, 400)
+  assert.equal(loggedData.errorMessage, 'Invalid account configuration')
+})
+
+test('Finik payment creation requires NEXT_PUBLIC_APP_URL when not explicitly configured', async () => {
+  const envWithoutUrl = {
+    FINIK_ENV: 'beta',
+    FINIK_API_KEY: 'test-api-key',
+    FINIK_ACCOUNT_ID: 'test-account',
+    FINIK_PRIVATE_KEY: privateKey,
+    FINIK_BETA_PUBLIC_KEY: publicKey,
+    // No NEXT_PUBLIC_APP_URL, no explicit FINIK_REDIRECT_URL/FINIK_WEBHOOK_URL
+  }
+  await assert.rejects(
+    createFinikPayment(paymentInput, { env: envWithoutUrl }),
+    /Finik is not configured/
+  )
 })
 
 function webhookPayload(overrides: Record<string, unknown> = {}) {

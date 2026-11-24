@@ -7,14 +7,14 @@ import type { Messages } from '@/lib/i18n/client'
 import { getForumBySlug } from '@/lib/forums'
 import { formatEventDate, formatEventTime, formatMoneyMinor } from '@/lib/format'
 import { CheckoutClient } from '@/components/checkout/CheckoutClient'
+import { pageMetadata } from '@/lib/seo'
 
 export const dynamic = 'force-dynamic'
 
-export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
-  const { locale } = await params
+export async function generateMetadata({ params }: { params: Promise<{ locale: string; slug: string }> }): Promise<Metadata> {
+  const { locale, slug } = await params
   if (!isAppLocale(locale)) return {}
-  const t = await getT(locale, 'checkout')
-  return { title: `${t('title')} — FORUM.KG`, robots: { index: false } }
+  return pageMetadata(locale, 'checkout', `/forums/${slug}/checkout`)
 }
 
 export default async function CheckoutPage({ params }: { params: Promise<{ locale: string; slug: string }> }) {

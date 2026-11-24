@@ -5,8 +5,12 @@ import { isAppLocale } from '@/i18n/routing'
 import { loadMessages } from '@/lib/i18n/server'
 import type { Messages } from '@/lib/i18n/client'
 import { PaymentResult } from '@/components/orders/PaymentResult'
+import { pageMetadata } from '@/lib/seo'
 
-export const metadata: Metadata = { title: 'FORUM.KG', robots: { index: false } }
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params
+  return isAppLocale(locale) ? pageMetadata(locale, 'payment', '/payment/result') : {}
+}
 
 export default async function Page({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params

@@ -139,11 +139,11 @@ export function ResetPasswordForm({ locale, messages }: { locale: string; messag
   // Password reset form
   return (
     <form onSubmit={submit} noValidate>
-      <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
         <Lock className="h-7 w-7 text-primary" />
       </div>
 
-      <h1 className="text-3xl font-black tracking-tight text-ink">{t('resetPasswordTitle')}</h1>
+      <h1 className="text-2xl font-black tracking-tight text-ink sm:text-3xl">{t('resetPasswordTitle')}</h1>
       <p className="mt-2 text-sm leading-relaxed text-slate-500">{t('resetPasswordSubtitle')}</p>
 
       <label htmlFor="new-password" className="mt-6 block text-xs font-bold text-ink">

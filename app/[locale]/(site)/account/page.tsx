@@ -1,15 +1,15 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { isAppLocale } from '@/i18n/routing'
-import { getT, loadMessages } from '@/lib/i18n/server'
+import { loadMessages } from '@/lib/i18n/server'
 import type { Messages } from '@/lib/i18n/client'
 import { AccountClient } from '@/components/account/AccountClient'
+import { pageMetadata } from '@/lib/seo'
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params
   if (!isAppLocale(locale)) return {}
-  const t = await getT(locale, 'nav')
-  return { title: `${t('cabinet')} — FORUM.KG`, robots: { index: false } }
+  return pageMetadata(locale, 'account', '/account')
 }
 
 export default async function AccountPage({ params }: { params: Promise<{ locale: string }> }) {

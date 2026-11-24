@@ -130,6 +130,33 @@ export async function POST(request: NextRequest) {
     if (!emailResult.success) {
       console.error('[Password Reset] Failed to send email:', emailResult.error)
       
+      // In development, still log the link even if email fails
+      if (process.env.NODE_ENV === 'development') {
+        console.log('\n=== PASSWORD RESET LINK (EMAIL FAILED, DEV MODE) ===')
+        console.log('Email:', user.email)
+        console.log('Token:', resetToken)
+        console.log('Error:', emailResult.error)
+        console.log('====================================================\n')
+        
+        // Return success in development for testing
+        writeSecurityAuditEvent({
+          eventType: 'PASSWORD_RESET_REQUEST',
+          result: 'success',
+          request,
+          userId: user.id,
+          reason: 'dev_mode_email_failed_but_logged',
+          statusCode: 200,
+        })
+        
+        return NextResponse.json(
+          {
+            success: true,
+            message: 'Если аккаунт с таким email существует, мы отправили инструкции по восстановлению пароля.',
+          },
+          { status: 200 }
+        )
+      }
+      
       writeSecurityAuditEvent({
         eventType: 'API_ERROR',
         result: 'error',

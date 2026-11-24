@@ -3,9 +3,9 @@ import { Inter } from 'next/font/google'
 import { notFound } from 'next/navigation'
 import '../globals.css'
 import { isAppLocale, locales, type AppLocale } from '@/i18n/routing'
-import { getT } from '@/lib/i18n/server'
 import { getSiteSettings } from '@/lib/site/settings'
 import { buildThemeStyle } from '@/lib/site/theme'
+import { pageMetadata } from '@/lib/seo'
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'], display: 'swap' })
 
@@ -16,11 +16,7 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params
   if (!isAppLocale(locale)) return {}
-  const [settings, t] = await Promise.all([getSiteSettings(locale), getT(locale, 'hero')])
-  return {
-    title: `${settings.displayName} — ${t('line1')}. ${t('line2')}. ${t('line3')}.`,
-    description: settings.heroSubtitle ?? t('subtitle'),
-  }
+  return pageMetadata(locale, 'home', '')
 }
 
 export default async function LocaleLayout({

@@ -8,6 +8,7 @@ import { getForumBySlug, getForumSlugs } from '@/lib/forums'
 import { formatEventDate, formatEventTime, formatMoneyMinor } from '@/lib/format'
 import { BuyPanel } from '@/components/forum/BuyPanel'
 import type { Messages } from '@/lib/i18n/client'
+import { SEO, buildMetadata, clip, formatForumDate } from '@/lib/seo'
 
 export const revalidate = 60
 
@@ -23,7 +24,18 @@ export async function generateMetadata({
   const { locale, slug } = await params
   if (!isAppLocale(locale)) return {}
   const forum = await getForumBySlug(locale, slug)
-  return forum ? { title: `${forum.title} — FORUM.KG`, description: forum.shortDescription } : {}
+  if (!forum) return {}
+  const when = formatForumDate(forum.startsAt, locale, forum.timeZone)
+  const description = clip(forum.shortDescription || SEO[locale].forumFallback(when, forum.venueName), 200)
+  return buildMetadata({
+    locale,
+    path: `/forums/${slug}`,
+    title: forum.title,
+    description,
+    type: 'article',
+    image: `/og?l=${locale}&slug=${encodeURIComponent(slug)}`,
+    imageAlt: `${forum.title} — ${when}`,
+  })
 }
 
 export default async function ForumPage({ params }: { params: Promise<{ locale: string; slug: string }> }) {

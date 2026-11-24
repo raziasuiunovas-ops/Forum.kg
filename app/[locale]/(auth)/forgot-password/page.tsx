@@ -10,12 +10,12 @@ import { getSiteSettings } from '@/lib/site/settings'
 import { Logo } from '@/components/layout/Logo'
 import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher'
 import { ForgotPasswordForm } from '@/components/auth/ForgotPasswordForm'
+import { pageMetadata } from '@/lib/seo'
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params
   if (!isAppLocale(locale)) return {}
-  const t = await getT(locale, 'auth')
-  return { title: `${t('forgotPasswordTitle')} — FORUM.KG`, robots: { index: false } }
+  return pageMetadata(locale, 'forgotPassword', '/forgot-password')
 }
 
 export default async function ForgotPasswordPage({ params }: { params: Promise<{ locale: string }> }) {

@@ -1,0 +1,704 @@
+Задача для Kiro: Open Graph (превью ссылок) на RU / KY / EN
+Репозиторий: raziasuiunovas-ops/Forum.kg (Next.js 15 App Router, ветка main). Нужно сделать так, чтобы при отправке ссылки на сайт в Telegram / WhatsApp / Facebook / X / LinkedIn показывалось красивое превью: заголовок, описание и картинка 1200x630 — на языке страницы (/ru, /ky, /en). Для страницы форума — своя картинка с названием, датой, местом и ценой.
+
+Весь код ниже уже написан и проверен (tsc без ошибок, страницы отдают правильные meta-теги, картинки /og рендерятся на всех трёх языках с кириллицей и кыргызскими буквами ң ө ү). Твоя задача — аккуратно перенести его в проект, проверить сборку и закоммитить.
+
+СТРОГИЕ ПРАВИЛА
+Работай в текущей ветке main (новые ветки НЕ создавай). Перед началом: git pull origin main.
+НЕ трогай prisma/schema.prisma, API-роуты, авторизацию, админку, оплату. Только файлы из списка ниже.
+НЕ запускай prisma db pull / db push.
+Если файл, который нужно изменить, уже отличается от ожидаемого (кто-то поменял) — внеси изменение по смыслу, не затирая чужой код.
+Не добавляй console.log.
+Шаг 1. Шрифты с кириллицей (обязательно)
+Стандартный шрифт next/og не рисует кириллицу (будут квадраты). Скачай Inter (лицензия OFL) в репозиторий:
+
+mkdir -p assets/fonts
+curl -L -o assets/fonts/Inter-Medium.ttf "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuI6fMZg.ttf"
+curl -L -o assets/fonts/Inter-ExtraBold.ttf "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuDyYMZg.ttf"
+Проверь, что оба файла ~320 КБ и это TrueType (не HTML-страница с ошибкой). Если ссылки не работают — возьми Inter Medium (500) и Inter ExtraBold (800) в формате .ttf с поддержкой кириллицы с fonts.google.com и сохрани под теми же именами.
+
+Шаг 2. Новый файл lib/seo.ts
+Тексты для всех страниц на трёх языках + функции buildMetadata / pageMetadata (canonical, hreflang ru/ky/en/x-default, Open Graph, Twitter card, robots).
+
+/**
+ * SEO / Open Graph for all public pages: localized titles and descriptions (RU / KY / EN),
+ * canonical + hreflang alternates, Open Graph and Twitter cards with a generated preview image (/og).
+ */
+import type { Metadata } from 'next'
+import { locales, type AppLocale } from '@/i18n/routing'
+
+export const SITE_NAME = 'FORUM.KG'
+
+/** Public origin of the site (used for absolute og:url / og:image). */
+export function siteUrl(): string {
+  const raw =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL && `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`) ||
+    (process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`) ||
+    'http://localhost:3000'
+  return raw.replace(/\/$/, '')
+}
+
+const OG_LOCALE: Record<AppLocale, string> = { ru: 'ru_RU', ky: 'ky_KG', en: 'en_US' }
+
+export type SeoPage = 'home' | 'forums' | 'login' | 'register' | 'account' | 'checkout' | 'payment' | 'order' | 'forgotPassword' | 'resetPassword'
+
+interface SeoTexts {
+  tagline: string
+  home: { title: string; description: string }
+  forums: { title: string; description: string }
+  login: { title: string; description: string }
+  register: { title: string; description: string }
+  account: { title: string; description: string }
+  checkout: { title: string; description: string }
+  payment: { title: string; description: string }
+  order: { title: string; description: string }
+  forgotPassword: { title: string; description: string }
+  resetPassword: { title: string; description: string }
+  /** Forum page: description when the forum has no short description */
+  forumFallback: (when: string, venue: string) => string
+  priceFrom: (price: string) => string
+  imageAlt: string
+}
+
+export const SEO: Record<AppLocale, SeoTexts> = {
+  ru: {
+    tagline: 'Люди. Идеи. Будущее.',
+    home: {
+      title: 'FORUM.KG — форумы и конференции Кыргызстана',
+      description:
+        'Афиша форумов, конференций и деловых событий Кыргызстана. Покупайте билеты онлайн, получайте QR-билет и проходите на вход за секунды.',
+    },
+    forums: {
+      title: 'Афиша форумов и событий',
+      description:
+        'Все форумы, конференции и бизнес-события Кыргызстана в одном месте. Выбирайте событие и оформляйте билет онлайн за пару минут.',
+    },
+    login: { title: 'Вход и регистрация', description: 'Войдите в FORUM.KG, чтобы покупать билеты, хранить QR-билеты и следить за заказами.' },
+    register: { title: 'Регистрация', description: 'Создайте аккаунт FORUM.KG: билеты с QR-кодом, история заказов и уведомления о новых событиях.' },
+    account: { title: 'Личный кабинет', description: 'Ваши билеты, заказы и настройки профиля на FORUM.KG.' },
+    checkout: { title: 'Оформление билета', description: 'Оформление и оплата билета на FORUM.KG.' },
+    payment: { title: 'Результат оплаты', description: 'Статус оплаты заказа на FORUM.KG.' },
+    order: { title: 'Заказ', description: 'Информация о заказе на FORUM.KG.' },
+    forgotPassword: { title: 'Восстановление пароля', description: 'Восстановите доступ к аккаунту FORUM.KG.' },
+    resetPassword: { title: 'Новый пароль', description: 'Создайте новый пароль для аккаунта FORUM.KG.' },
+    forumFallback: (when, venue) => `${when}${venue ? ` · ${venue}` : ''}. Билеты онлайн на FORUM.KG — QR-билет сразу после оплаты.`,
+    priceFrom: (p) => `Билеты от ${p}`,
+    imageAlt: 'FORUM.KG — форумы и конференции Кыргызстана',
+  },
+  ky: {
+    tagline: 'Адамдар. Идеялар. Келечек.',
+    home: {
+      title: 'FORUM.KG — Кыргызстандын форумдары жана конференциялары',
+      description:
+        'Кыргызстандагы форумдардын, конференциялардын жана бизнес-иш-чаралардын афишасы. Билетти онлайн сатып алып, QR-билет менен кирүүдөн бир нече секундда өтүңүз.',
+    },
+    forums: {
+      title: 'Форумдардын жана иш-чаралардын афишасы',
+      description:
+        'Кыргызстандын бардык форумдары, конференциялары жана бизнес-иш-чаралары бир жерде. Иш-чараны тандап, билетти онлайн бир нече мүнөттө алыңыз.',
+    },
+    login: { title: 'Кирүү жана катталуу', description: 'Билет сатып алуу, QR-билеттерди сактоо жана буйрутмаларды көзөмөлдөө үчүн FORUM.KG сайтына кириңиз.' },
+    register: { title: 'Катталуу', description: 'FORUM.KG аккаунтун түзүңүз: QR-коддуу билеттер, буйрутмалардын тарыхы жана жаңы иш-чаралар тууралуу билдирмелер.' },
+    account: { title: 'Жеке кабинет', description: 'FORUM.KG сайтындагы билеттериңиз, буйрутмаларыңыз жана профиль жөндөөлөрү.' },
+    checkout: { title: 'Билет тариздөө', description: 'FORUM.KG сайтында билетти тариздөө жана төлөө.' },
+    payment: { title: 'Төлөмдүн жыйынтыгы', description: 'FORUM.KG сайтындагы буйрутманын төлөм абалы.' },
+    order: { title: 'Буйрутма', description: 'FORUM.KG сайтындагы буйрутма тууралуу маалымат.' },
+    forgotPassword: { title: 'Сырсөздү калыбына келтирүү', description: 'FORUM.KG аккаунтуна кирүүнү калыбына келтириңиз.' },
+    resetPassword: { title: 'Жаңы сырсөз', description: 'FORUM.KG аккаунту үчүн жаңы сырсөз түзүңүз.' },
+    forumFallback: (when, venue) => `${when}${venue ? ` · ${venue}` : ''}. FORUM.KG сайтында онлайн билеттер — төлөгөндөн кийин дароо QR-билет.`,
+    priceFrom: (p) => `Билеттер ${p} баштап`,
+    imageAlt: 'FORUM.KG — Кыргызстандын форумдары жана конференциялары',
+  },
+  en: {
+    tagline: 'People. Ideas. Future.',
+    home: {
+      title: 'FORUM.KG — Forums and conferences in Kyrgyzstan',
+      description:
+        'Discover forums, conferences and business events in Kyrgyzstan. Buy tickets online, get a QR ticket and check in within seconds.',
+    },
+    forums: {
+      title: 'Forums & events',
+      description:
+        'All forums, conferences and business events in Kyrgyzstan in one place. Pick an event and get your ticket online in a couple of minutes.',
+    },
+    login: { title: 'Sign in', description: 'Sign in to FORUM.KG to buy tickets, keep your QR tickets and track your orders.' },
+    register: { title: 'Create an account', description: 'Create a FORUM.KG account: QR tickets, order history and alerts about new events.' },
+    account: { title: 'My account', description: 'Your tickets, orders and profile settings on FORUM.KG.' },
+    checkout: { title: 'Checkout', description: 'Get and pay for your ticket on FORUM.KG.' },
+    payment: { title: 'Payment result', description: 'Payment status of your FORUM.KG order.' },
+    order: { title: 'Order', description: 'Your FORUM.KG order details.' },
+    forgotPassword: { title: 'Reset password', description: 'Restore access to your FORUM.KG account.' },
+    resetPassword: { title: 'New password', description: 'Create a new password for your FORUM.KG account.' },
+    forumFallback: (when, venue) => `${when}${venue ? ` · ${venue}` : ''}. Tickets online at FORUM.KG — QR ticket right after payment.`,
+    priceFrom: (p) => `Tickets from ${p}`,
+    imageAlt: 'FORUM.KG — Forums and conferences in Kyrgyzstan',
+  },
+}
+
+/** Pages that must not appear in search results (personal or transactional). */
+const PRIVATE: SeoPage[] = ['account', 'checkout', 'payment', 'order', 'forgotPassword', 'resetPassword']
+
+export interface BuildMetadataInput {
+  locale: AppLocale
+  /** Path after the locale, e.g. "" for home, "/forums", "/forums/my-slug" */
+  path: string
+  title: string
+  description: string
+  /** Absolute or site-relative preview image; defaults to the generated /og image */
+  image?: string
+  imageAlt?: string
+  type?: 'website' | 'article'
+  noindex?: boolean
+  /** Keep the title exactly as given (no " — FORUM.KG" suffix) */
+  absoluteTitle?: boolean
+}
+
+export function buildMetadata(input: BuildMetadataInput): Metadata {
+  const { locale, path, description, type = 'website', noindex = false } = input
+  const base = siteUrl()
+  const url = `${base}/${locale}${path}`
+  const title = input.absoluteTitle || input.title.includes(SITE_NAME) ? input.title : `${input.title} — ${SITE_NAME}`
+  const image = input.image ?? `/og?l=${locale}`
+  const imageUrl = image.startsWith('http') ? image : `${base}${image}`
+  const alt = input.imageAlt ?? title
+
+  return {
+    metadataBase: new URL(base),
+    title: { absolute: title },
+    description,
+    applicationName: SITE_NAME,
+    alternates: {
+      canonical: url,
+      languages: {
+        ...Object.fromEntries(locales.map((l) => [l, `${base}/${l}${path}`])),
+        'x-default': `${base}/ru${path}`,
+      },
+    },
+    openGraph: {
+      type,
+      url,
+      siteName: SITE_NAME,
+      title,
+      description,
+      locale: OG_LOCALE[locale],
+      alternateLocale: locales.filter((l) => l !== locale).map((l) => OG_LOCALE[l]),
+      images: [{ url: imageUrl, width: 1200, height: 630, alt, type: 'image/png' }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [{ url: imageUrl, alt }],
+    },
+    robots: noindex ? { index: false, follow: false } : { index: true, follow: true },
+  }
+}
+
+/** Metadata for a standard (non-forum) page. */
+export function pageMetadata(locale: AppLocale, page: SeoPage, path: string): Metadata {
+  const t = SEO[locale][page]
+  return buildMetadata({
+    locale,
+    path,
+    title: t.title,
+    description: t.description,
+    absoluteTitle: page === 'home',
+    noindex: PRIVATE.includes(page),
+    imageAlt: SEO[locale].imageAlt,
+  })
+}
+
+/** "15 марта 2027" in the forum's time zone. */
+export function formatForumDate(iso: string, locale: AppLocale, timeZone = 'Asia/Bishkek'): string {
+  const tag = locale === 'ky' ? 'ky-KG' : locale === 'en' ? 'en-GB' : 'ru-RU'
+  try {
+    return new Intl.DateTimeFormat(tag, { day: 'numeric', month: 'long', year: 'numeric', timeZone }).format(new Date(iso))
+  } catch {
+    return iso.slice(0, 10)
+  }
+}
+
+/** Trim to a social-card friendly length on a word boundary. */
+export function clip(text: string, max = 200): string {
+  const s = text.replace(/\s+/g, ' ').trim()
+  if (s.length <= max) return s
+  const cut = s.slice(0, max - 1)
+  return `${cut.slice(0, Math.max(cut.lastIndexOf(' '), max - 30))}…`
+}
+Шаг 3. Новый файл app/og/route.tsx
+Генератор картинки превью: /og?l=ru|ky|en (главная) и /og?l=ru&slug=<slug форума> (форум).
+
+/**
+ * GET /og?l=ru|ky|en[&slug=forum-slug]
+ * 1200x630 Open Graph preview image (Telegram, WhatsApp, Facebook, X, LinkedIn...).
+ * Text is localized; a forum slug renders that forum's title, date, venue and price.
+ */
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
+import { ImageResponse } from 'next/og'
+import { isAppLocale, type AppLocale } from '@/i18n/routing'
+import { getForumBySlug } from '@/lib/forums'
+import { formatMoneyMinor } from '@/lib/format'
+import { SEO, clip, formatForumDate } from '@/lib/seo'
+
+export const runtime = 'nodejs'
+
+const SIZE = { width: 1200, height: 630 }
+let fonts: Promise<{ name: string; data: Buffer; weight: 500 | 800; style: 'normal' }[]> | null = null
+
+function loadFonts() {
+  fonts ??= Promise.all([
+    readFile(join(process.cwd(), 'assets/fonts/Inter-Medium.ttf')),
+    readFile(join(process.cwd(), 'assets/fonts/Inter-ExtraBold.ttf')),
+  ]).then(([medium, bold]) => [
+    { name: 'Inter', data: medium, weight: 500 as const, style: 'normal' as const },
+    { name: 'Inter', data: bold, weight: 800 as const, style: 'normal' as const },
+  ])
+  return fonts
+}
+
+function Mark() {
+  return (
+    <svg width="54" height="45" viewBox="0 0 48 40">
+      <polygon points="0,40 18,8 30,28 36,18 48,40" fill="#4F6BFF" />
+      <polygon points="14,40 30,16 40,40" fill="#8EA2FF" opacity="0.7" />
+    </svg>
+  )
+}
+
+function Frame({ children, locale }: { children: React.ReactNode; locale: AppLocale }) {
+  return (
+    <div
+      style={{
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        padding: '64px 72px',
+        fontFamily: 'Inter',
+        color: '#FFFFFF',
+        backgroundColor: '#070B24',
+        backgroundImage:
+          'radial-gradient(circle at 88% 12%, rgba(91,108,255,0.55) 0%, rgba(7,11,36,0) 45%), radial-gradient(circle at 8% 100%, rgba(139,92,246,0.35) 0%, rgba(7,11,36,0) 40%), linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px)',
+        backgroundSize: '100% 100%, 100% 100%, 60px 60px, 60px 60px',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <Mark />
+          <div style={{ display: 'flex', fontSize: 40, fontWeight: 800, letterSpacing: -1 }}>
+            <span>FORUM</span>
+            <span style={{ color: '#6F86FF' }}>.KG</span>
+          </div>
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            gap: 8,
+            padding: '8px 10px',
+            borderRadius: 999,
+            backgroundColor: 'rgba(255,255,255,0.08)',
+            fontSize: 22,
+            fontWeight: 800,
+          }}
+        >
+          {(['ru', 'ky', 'en'] as const).map((l) => (
+            <span
+              key={l}
+              style={{
+                padding: '6px 16px',
+                borderRadius: 999,
+                color: l === locale ? '#FFFFFF' : 'rgba(255,255,255,0.45)',
+                backgroundColor: l === locale ? '#4F6BFF' : 'transparent',
+              }}
+            >
+              {l.toUpperCase()}
+            </span>
+          ))}
+        </div>
+      </div>
+      {children}
+    </div>
+  )
+}
+
+function homeImage(locale: AppLocale) {
+  const t = SEO[locale]
+  const words = t.tagline.split(' ')
+  return (
+    <Frame locale={locale}>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', columnGap: 24, rowGap: 6, maxWidth: 1056, fontSize: 84, fontWeight: 800, letterSpacing: -3, lineHeight: 1.05 }}>
+          {words.map((w, i) => (
+            <span key={w} style={{ color: i === words.length - 1 ? '#7D93FF' : '#FFFFFF' }}>
+              {w}
+            </span>
+          ))}
+        </div>
+        <div style={{ display: 'flex', marginTop: 30, maxWidth: 1000, fontSize: 30, fontWeight: 500, lineHeight: 1.35, color: 'rgba(255,255,255,0.78)' }}>
+          {clip(t.home.description, 130)}
+        </div>
+      </div>
+      <div style={{ display: 'flex', fontSize: 24, fontWeight: 500, color: 'rgba(255,255,255,0.55)' }}>forum.kg</div>
+    </Frame>
+  )
+}
+
+function forumImage(
+  locale: AppLocale,
+  f: { title: string; startsAt: string; timeZone: string; venueName: string; minPriceMinor: number; soldOut: boolean },
+) {
+  const t = SEO[locale]
+  const date = formatForumDate(f.startsAt, locale, f.timeZone)
+  const currency = locale === 'en' ? 'KGS' : 'сом'
+  const price = Number.isFinite(f.minPriceMinor) ? t.priceFrom(`${formatMoneyMinor(f.minPriceMinor, locale)} ${currency}`) : ''
+  const size = f.title.length > 70 ? 54 : f.title.length > 40 ? 66 : 80
+  return (
+    <Frame locale={locale}>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', fontSize: size, fontWeight: 800, letterSpacing: -2, lineHeight: 1.05, maxWidth: 1050 }}>
+          {clip(f.title, 110)}
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 36, fontSize: 30, fontWeight: 500 }}>
+          <span style={{ display: 'flex', padding: '12px 24px', borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.1)' }}>{date}</span>
+          {f.venueName && (
+            <span style={{ display: 'flex', padding: '12px 24px', borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.1)' }}>
+              {clip(f.venueName, 40)}
+            </span>
+          )}
+        </div>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', fontSize: 26, fontWeight: 500, color: 'rgba(255,255,255,0.6)' }}>{t.tagline}</div>
+        {price && !f.soldOut && (
+          <div style={{ display: 'flex', padding: '16px 30px', borderRadius: 999, backgroundColor: '#4F6BFF', fontSize: 30, fontWeight: 800 }}>{price}</div>
+        )}
+      </div>
+    </Frame>
+  )
+}
+
+export async function GET(request: Request) {
+  const url = new URL(request.url)
+  const l = url.searchParams.get('l')
+  const locale: AppLocale = isAppLocale(l) ? l : 'ru'
+  const slug = url.searchParams.get('slug')
+
+  const forum = slug ? await getForumBySlug(locale, slug).catch(() => null) : null
+  const element = forum ? forumImage(locale, forum) : homeImage(locale)
+
+  return new ImageResponse(element, {
+    ...SIZE,
+    fonts: await loadFonts(),
+    headers: {
+      'Cache-Control': forum
+        ? 'public, max-age=600, s-maxage=3600, stale-while-revalidate=86400'
+        : 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800',
+    },
+  })
+}
+Шаг 4. Новые файлы app/robots.ts и app/sitemap.ts
+app/robots.ts:
+
+import type { MetadataRoute } from 'next'
+import { siteUrl } from '@/lib/seo'
+
+export default function robots(): MetadataRoute.Robots {
+  const base = siteUrl()
+  return {
+    rules: [
+      {
+        userAgent: '*',
+        allow: '/',
+        disallow: ['/api/', '/staff/', '/*/admin', '/*/account', '/*/orders/', '/*/payment/', '/*/checkout'],
+      },
+    ],
+    sitemap: `${base}/sitemap.xml`,
+    host: base,
+  }
+}
+app/sitemap.ts:
+
+import type { MetadataRoute } from 'next'
+import { locales } from '@/i18n/routing'
+import { getUpcomingForums } from '@/lib/forums'
+import { siteUrl } from '@/lib/seo'
+
+export const revalidate = 3600
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const base = siteUrl()
+  // One URL per language, each listing its RU / KY / EN alternates (hreflang).
+  const entry = (path: string, priority: number): MetadataRoute.Sitemap =>
+    locales.map((locale) => ({
+      url: `${base}/${locale}${path}`,
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority,
+      alternates: { languages: Object.fromEntries(locales.map((l) => [l, `${base}/${l}${path}`])) },
+    }))
+
+  const forums = await getUpcomingForums('ru').catch(() => [])
+  return [
+    ...entry('', 1),
+    ...entry('/forums', 0.9),
+    ...forums.filter((f) => !f.isDemo).flatMap((f) => entry(`/forums/${f.slug}`, 0.8)),
+  ]
+}
+Шаг 5. Изменения в существующих файлах
+Ниже точный diff. Суть:
+
+next.config.ts: добавить outputFileTracingIncludes: { '/og': ['./assets/fonts/**'] } (иначе на Vercel шрифты не попадут в функцию и /og упадёт).
+app/[locale]/layout.tsx: generateMetadata → return pageMetadata(locale, 'home', '').
+Страницы forums, login, account, checkout, payment/result, orders/[orderId], forgot-password, reset-password: generateMetadata → pageMetadata(locale, '<страница>', '<путь>'). Личные страницы (account, checkout, payment, order, forgot/reset password) автоматически noindex.
+app/[locale]/(site)/forums/[slug]/page.tsx: buildMetadata с названием форума, описанием (или запасным текстом «дата · место. Билеты онлайн…» на нужном языке), type 'article' и картинкой /og?l=<locale>&slug=<slug>.
+Импорты getT / Metadata, ставшие ненужными, можно удалить, если TypeScript/ESLint ругается.
+diff --git a/app/[locale]/(auth)/forgot-password/page.tsx b/app/[locale]/(auth)/forgot-password/page.tsx
+index 9c6ced5..9c3d735 100644
+--- a/app/[locale]/(auth)/forgot-password/page.tsx
++++ b/app/[locale]/(auth)/forgot-password/page.tsx
+@@ -10,12 +10,12 @@ import { getSiteSettings } from '@/lib/site/settings'
+ import { Logo } from '@/components/layout/Logo'
+ import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher'
+ import { ForgotPasswordForm } from '@/components/auth/ForgotPasswordForm'
++import { pageMetadata } from '@/lib/seo'
+ 
+ export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+   const { locale } = await params
+   if (!isAppLocale(locale)) return {}
+-  const t = await getT(locale, 'auth')
+-  return { title: `${t('forgotPasswordTitle')} — FORUM.KG`, robots: { index: false } }
++  return pageMetadata(locale, 'forgotPassword', '/forgot-password')
+ }
+ 
+ export default async function ForgotPasswordPage({ params }: { params: Promise<{ locale: string }> }) {
+diff --git a/app/[locale]/(auth)/login/page.tsx b/app/[locale]/(auth)/login/page.tsx
+index e5dcd5c..47401ad 100644
+--- a/app/[locale]/(auth)/login/page.tsx
++++ b/app/[locale]/(auth)/login/page.tsx
+@@ -11,12 +11,12 @@ import { Logo } from '@/components/layout/Logo'
+ import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher'
+ import { LoginForm } from '@/components/auth/LoginForm'
+ import { TicketCard } from '@/components/landing/TicketCard'
++import { pageMetadata } from '@/lib/seo'
+ 
+ export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+   const { locale } = await params
+   if (!isAppLocale(locale)) return {}
+-  const t = await getT(locale, 'auth')
+-  return { title: `${t('title')} — FORUM.KG`, robots: { index: false } }
++  return pageMetadata(locale, 'login', '/login')
+ }
+ 
+ export default async function LoginPage({ params }: { params: Promise<{ locale: string }> }) {
+diff --git a/app/[locale]/(auth)/reset-password/page.tsx b/app/[locale]/(auth)/reset-password/page.tsx
+index 562fb78..bf50d6f 100644
+--- a/app/[locale]/(auth)/reset-password/page.tsx
++++ b/app/[locale]/(auth)/reset-password/page.tsx
+@@ -10,12 +10,12 @@ import { getSiteSettings } from '@/lib/site/settings'
+ import { Logo } from '@/components/layout/Logo'
+ import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher'
+ import { ResetPasswordForm } from '@/components/auth/ResetPasswordForm'
++import { pageMetadata } from '@/lib/seo'
+ 
+ export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+   const { locale } = await params
+   if (!isAppLocale(locale)) return {}
+-  const t = await getT(locale, 'auth')
+-  return { title: `${t('resetPasswordTitle')} — FORUM.KG`, robots: { index: false } }
++  return pageMetadata(locale, 'resetPassword', '/reset-password')
+ }
+ 
+ export default async function ResetPasswordPage({ params }: { params: Promise<{ locale: string }> }) {
+diff --git a/app/[locale]/(site)/account/page.tsx b/app/[locale]/(site)/account/page.tsx
+index e7f8c58..9ec5d42 100644
+--- a/app/[locale]/(site)/account/page.tsx
++++ b/app/[locale]/(site)/account/page.tsx
+@@ -4,12 +4,12 @@ import { isAppLocale } from '@/i18n/routing'
+ import { getT, loadMessages } from '@/lib/i18n/server'
+ import type { Messages } from '@/lib/i18n/client'
+ import { AccountClient } from '@/components/account/AccountClient'
++import { pageMetadata } from '@/lib/seo'
+ 
+ export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+   const { locale } = await params
+   if (!isAppLocale(locale)) return {}
+-  const t = await getT(locale, 'nav')
+-  return { title: `${t('cabinet')} — FORUM.KG`, robots: { index: false } }
++  return pageMetadata(locale, 'account', '/account')
+ }
+ 
+ export default async function AccountPage({ params }: { params: Promise<{ locale: string }> }) {
+diff --git a/app/[locale]/(site)/forums/[slug]/checkout/page.tsx b/app/[locale]/(site)/forums/[slug]/checkout/page.tsx
+index f22b5d0..ed3b1e5 100644
+--- a/app/[locale]/(site)/forums/[slug]/checkout/page.tsx
++++ b/app/[locale]/(site)/forums/[slug]/checkout/page.tsx
+@@ -7,14 +7,14 @@ import type { Messages } from '@/lib/i18n/client'
+ import { getForumBySlug } from '@/lib/forums'
+ import { formatEventDate, formatEventTime, formatMoneyMinor } from '@/lib/format'
+ import { CheckoutClient } from '@/components/checkout/CheckoutClient'
++import { pageMetadata } from '@/lib/seo'
+ 
+ export const dynamic = 'force-dynamic'
+ 
+-export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+-  const { locale } = await params
++export async function generateMetadata({ params }: { params: Promise<{ locale: string; slug: string }> }): Promise<Metadata> {
++  const { locale, slug } = await params
+   if (!isAppLocale(locale)) return {}
+-  const t = await getT(locale, 'checkout')
+-  return { title: `${t('title')} — FORUM.KG`, robots: { index: false } }
++  return pageMetadata(locale, 'checkout', `/forums/${slug}/checkout`)
+ }
+ 
+ export default async function CheckoutPage({ params }: { params: Promise<{ locale: string; slug: string }> }) {
+diff --git a/app/[locale]/(site)/forums/[slug]/page.tsx b/app/[locale]/(site)/forums/[slug]/page.tsx
+index 723ce65..d4ca494 100644
+--- a/app/[locale]/(site)/forums/[slug]/page.tsx
++++ b/app/[locale]/(site)/forums/[slug]/page.tsx
+@@ -8,6 +8,7 @@ import { getForumBySlug, getForumSlugs } from '@/lib/forums'
+ import { formatEventDate, formatEventTime, formatMoneyMinor } from '@/lib/format'
+ import { BuyPanel } from '@/components/forum/BuyPanel'
+ import type { Messages } from '@/lib/i18n/client'
++import { SEO, buildMetadata, clip, formatForumDate } from '@/lib/seo'
+ 
+ export const revalidate = 60
+ 
+@@ -23,7 +24,18 @@ export async function generateMetadata({
+   const { locale, slug } = await params
+   if (!isAppLocale(locale)) return {}
+   const forum = await getForumBySlug(locale, slug)
+-  return forum ? { title: `${forum.title} — FORUM.KG`, description: forum.shortDescription } : {}
++  if (!forum) return {}
++  const when = formatForumDate(forum.startsAt, locale, forum.timeZone)
++  const description = clip(forum.shortDescription || SEO[locale].forumFallback(when, forum.venueName), 200)
++  return buildMetadata({
++    locale,
++    path: `/forums/${slug}`,
++    title: forum.title,
++    description,
++    type: 'article',
++    image: `/og?l=${locale}&slug=${encodeURIComponent(slug)}`,
++    imageAlt: `${forum.title} — ${when}`,
++  })
+ }
+ 
+ export default async function ForumPage({ params }: { params: Promise<{ locale: string; slug: string }> }) {
+diff --git a/app/[locale]/(site)/forums/page.tsx b/app/[locale]/(site)/forums/page.tsx
+index 6b4fe16..674c031 100644
+--- a/app/[locale]/(site)/forums/page.tsx
++++ b/app/[locale]/(site)/forums/page.tsx
+@@ -5,14 +5,14 @@ import { getT } from '@/lib/i18n/server'
+ import { buildEventViews, getEventsLabels } from '@/lib/forums/views'
+ import { EventsCalendar } from '@/components/landing/EventsCalendar'
+ import { Eyebrow } from '@/components/landing/Eyebrow'
++import { pageMetadata } from '@/lib/seo'
+ 
+ export const revalidate = 60
+ 
+ export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+   const { locale } = await params
+   if (!isAppLocale(locale)) return {}
+-  const t = await getT(locale, 'forumsPage')
+-  return { title: `${t('title')} — FORUM.KG`, description: t('subtitle') }
++  return pageMetadata(locale, 'forums', '/forums')
+ }
+ 
+ export default async function ForumsPage({ params }: { params: Promise<{ locale: string }> }) {
+diff --git a/app/[locale]/(site)/orders/[orderId]/page.tsx b/app/[locale]/(site)/orders/[orderId]/page.tsx
+index 9c544af..1ff907d 100644
+--- a/app/[locale]/(site)/orders/[orderId]/page.tsx
++++ b/app/[locale]/(site)/orders/[orderId]/page.tsx
+@@ -5,8 +5,12 @@ import { isAppLocale } from '@/i18n/routing'
+ import { loadMessages } from '@/lib/i18n/server'
+ import type { Messages } from '@/lib/i18n/client'
+ import { PaymentResult } from '@/components/orders/PaymentResult'
++import { pageMetadata } from '@/lib/seo'
+ 
+-export const metadata: Metadata = { title: 'FORUM.KG', robots: { index: false } }
++export async function generateMetadata({ params }: { params: Promise<{ locale: string; orderId: string }> }): Promise<Metadata> {
++  const { locale, orderId } = await params
++  return isAppLocale(locale) ? pageMetadata(locale, 'order', `/orders/${orderId}`) : {}
++}
+ 
+ export default async function Page({ params }: { params: Promise<{ locale: string; orderId: string }> }) {
+   const { locale, orderId } = await params
+diff --git a/app/[locale]/(site)/payment/result/page.tsx b/app/[locale]/(site)/payment/result/page.tsx
+index 8ba938e..628aeef 100644
+--- a/app/[locale]/(site)/payment/result/page.tsx
++++ b/app/[locale]/(site)/payment/result/page.tsx
+@@ -5,8 +5,12 @@ import { isAppLocale } from '@/i18n/routing'
+ import { loadMessages } from '@/lib/i18n/server'
+ import type { Messages } from '@/lib/i18n/client'
+ import { PaymentResult } from '@/components/orders/PaymentResult'
++import { pageMetadata } from '@/lib/seo'
+ 
+-export const metadata: Metadata = { title: 'FORUM.KG', robots: { index: false } }
++export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
++  const { locale } = await params
++  return isAppLocale(locale) ? pageMetadata(locale, 'payment', '/payment/result') : {}
++}
+ 
+ export default async function Page({ params }: { params: Promise<{ locale: string }> }) {
+   const { locale } = await params
+diff --git a/app/[locale]/layout.tsx b/app/[locale]/layout.tsx
+index c36f71f..28aa0c5 100644
+--- a/app/[locale]/layout.tsx
++++ b/app/[locale]/layout.tsx
+@@ -6,6 +6,7 @@ import { isAppLocale, locales, type AppLocale } from '@/i18n/routing'
+ import { getT } from '@/lib/i18n/server'
+ import { getSiteSettings } from '@/lib/site/settings'
+ import { buildThemeStyle } from '@/lib/site/theme'
++import { pageMetadata } from '@/lib/seo'
+ 
+ const inter = Inter({ subsets: ['latin', 'cyrillic'], display: 'swap' })
+ 
+@@ -16,11 +17,7 @@ export function generateStaticParams() {
+ export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+   const { locale } = await params
+   if (!isAppLocale(locale)) return {}
+-  const [settings, t] = await Promise.all([getSiteSettings(locale), getT(locale, 'hero')])
+-  return {
+-    title: `${settings.displayName} — ${t('line1')}. ${t('line2')}. ${t('line3')}.`,
+-    description: settings.heroSubtitle ?? t('subtitle'),
+-  }
++  return pageMetadata(locale, 'home', '')
+ }
+ 
+ export default async function LocaleLayout({
+diff --git a/next.config.ts b/next.config.ts
+index 52924f5..aaa53b5 100644
+--- a/next.config.ts
++++ b/next.config.ts
+@@ -2,6 +2,10 @@
+ 
+ const nextConfig: NextConfig = {
+   reactStrictMode: true,
++  // Fonts for the Open Graph image route (/og) are read from disk at runtime
++  outputFileTracingIncludes: {
++    '/og': ['./assets/fonts/**'],
++  },
+   images: {
+     domains: ['localhost'],
+     remotePatterns: [
+Шаг 6. Проверка (все пункты обязательны)
+npx prisma generate
+npx tsc --noEmit
+npm run build
+Ошибок быть не должно. Потом npm run dev и проверь:
+
+http://localhost:3000/ru, /ky, /en — в исходном коде страницы (Ctrl+U) есть <meta property="og:title">, og:description, og:image = .../og?l=ru|ky|en, og:locale ru_RU / ky_KG / en_US, <link rel="alternate" hrefLang="ru|ky|en|x-default">, twitter:card = summary_large_image. Тексты на соответствующем языке.
+Открой http://localhost:3000/og?l=ru, ?l=ky, ?l=en — PNG 1200x630, кириллица и ң ө ү видны, надпись «Адамдар. Идеялар. Келечек.» не налезает друг на друга.
+Открой любой форум /ru/forums/<slug> — og:image = /og?l=ru&slug=<slug>; картинка показывает название, дату, место и «Билеты от … сом» (на /en — «Tickets from … KGS»).
+/robots.txt и /sitemap.xml открываются; в sitemap есть /ru, /ky, /en с hreflang.
+Шаг 7. Коммит
+git add assets/fonts lib/seo.ts app/og app/robots.ts app/sitemap.ts next.config.ts "app/[locale]"
+git commit -m "feat: Open Graph previews, hreflang, robots and sitemap (RU/KY/EN)"
+git pull origin main
+git push origin main
+После деплоя на Vercel
+В Vercel должна быть переменная NEXT_PUBLIC_APP_URL=https://<домен сайта> (без слеша в конце) — от неё строятся абсолютные ссылки og:url и og:image. Без неё берётся VERCEL_PROJECT_PRODUCTION_URL.
+Проверить превью: https://www.opengraph.xyz/ или отправить ссылку себе в Telegram. Telegram кэширует превью — для повторной проверки используй @WebpageBot («обновить превью») или добавь к ссылке ?v=2.
+Facebook: https://developers.facebook.com/tools/debug/ → «Scrape Agai

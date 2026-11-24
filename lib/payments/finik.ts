@@ -37,13 +37,14 @@ export function readFinikConfig(env: Readonly<Record<string, string | undefined>
     ?.trim().replace(/\\n/g, '\n')
   
   // Auto-generate URLs if not provided
-  const baseUrl = env.NEXT_PUBLIC_APP_URL || 'https://forum-kg-ten.vercel.app'
-  const redirectUrl = env.FINIK_REDIRECT_URL?.trim() || `${baseUrl}/payment/result`
-  const webhookUrl = env.FINIK_WEBHOOK_URL?.trim() || `${baseUrl}/api/v1/payments/webhooks/finik`
-  
-  console.log('[Finik Config] Base URL:', baseUrl)
-  console.log('[Finik Config] Redirect URL:', redirectUrl)
-  console.log('[Finik Config] Webhook URL:', webhookUrl)
+  const baseUrl = env.NEXT_PUBLIC_APP_URL?.trim()
+  if (!baseUrl) {
+    throw new Error('Finik is not configured')
+  }
+  // Remove trailing slash from baseUrl
+  const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl
+  const redirectUrl = env.FINIK_REDIRECT_URL?.trim() || `${normalizedBaseUrl}/ru/payment/result`
+  const webhookUrl = env.FINIK_WEBHOOK_URL?.trim() || `${normalizedBaseUrl}/api/v1/payments/webhooks/finik`
 
   if (!environment || !apiKey || !accountId || !privateKey) {
     throw new Error('Finik is not configured')
@@ -128,19 +129,12 @@ export async function createFinikPayment(
     CardType: 'FINIK_QR',
     PaymentId: input.paymentId,
     RedirectUrl: config.redirectUrl,
-    Currency: input.currency,
     Lang: 'ru',
     Data: {
       accountId: config.accountId,
       name_en: `FORUM.KG ${input.orderNumber}`,
       webhookUrl: config.webhookUrl,
       description: `Forum order ${input.orderNumber}`,
-      endDate: input.reservedUntil.getTime(),
-      additionalData: [
-        { fieldId: 'currency', name: 'Currency', isHidden: true, value: input.currency },
-        { fieldId: 'orderNumber', name: 'Order number', isHidden: true, value: input.orderNumber },
-      ],
-      currencies: [{ currency: input.currency, amount }],
     },
   }
 
@@ -181,22 +175,70 @@ export async function createFinikPayment(
     throw new Error('Finik payment request failed')
   }
 
-  if (response.status !== 302) {
+  // Accept redirect responses (301, 302, 303, 307, 308) with Location header
+  const isRedirect = [301, 302, 303, 307, 308].includes(response.status)
+  const location = response.headers.get('location')
+  
+  if (isRedirect && location) {
+    const paymentUrl = validatePaymentUrl(location, config.apiBaseUrl)
     await cancelResponseBody(response)
-    // Log HTTP status for diagnostics without exposing response body or credentials
-    console.error('Finik payment creation failed', {
+    return { paymentUrl }
+  }
+
+  // Accept successful JSON responses (200, 201) with paymentUrl field
+  if (response.status === 200 || response.status === 201) {
+    let jsonBody: unknown
+    try {
+      const text = await response.text()
+      jsonBody = JSON.parse(text)
+    } catch {
+      await cancelResponseBody(response)
+      console.error('[Finik Payment Error] Failed to parse JSON response', {
+        status: response.status,
+        paymentId: input.paymentId,
+        environment: config.environment,
+      })
+      throw new Error('Finik returned an invalid payment response')
+    }
+    
+    if (
+      jsonBody &&
+      typeof jsonBody === 'object' &&
+      'paymentUrl' in jsonBody &&
+      typeof jsonBody.paymentUrl === 'string'
+    ) {
+      const paymentUrl = validatePaymentUrl(jsonBody.paymentUrl, config.apiBaseUrl)
+      return { paymentUrl }
+    }
+    
+    console.error('[Finik Payment Error] JSON response missing paymentUrl', {
       status: response.status,
       paymentId: input.paymentId,
       environment: config.environment,
     })
-    throw new Error('Finik rejected the payment request')
+    throw new Error('Finik returned an invalid payment response')
   }
 
-  const location = response.headers.get('location')
-  if (!location) throw new Error('Finik returned an invalid payment response')
-  const paymentUrl = validatePaymentUrl(location, config.apiBaseUrl)
+  // Log error details for diagnostics
   await cancelResponseBody(response)
-  return { paymentUrl }
+  let errorMessage: string | undefined
+  try {
+    const text = await response.text()
+    const errorBody = JSON.parse(text)
+    if (errorBody && typeof errorBody === 'object' && 'ErrorMessage' in errorBody && typeof errorBody.ErrorMessage === 'string') {
+      errorMessage = errorBody.ErrorMessage
+    }
+  } catch {
+    // Cannot parse error body, continue without it
+  }
+  
+  console.error('[Finik Payment Error] Finik payment creation failed', {
+    status: response.status,
+    paymentId: input.paymentId,
+    environment: config.environment,
+    errorMessage,
+  })
+  throw new Error('Finik rejected the payment request')
 }
 
 export function verifyFinikWebhookSignature(input: {
@@ -324,8 +366,9 @@ function validatePaymentUrl(value: string, apiBaseUrl: string): string {
   const url = validateHttpsUrl(value)
   const allowedHost = url.hostname === 'qr.finik' ||
     url.hostname === 'qr.finik.kg' ||
-    url.hostname.endsWith('.finik.kg')
-  if (!allowedHost || url.username || url.password || url.port || url.search || url.hash || url.origin === apiBaseUrl) {
+    url.hostname.endsWith('.finik.kg') ||
+    url.hostname.endsWith('.averspay.kg')
+  if (!allowedHost || url.username || url.password || url.port || url.origin === apiBaseUrl) {
     throw new Error('Finik returned an invalid payment response')
   }
   return url.toString()

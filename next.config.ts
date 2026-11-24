@@ -2,6 +2,10 @@
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // Fonts for the Open Graph image route (/og) are read from disk at runtime
+  outputFileTracingIncludes: {
+    '/og': ['./assets/fonts/**'],
+  },
   images: {
     domains: ['localhost'],
     remotePatterns: [

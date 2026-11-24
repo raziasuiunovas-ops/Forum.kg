@@ -11,12 +11,12 @@ import { Logo } from '@/components/layout/Logo'
 import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher'
 import { LoginForm } from '@/components/auth/LoginForm'
 import { TicketCard } from '@/components/landing/TicketCard'
+import { pageMetadata } from '@/lib/seo'
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params
   if (!isAppLocale(locale)) return {}
-  const t = await getT(locale, 'auth')
-  return { title: `${t('title')} — FORUM.KG`, robots: { index: false } }
+  return pageMetadata(locale, 'login', '/login')
 }
 
 export default async function LoginPage({ params }: { params: Promise<{ locale: string }> }) {

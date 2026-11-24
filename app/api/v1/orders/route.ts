@@ -513,6 +513,9 @@ export async function POST(request: NextRequest) {
     return createFinikOrderResponse(idempotencyId)
   } catch (error: any) {
     console.error('Order creation failed')
+    console.error('Error details:', error)
+    console.error('Error message:', error.message)
+    console.error('Error stack:', error.stack)
 
     // Handle business logic errors
     if (error.message === 'FORUM_NOT_FOUND') {
