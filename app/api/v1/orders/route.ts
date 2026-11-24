@@ -188,7 +188,9 @@ async function createFinikOrderResponse(idempotencyId: string): Promise<NextResp
       return { body: response as Prisma.InputJsonValue, status: 201 }
     })
     return NextResponse.json(savedResponse.body, { status: savedResponse.status })
-  } catch {
+  } catch (error) {
+    console.error('[Finik Payment Error]', error)
+    console.error('[Finik Payment Error Stack]', error instanceof Error ? error.stack : 'No stack')
     await prisma.payment.updateMany({
       where: { id: payment.id, status: PaymentStatus.PROCESSING },
       data: { status: PaymentStatus.CREATED },

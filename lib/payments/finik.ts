@@ -110,7 +110,11 @@ export async function createFinikPayment(
     now?: () => number
   } = {}
 ): Promise<FinikPaymentResult> {
+  console.log('[createFinikPayment] Starting payment creation', { paymentId: input.paymentId, amount: input.amountMinor })
+  
   const config = readFinikConfig(options.env ?? process.env)
+  console.log('[createFinikPayment] Config loaded successfully')
+  
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(input.paymentId)) {
     throw new Error('Invalid Finik payment identifier')
   }
