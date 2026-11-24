@@ -206,8 +206,10 @@ export async function POST(request: NextRequest) {
     // Create forum with translations and categories in a transaction
     const forum = await prisma.$transaction(async (tx) => {
       // Create forum
+      const { randomUUID } = await import('node:crypto')
       const newForum = await tx.forum.create({
         data: {
+          id: randomUUID(),
           slug: data.slug,
           status: data.status || ForumStatus.DRAFT,
           bannerUrl: data.bannerUrl,
