@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ForumStatus, Prisma } from '@prisma/client'
-import { randomUUID } from 'crypto'
 import { prisma } from '@/lib/db'
 import { conflict, notFound, validateBody, validationError, withErrorHandler } from '@/lib/api'
 import { updateEventSchema } from '@/lib/api/schemas/event'
@@ -55,8 +54,8 @@ export const PATCH = withErrorHandler(async (request: NextRequest, context: Even
       const current = await tx.forum.findUnique({
         where: { id },
         include: {
-          ForumTranslation: true,
-          TicketCategory: { include: { TicketCategoryTranslation: true } },
+          translations: true,
+          categories: { include: { translations: true } },
         },
       })
       if (!current) return null
@@ -80,11 +79,11 @@ export const PATCH = withErrorHandler(async (request: NextRequest, context: Even
       }
 
       if (input.price !== undefined || input.categories !== undefined) {
-        const orderItems = await tx.orderItem.count({ where: { TicketCategory: { is: { forumId: id } } } })
+        const orderItems = await tx.orderItem.count({ where: { ticketCategory: { is: { forumId: id } } } })
         if (orderItems > 0) throw new ImmutableEventCategoriesError()
-        const labels = input.categories ?? current.TicketCategory.map((category) =>
-          category.TicketCategoryTranslation.find((translation) => translation.locale === 'RU')?.name ?? category.code)
-        const priceMinor = input.price?.amountMinor ?? current.TicketCategory[0]?.priceMinor ?? 0
+        const labels = input.categories ?? current.categories.map((category) =>
+          category.translations.find((translation) => translation.locale === 'RU')?.name ?? category.code)
+        const priceMinor = input.price?.amountMinor ?? current.categories[0]?.priceMinor ?? 0
         await tx.ticketCategory.deleteMany({ where: { forumId: id } })
         for (const category of categoryCreateData(labels, priceMinor)) {
           await tx.ticketCategory.create({ data: { ...category, forumId: id } })
@@ -92,20 +91,19 @@ export const PATCH = withErrorHandler(async (request: NextRequest, context: Even
       }
 
       if (input.title || input.description || input.location) {
-        const oldByLocale = new Map(current.ForumTranslation.map((translation) => [translation.locale, translation]))
+        const oldByLocale = new Map(current.translations.map((translation) => [translation.locale, translation]))
         const languages = [
           ['RU', 'ru'], ['KY', 'ky'], ['EN', 'en'],
         ] as const
         for (const [locale, key] of languages) {
           const old = oldByLocale.get(locale)
-          const title = input.title?.[key] ?? old?.title ?? current.ForumTranslation.find((row) => row.locale === 'RU')?.title
+          const title = input.title?.[key] ?? old?.title ?? current.translations.find((row) => row.locale === 'RU')?.title
           if (!title) continue
           const venueName = input.location?.name[key] ?? old?.venueName ?? current.venueName
           const venueAddress = input.location?.address?.[key] ?? old?.venueAddress ?? current.venueAddress
           await tx.forumTranslation.upsert({
             where: { forumId_locale: { forumId: id, locale } },
             create: {
-              id: randomUUID(),
               forumId: id,
               locale,
               title,

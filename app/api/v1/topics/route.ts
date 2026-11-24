@@ -29,10 +29,10 @@ const topicPublicSelect = {
   replyCount: true,
   createdAt: true,
   updatedAt: true,
-  TopicCategory: {
+  category: {
     select: { id: true, slug: true, name: true },
   },
-  User: {
+  author: {
     select: { id: true, firstName: true, lastName: true },
   },
 } satisfies Prisma.TopicSelect
@@ -110,10 +110,8 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   })
   if (!category) return notFound('Категория', 'TOPIC_CATEGORY_NOT_FOUND')
 
-  const { randomUUID } = await import('node:crypto')
   const topic = await prisma.topic.create({
     data: {
-      id: randomUUID(),
       categoryId: category.id,
       authorId: authResult.user.userId,
       title: input.title as Prisma.InputJsonValue,
@@ -121,8 +119,6 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       tags: input.tags ?? [],
       isPinned: moderator ? input.isPinned : false,
       isLocked: moderator ? input.isLocked : false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
     },
     select: topicPublicSelect,
   })

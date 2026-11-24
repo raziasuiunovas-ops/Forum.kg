@@ -40,7 +40,7 @@ function idempotencyConflict(): NextResponse {
   return NextResponse.json({
     error: {
       code: 'IDEMPOTENCY_KEY_REUSED',
-      message: 'Idempotency-Key СѓР¶Рµ РёСЃРїРѕР»СЊР·РѕРІР°РЅ СЃ РґСЂСѓРіРёРј Р·Р°РїСЂРѕСЃРѕРј',
+      message: 'Idempotency-Key уже использован с другим запросом',
     },
   }, { status: 409 })
 }
@@ -60,7 +60,7 @@ async function resumeIdempotencyResponse(
   }
   if (!saved.orderId) {
     return NextResponse.json({
-      error: { code: 'IDEMPOTENCY_RESULT_UNAVAILABLE', message: 'Р РµР·СѓР»СЊС‚Р°С‚ Р·Р°РїСЂРѕСЃР° РµС‰С‘ РѕР±СЂР°Р±Р°С‚С‹РІР°РµС‚СЃСЏ. РџРѕРІС‚РѕСЂРёС‚Рµ Р·Р°РїСЂРѕСЃ РїРѕР·Р¶Рµ' },
+      error: { code: 'IDEMPOTENCY_RESULT_UNAVAILABLE', message: 'Результат запроса ещё обрабатывается. Повторите запрос позже' },
     }, { status: 503, headers: { 'Retry-After': '1' } })
   }
   return createFinikOrderResponse(saved.id)
@@ -70,7 +70,7 @@ async function createFinikOrderResponse(idempotencyId: string): Promise<NextResp
   const idempotency = await prisma.orderIdempotency.findUnique({ where: { id: idempotencyId } })
   if (!idempotency?.orderId) {
     return NextResponse.json({
-      error: { code: 'IDEMPOTENCY_RESULT_UNAVAILABLE', message: 'Р РµР·СѓР»СЊС‚Р°С‚ Р·Р°РїСЂРѕСЃР° РµС‰С‘ РѕР±СЂР°Р±Р°С‚С‹РІР°РµС‚СЃСЏ. РџРѕРІС‚РѕСЂРёС‚Рµ Р·Р°РїСЂРѕСЃ РїРѕР·Р¶Рµ' },
+      error: { code: 'IDEMPOTENCY_RESULT_UNAVAILABLE', message: 'Результат запроса ещё обрабатывается. Повторите запрос позже' },
     }, { status: 503, headers: { 'Retry-After': '1' } })
   }
   if (idempotency.status === OrderIdempotencyStatus.COMPLETED && idempotency.responseStatus !== null && idempotency.response !== null) {
@@ -78,14 +78,14 @@ async function createFinikOrderResponse(idempotencyId: string): Promise<NextResp
   }
 
   const [order, payment] = await Promise.all([
-    prisma.Order.findUnique({
+    prisma.order.findUnique({
       where: { id: idempotency.orderId },
       include: {
-        items: { include: { TicketCategory: { include: { translations: true } } } },
-        Forum: { include: { translations: true } },
+        items: { include: { ticketCategory: { include: { translations: true } } } },
+        forum: { include: { translations: true } },
       },
     }),
-    prisma.Payment.findFirst({
+    prisma.payment.findFirst({
       where: { orderId: idempotency.orderId, provider: 'FINIK' },
       orderBy: { createdAt: 'asc' },
     }),
@@ -97,9 +97,9 @@ async function createFinikOrderResponse(idempotencyId: string): Promise<NextResp
   const reservationExpired = order.status === OrderStatus.PENDING_PAYMENT && (!order.reservedUntil || order.reservedUntil <= now)
   const orderClosed = order.status !== OrderStatus.PENDING_PAYMENT && !alreadyPaid
   if (reservationExpired || orderClosed) {
-    const body = { error: { code: 'ORDER_RESERVATION_EXPIRED', message: 'РЎСЂРѕРє СЂРµР·РµСЂРІР°С†РёРё Р·Р°РєР°Р·Р° РёСЃС‚С‘Рє' } }
+    const body = { error: { code: 'ORDER_RESERVATION_EXPIRED', message: 'Срок резервации заказа истёк' } }
     await prisma.$transaction(async (tx) => {
-      await tx.Order.updateMany({
+      await tx.order.updateMany({
         where: {
           id: order.id,
           status: OrderStatus.PENDING_PAYMENT,
@@ -107,7 +107,7 @@ async function createFinikOrderResponse(idempotencyId: string): Promise<NextResp
         },
         data: { status: OrderStatus.EXPIRED },
       })
-      await tx.Payment.updateMany({ where: { id: payment.id, status: { in: [PaymentStatus.CREATED, PaymentStatus.PROCESSING] } }, data: { status: PaymentStatus.EXPIRED } })
+      await tx.payment.updateMany({ where: { id: payment.id, status: { in: [PaymentStatus.CREATED, PaymentStatus.PROCESSING] } }, data: { status: PaymentStatus.EXPIRED } })
       await tx.orderIdempotency.update({
         where: { id: idempotency.id },
         data: { status: OrderIdempotencyStatus.COMPLETED, responseStatus: 410, response: body as Prisma.InputJsonValue },
@@ -118,7 +118,7 @@ async function createFinikOrderResponse(idempotencyId: string): Promise<NextResp
   const finikEndDate = order.reservedUntil ?? new Date(now.getTime() + RESERVATION_TIMEOUT_MS)
 
   const leaseExpiredAt = new Date(now.getTime() - FINIK_REQUEST_LEASE_MS)
-  const claim = alreadyPaid ? { count: 1 } : await prisma.Payment.updateMany({
+  const claim = alreadyPaid ? { count: 1 } : await prisma.payment.updateMany({
     where: {
       id: payment.id,
       OR: [
@@ -134,7 +134,7 @@ async function createFinikOrderResponse(idempotencyId: string): Promise<NextResp
       return NextResponse.json(refreshed.response, { status: refreshed.responseStatus })
     }
     return NextResponse.json({
-      error: { code: 'PAYMENT_INITIALIZATION_IN_PROGRESS', message: 'РџР»Р°С‚С‘Р¶ СЃРѕР·РґР°С‘С‚СЃСЏ. РџРѕРІС‚РѕСЂРёС‚Рµ Р·Р°РїСЂРѕСЃ РїРѕР·Р¶Рµ' },
+      error: { code: 'PAYMENT_INITIALIZATION_IN_PROGRESS', message: 'Платёж создаётся. Повторите запрос позже' },
     }, { status: 503, headers: { 'Retry-After': '1' } })
   }
 
@@ -147,7 +147,7 @@ async function createFinikOrderResponse(idempotencyId: string): Promise<NextResp
       reservedUntil: finikEndDate,
     })
     const response = {
-      Order: {
+      order: {
         id: order.id,
         orderNumber: order.orderNumber,
         status: order.status,
@@ -160,13 +160,13 @@ async function createFinikOrderResponse(idempotencyId: string): Promise<NextResp
           participantFirstName: item.participantFirstName,
           participantLastName: item.participantLastName,
           unitPriceMinor: item.unitPriceMinor,
-          categoryName: item.TicketCategory.translations[0]?.name || item.TicketCategory.code,
+          categoryName: item.ticketCategory.translations[0]?.name || item.ticketCategory.code,
         })),
-        Forum: {
-          id: order.Forum.id,
-          slug: order.Forum.slug,
-          title: order.Forum.translations[0]?.title || 'Untitled',
-          startsAt: order.Forum.startsAt.toISOString(),
+        forum: {
+          id: order.forum.id,
+          slug: order.forum.slug,
+          title: order.forum.translations[0]?.title || 'Untitled',
+          startsAt: order.forum.startsAt.toISOString(),
         },
       },
       paymentUrl,
@@ -177,7 +177,7 @@ async function createFinikOrderResponse(idempotencyId: string): Promise<NextResp
       if (current?.status === OrderIdempotencyStatus.COMPLETED && current.responseStatus !== null && current.response !== null) {
         return { body: current.response as Prisma.InputJsonValue, status: current.responseStatus }
       }
-      await tx.Payment.updateMany({
+      await tx.payment.updateMany({
         where: { id: payment.id, status: { in: [PaymentStatus.PROCESSING, PaymentStatus.CREATED] } },
         data: { status: PaymentStatus.PENDING, providerPaymentId: payment.providerPaymentId ?? payment.id },
       })
@@ -189,12 +189,12 @@ async function createFinikOrderResponse(idempotencyId: string): Promise<NextResp
     })
     return NextResponse.json(savedResponse.body, { status: savedResponse.status })
   } catch {
-    await prisma.Payment.updateMany({
+    await prisma.payment.updateMany({
       where: { id: payment.id, status: PaymentStatus.PROCESSING },
       data: { status: PaymentStatus.CREATED },
     }).catch(() => undefined)
     return NextResponse.json({
-      error: { code: 'FINIK_PAYMENT_UNAVAILABLE', message: 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕР·РґР°С‚СЊ РїР»Р°С‚С‘Р¶. РџРѕРІС‚РѕСЂРёС‚Рµ Р·Р°РїСЂРѕСЃ РїРѕР·Р¶Рµ' },
+      error: { code: 'FINIK_PAYMENT_UNAVAILABLE', message: 'Не удалось создать платёж. Повторите запрос позже' },
     }, { status: 502, headers: { 'Retry-After': '1' } })
   }
 }
@@ -226,14 +226,14 @@ export async function POST(request: NextRequest) {
       return authResult
     }
 
-    const user = authResult.User
+    const user = authResult.user
 
     const idempotencyKey = request.headers.get('idempotency-key')
     if (idempotencyKey === null) {
       return NextResponse.json({
         error: {
           code: 'IDEMPOTENCY_KEY_REQUIRED',
-          message: 'РўСЂРµР±СѓРµС‚СЃСЏ Р·Р°РіРѕР»РѕРІРѕРє Idempotency-Key',
+          message: 'Требуется заголовок Idempotency-Key',
         },
       }, { status: 400 })
     }
@@ -241,7 +241,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         error: {
           code: 'INVALID_IDEMPOTENCY_KEY',
-          message: 'Idempotency-Key РґРѕР»Р¶РµРЅ СЃРѕРґРµСЂР¶Р°С‚СЊ РѕС‚ 1 РґРѕ 255 РїРµС‡Р°С‚РЅС‹С… ASCII-СЃРёРјРІРѕР»РѕРІ',
+          message: 'Idempotency-Key должен содержать от 1 до 255 печатных ASCII-символов',
         },
       }, { status: 400 })
     }
@@ -255,7 +255,7 @@ export async function POST(request: NextRequest) {
         {
           error: {
             code: 'VALIDATION_ERROR',
-            message: 'РћС€РёР±РєР° РІР°Р»РёРґР°С†РёРё РґР°РЅРЅС‹С… Р·Р°РєР°Р·Р°',
+            message: 'Ошибка валидации данных заказа',
             details: validation.error.format(),
           },
         },
@@ -278,7 +278,6 @@ export async function POST(request: NextRequest) {
     if (previousResponse) return previousResponse
 
     // Execute order creation in transaction with capacity checks
-    const { randomUUID } = await import('node:crypto')
     const createOrderTransaction = () => prisma.$transaction(
       async (tx) => {
         const idempotency = await tx.orderIdempotency.create({
@@ -287,14 +286,12 @@ export async function POST(request: NextRequest) {
             keyHash,
             fingerprint,
             status: OrderIdempotencyStatus.PROCESSING,
-            createdAt: new Date(),
-            updatedAt: new Date(),
           },
           select: { id: true },
         })
 
         // 1. Get forum with FOR UPDATE lock to prevent race conditions
-        const forum = await tx.Forum.findUnique({
+        const forum = await tx.forum.findUnique({
           where: { id: forumId },
           include: {
             categories: true,
@@ -318,7 +315,7 @@ export async function POST(request: NextRequest) {
         // 2. Check maxTicketsPerAccount limit
         // Count non-cancelled tickets + active order items for this user+forum
         const [userTicketsCount, userActiveOrderItems] = await Promise.all([
-          tx.Ticket.count({
+          tx.ticket.count({
             where: {
               buyerId: user.userId,
               forumId: forum.id,
@@ -329,7 +326,7 @@ export async function POST(request: NextRequest) {
           }),
           tx.orderItem.count({
             where: {
-              Order: {
+              order: {
                 userId: user.userId,
                 forumId: forum.id,
                 status: {
@@ -353,7 +350,7 @@ export async function POST(request: NextRequest) {
 
         // 3. Check forum capacity
         const [soldTickets, reservedItems] = await Promise.all([
-          tx.Ticket.count({
+          tx.ticket.count({
             where: {
               forumId: forum.id,
               status: 'ACTIVE',
@@ -361,7 +358,7 @@ export async function POST(request: NextRequest) {
           }),
           tx.orderItem.count({
             where: {
-              Order: {
+              order: {
                 forumId: forum.id,
                 status: 'PENDING_PAYMENT',
                 reservedUntil: { gte: new Date() },
@@ -397,10 +394,10 @@ export async function POST(request: NextRequest) {
                 ticketCategoryId: category.id,
                 OR: [
                   // Already issued tickets
-                  { Ticket: { isNot: null } },
+                  { ticket: { isNot: null } },
                   // Active reservations
                   {
-                    Order: {
+                    order: {
                       status: 'PENDING_PAYMENT',
                       reservedUntil: { gte: new Date() },
                     },
@@ -423,9 +420,8 @@ export async function POST(request: NextRequest) {
         const orderNumber = generateOrderNumber()
         const reservedUntil = new Date(Date.now() + RESERVATION_TIMEOUT_MS)
 
-        const order = await tx.Order.create({
+        const order = await tx.order.create({
           data: {
-            id: randomUUID(),
             orderNumber,
             userId: user.userId,
             forumId: forum.id,
@@ -434,8 +430,6 @@ export async function POST(request: NextRequest) {
             totalMinor,
             currency: 'KGS',
             reservedUntil,
-            createdAt: new Date(),
-            updatedAt: new Date(),
             items: {
               create: items.map((item) => {
                 const category = categoryMap.get(item.ticketCategoryId)!
@@ -451,14 +445,14 @@ export async function POST(request: NextRequest) {
           include: {
             items: {
               include: {
-                TicketCategory: {
+                ticketCategory: {
                   include: {
                     translations: true,
                   },
                 },
               },
             },
-            Forum: {
+            forum: {
               include: {
                 translations: true,
               },
@@ -467,22 +461,19 @@ export async function POST(request: NextRequest) {
         })
 
         // 6. Create payment record (CREATED status)
-        const payment = await tx.Payment.create({
+        const payment = await tx.payment.create({
           data: {
-            id: randomUUID(),
             orderId: order.id,
             provider: 'FINIK',
             status: PaymentStatus.CREATED,
             amountMinor: totalMinor,
             currency: 'KGS',
-            createdAt: new Date(),
-            updatedAt: new Date(),
           },
         })
 
         // Persist the order and stable provider ID before calling Finik. The external
         // request must stay outside this retried Serializable transaction.
-        await tx.Payment.update({
+        await tx.payment.update({
           where: { id: payment.id },
           data: { providerPaymentId: payment.id },
         })
@@ -527,7 +518,7 @@ export async function POST(request: NextRequest) {
         {
           error: {
             code: 'FORUM_NOT_FOUND',
-            message: 'РњРµСЂРѕРїСЂРёСЏС‚РёРµ РЅРµ РЅР°Р№РґРµРЅРѕ',
+            message: 'Мероприятие не найдено',
           },
         },
         { status: 404 }
@@ -539,7 +530,7 @@ export async function POST(request: NextRequest) {
         {
           error: {
             code: 'FORUM_NOT_AVAILABLE',
-            message: 'РњРµСЂРѕРїСЂРёСЏС‚РёРµ РЅРµРґРѕСЃС‚СѓРїРЅРѕ РґР»СЏ СЂРµРіРёСЃС‚СЂР°С†РёРё',
+            message: 'Мероприятие недоступно для регистрации',
           },
         },
         { status: 400 }
@@ -551,7 +542,7 @@ export async function POST(request: NextRequest) {
         {
           error: {
             code: 'FORUM_ALREADY_STARTED',
-            message: 'РњРµСЂРѕРїСЂРёСЏС‚РёРµ СѓР¶Рµ РЅР°С‡Р°Р»РѕСЃСЊ, СЂРµРіРёСЃС‚СЂР°С†РёСЏ Р·Р°РєСЂС‹С‚Р°',
+            message: 'Мероприятие уже началось, регистрация закрыта',
           },
         },
         { status: 400 }
@@ -563,7 +554,7 @@ export async function POST(request: NextRequest) {
         {
           error: {
             code: 'MAX_TICKETS_PER_ACCOUNT_EXCEEDED',
-            message: 'РџСЂРµРІС‹С€РµРЅ Р»РёРјРёС‚ Р±РёР»РµС‚РѕРІ РЅР° Р°РєРєР°СѓРЅС‚',
+            message: 'Превышен лимит билетов на аккаунт',
           },
         },
         { status: 400 }
@@ -575,7 +566,7 @@ export async function POST(request: NextRequest) {
         {
           error: {
             code: 'CAPACITY_EXCEEDED',
-            message: 'Р’СЃРµ Р±РёР»РµС‚С‹ СЂР°СЃРїСЂРѕРґР°РЅС‹',
+            message: 'Все билеты распроданы',
           },
         },
         { status: 400 }
@@ -587,7 +578,7 @@ export async function POST(request: NextRequest) {
         {
           error: {
             code: 'CATEGORY_CAPACITY_EXCEEDED',
-            message: 'Р‘РёР»РµС‚С‹ РІС‹Р±СЂР°РЅРЅРѕР№ РєР°С‚РµРіРѕСЂРёРё СЂР°СЃРїСЂРѕРґР°РЅС‹',
+            message: 'Билеты выбранной категории распроданы',
           },
         },
         { status: 400 }
@@ -599,7 +590,7 @@ export async function POST(request: NextRequest) {
         {
           error: {
             code: 'CATEGORY_NOT_FOUND',
-            message: 'РљР°С‚РµРіРѕСЂРёСЏ Р±РёР»РµС‚Р° РЅРµ РЅР°Р№РґРµРЅР°',
+            message: 'Категория билета не найдена',
           },
         },
         { status: 404 }
@@ -611,7 +602,7 @@ export async function POST(request: NextRequest) {
         {
           error: {
             code: 'CATEGORY_NOT_ACTIVE',
-            message: 'Р’С‹Р±СЂР°РЅРЅР°СЏ РєР°С‚РµРіРѕСЂРёСЏ РЅРµРґРѕСЃС‚СѓРїРЅР°',
+            message: 'Выбранная категория недоступна',
           },
         },
         { status: 400 }
@@ -622,7 +613,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         error: {
           code: 'CONCURRENT_MODIFICATION',
-          message: 'Р—Р°РєР°Р· РёР·РјРµРЅРёР»СЃСЏ РѕРґРЅРѕРІСЂРµРјРµРЅРЅРѕ СЃ Р·Р°РїСЂРѕСЃРѕРј. РџРѕРІС‚РѕСЂРёС‚Рµ РїРѕРїС‹С‚РєСѓ',
+          message: 'Заказ изменился одновременно с запросом. Повторите попытку',
         },
       }, { status: 409 })
     }
@@ -632,7 +623,7 @@ export async function POST(request: NextRequest) {
       {
         error: {
           code: 'ORDER_CREATION_FAILED',
-          message: 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕР·РґР°С‚СЊ Р·Р°РєР°Р·',
+          message: 'Не удалось создать заказ',
         },
       },
       { status: 500 }

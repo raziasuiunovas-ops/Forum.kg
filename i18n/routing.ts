@@ -1,12 +1,10 @@
 // Single source of truth for supported locales (safe to import from client components).
 export const locales = ['ru', 'ky', 'en'] as const
 export type AppLocale = (typeof locales)[number]
+
 export const defaultLocale: AppLocale = 'ru'
 export const LOCALE_COOKIE = 'NEXT_LOCALE'
 
 export function isAppLocale(value: string | undefined | null): value is AppLocale {
   return !!value && (locales as readonly string[]).includes(value)
 }
-
-/** Alias kept for code that imports the type under this name. */
-export type Locale = AppLocale

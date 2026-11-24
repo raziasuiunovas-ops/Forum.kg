@@ -1,5 +1,4 @@
 import { ForumStatus, OrderStatus, Prisma, TicketStatus } from '@prisma/client'
-import { randomUUID } from 'crypto'
 
 export const publicEventSelect = {
   id: true,
@@ -22,7 +21,7 @@ export const publicEventSelect = {
   createdAt: true,
   updatedAt: true,
   tags: true,
-  ForumTranslation: {
+  translations: {
     select: {
       locale: true,
       title: true,
@@ -33,7 +32,7 @@ export const publicEventSelect = {
       venueAddress: true,
     },
   },
-  TicketCategory: {
+  categories: {
     where: { isActive: true },
     select: {
       id: true,
@@ -41,12 +40,12 @@ export const publicEventSelect = {
       priceMinor: true,
       currency: true,
       capacity: true,
-      TicketCategoryTranslation: { select: { locale: true, name: true, description: true } },
+      translations: { select: { locale: true, name: true, description: true } },
     },
     orderBy: [{ sortOrder: 'asc' }, { code: 'asc' }],
   },
   createdBy: { select: { id: true, firstName: true, lastName: true } },
-  _count: { select: { EventRegistration: true } },
+  _count: { select: { registrations: true } },
 } satisfies Prisma.ForumSelect
 
 type EventRecord = Prisma.ForumGetPayload<{ select: typeof publicEventSelect }>
@@ -54,7 +53,7 @@ type EventRecord = Prisma.ForumGetPayload<{ select: typeof publicEventSelect }>
 const localeKey = { RU: 'ru', KY: 'ky', EN: 'en' } as const
 
 function localized(
-  rows: EventRecord['ForumTranslation'],
+  rows: EventRecord['translations'],
   field: 'title' | 'shortDescription' | 'description' | 'program' | 'venueName' | 'venueAddress'
 ) {
   return Object.fromEntries(rows.flatMap((row) => {
@@ -64,7 +63,7 @@ function localized(
 }
 
 export function toEventDto(event: EventRecord) {
-  const lowestPrice = event.TicketCategory.reduce<number | null>((min, category) =>
+  const lowestPrice = event.categories.reduce<number | null>((min, category) =>
     min === null || category.priceMinor < min ? category.priceMinor : min, null)
 
   return {
@@ -74,17 +73,17 @@ export function toEventDto(event: EventRecord) {
     organizer: event.createdBy,
     status: event.status,
     isPublished: event.status === ForumStatus.PUBLISHED,
-    title: localized(event.ForumTranslation, 'title'),
-    description: localized(event.ForumTranslation, 'description'),
-    shortDescription: localized(event.ForumTranslation, 'shortDescription'),
-    program: localized(event.ForumTranslation, 'program'),
+    title: localized(event.translations, 'title'),
+    description: localized(event.translations, 'description'),
+    shortDescription: localized(event.translations, 'shortDescription'),
+    program: localized(event.translations, 'program'),
     coverImageUrl: event.bannerUrl,
     location: {
-      name: Object.keys(localized(event.ForumTranslation, 'venueName')).length
-        ? localized(event.ForumTranslation, 'venueName')
+      name: Object.keys(localized(event.translations, 'venueName')).length
+        ? localized(event.translations, 'venueName')
         : { ru: event.venueName },
-      address: Object.keys(localized(event.ForumTranslation, 'venueAddress')).length
-        ? localized(event.ForumTranslation, 'venueAddress')
+      address: Object.keys(localized(event.translations, 'venueAddress')).length
+        ? localized(event.translations, 'venueAddress')
         : event.venueAddress ? { ru: event.venueAddress } : undefined,
       coordinates: event.locationCoordinates,
     },
@@ -95,20 +94,20 @@ export function toEventDto(event: EventRecord) {
     qrExpiresAt: event.qrExpiresAt,
     capacity: event.capacity,
     maxTicketsPerAccount: event.maxTicketsPerAccount,
-    price: lowestPrice === null ? null : { amountMinor: lowestPrice, currency: event.TicketCategory[0]?.currency ?? 'KGS' },
-    categories: event.TicketCategory.map((category) => ({
+    price: lowestPrice === null ? null : { amountMinor: lowestPrice, currency: event.categories[0]?.currency ?? 'KGS' },
+    categories: event.categories.map((category) => ({
       id: category.id,
       code: category.code,
       priceMinor: category.priceMinor,
       currency: category.currency,
       capacity: category.capacity,
-      translations: Object.fromEntries(category.TicketCategoryTranslation.map((translation) => [
+      translations: Object.fromEntries(category.translations.map((translation) => [
         localeKey[translation.locale],
         { name: translation.name, description: translation.description },
       ])),
     })),
     tags: event.tags,
-    registrationCount: event._count.EventRegistration,
+    registrationCount: event._count.registrations,
     createdAt: event.createdAt,
     updatedAt: event.updatedAt,
   }
@@ -124,7 +123,6 @@ export function translationRows(input: {
 }) {
   const languages = ['ru', 'ky', 'en'] as const
   return languages.map((language) => ({
-    id: randomUUID(),
     locale: language.toUpperCase() as 'RU' | 'KY' | 'EN',
     title: input.title[language] ?? input.title.ru,
     description: input.description[language] ?? null,
@@ -135,15 +133,11 @@ export function translationRows(input: {
 
 export function categoryCreateData(names: string[] | undefined, priceMinor: number) {
   const categoryNames = names?.length ? names : ['Standard']
-  const now = new Date()
   return categoryNames.map((name, index) => ({
-    id: randomUUID(),
     code: `CATEGORY_${index + 1}`,
     priceMinor,
     currency: 'KGS',
-    createdAt: now,
-    updatedAt: now,
-    TicketCategoryTranslation: { create: [{ id: randomUUID(), locale: 'RU' as const, name, createdAt: now, updatedAt: now }] },
+    translations: { create: [{ locale: 'RU' as const, name }] },
   }))
 }
 

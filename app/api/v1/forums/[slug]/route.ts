@@ -27,7 +27,7 @@ export async function GET(
     const { searchParams } = new URL(request.url)
 
     const validation = getForumSchema.safeParse({
-      locale: searchParams.get('locale') ?? undefined,
+      locale: searchParams.get('locale'),
     })
 
     if (!validation.success) {
@@ -52,16 +52,16 @@ export async function GET(
         status: ForumStatus.PUBLISHED,
       },
       include: {
-        ForumTranslation: true,
-        TicketCategory: {
+        translations: true,
+        categories: {
           include: {
-            TicketCategoryTranslation: true,
+            translations: true,
           },
           orderBy: {
             sortOrder: 'asc',
           },
         },
-        User: {
+        createdBy: {
           select: {
             id: true,
             firstName: true,
@@ -70,12 +70,12 @@ export async function GET(
         },
         _count: {
           select: {
-            Ticket: {
+            tickets: {
               where: {
                 status: 'ACTIVE',
               },
             },
-            Order: {
+            orders: {
               where: {
                 status: {
                   in: ['PENDING_PAYMENT', 'PAID'],
@@ -113,8 +113,8 @@ export async function GET(
     }
 
     // Get translation for requested locale
-    const translation = forum.ForumTranslation.find((t) => t.locale === locale)
-    const fallbackTranslation = forum.ForumTranslation.find((t) => t.locale === Locale.RU)
+    const translation = forum.translations.find((t) => t.locale === locale)
+    const fallbackTranslation = forum.translations.find((t) => t.locale === Locale.RU)
 
     if (!translation && !fallbackTranslation) {
       return NextResponse.json(
@@ -129,7 +129,7 @@ export async function GET(
     }
 
     // Calculate available tickets
-    const soldTickets = forum._count.Ticket
+    const soldTickets = forum._count.tickets
     const availableTickets = Math.max(0, forum.capacity - soldTickets)
 
     // Check if sold out
@@ -162,13 +162,13 @@ export async function GET(
       description: translation?.description || fallbackTranslation?.description || null,
       program: translation?.program || fallbackTranslation?.program || null,
       createdBy: {
-        id: forum.User.id,
-        firstName: forum.User.firstName,
-        lastName: forum.User.lastName,
+        id: forum.createdBy.id,
+        firstName: forum.createdBy.firstName,
+        lastName: forum.createdBy.lastName,
       },
-      categories: forum.TicketCategory.map((cat) => {
-        const catTranslation = cat.TicketCategoryTranslation.find((t) => t.locale === locale)
-        const catFallback = cat.TicketCategoryTranslation.find((t) => t.locale === Locale.RU)
+      categories: forum.categories.map((cat) => {
+        const catTranslation = cat.translations.find((t) => t.locale === locale)
+        const catFallback = cat.translations.find((t) => t.locale === Locale.RU)
 
         // Calculate category-specific availability
         const categorySold = cat.capacity

@@ -23,13 +23,13 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const validation = forumQuerySchema.safeParse({
-      page: searchParams.get('page') ?? undefined,
-      limit: searchParams.get('limit') ?? undefined,
-      status: searchParams.get('status') ?? undefined,
-      search: searchParams.get('search') ?? undefined,
-      sortBy: searchParams.get('sortBy') ?? undefined,
-      sortOrder: searchParams.get('sortOrder') ?? undefined,
-      includeStats: searchParams.get('includeStats') ?? undefined,
+      page: searchParams.get('page'),
+      limit: searchParams.get('limit'),
+      status: searchParams.get('status'),
+      search: searchParams.get('search'),
+      sortBy: searchParams.get('sortBy'),
+      sortOrder: searchParams.get('sortOrder'),
+      includeStats: searchParams.get('includeStats'),
     })
 
     if (!validation.success) {
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
       where.OR = [
         { slug: { contains: search, mode: 'insensitive' } },
         { venueName: { contains: search, mode: 'insensitive' } },
-        { ForumTranslation: { some: { title: { contains: search, mode: 'insensitive' } } } },
+        { translations: { some: { title: { contains: search, mode: 'insensitive' } } } },
       ]
     }
 
@@ -72,18 +72,18 @@ export async function GET(request: NextRequest) {
       prisma.forum.findMany({
         where,
         include: {
-          ForumTranslation: {
+          translations: {
             orderBy: { locale: 'asc' },
           },
-          TicketCategory: {
+          categories: {
             include: {
-              TicketCategoryTranslation: {
+              translations: {
                 orderBy: { locale: 'asc' },
               },
             },
             orderBy: { sortOrder: 'asc' },
           },
-          User: {
+          createdBy: {
             select: {
               id: true,
               firstName: true,
@@ -94,13 +94,13 @@ export async function GET(request: NextRequest) {
           ...(includeStats ? {
             _count: {
               select: {
-                Ticket: {
+                tickets: {
                   where: { status: 'ACTIVE' },
                 },
-                Order: {
+                orders: {
                   where: { status: 'PAID' },
                 },
-                CheckIn: true,
+                checkIns: true,
               },
             },
           } : {}),
@@ -134,17 +134,17 @@ export async function GET(request: NextRequest) {
         publishAt: forum.publishAt?.toISOString() || null,
         publishedAt: forum.publishedAt?.toISOString() || null,
         createdById: forum.createdById,
-        createdBy: forum.User,
+        createdBy: forum.createdBy,
         createdAt: forum.createdAt.toISOString(),
         updatedAt: forum.updatedAt.toISOString(),
-        translations: forum.ForumTranslation,
-        categories: forum.TicketCategory,
+        translations: forum.translations,
+        categories: forum.categories,
         ...(includeStats && '_count' in forum ? {
           stats: {
-            activeTickets: forum._count.Ticket,
-            paidOrders: forum._count.Order,
-            checkIns: forum._count.CheckIn,
-            availableCapacity: forum.capacity - forum._count.Ticket,
+            activeTickets: forum._count.tickets,
+            paidOrders: forum._count.orders,
+            checkIns: forum._count.checkIns,
+            availableCapacity: forum.capacity - forum._count.tickets,
           },
         } : {}),
       })),
@@ -206,10 +206,8 @@ export async function POST(request: NextRequest) {
     // Create forum with translations and categories in a transaction
     const forum = await prisma.$transaction(async (tx) => {
       // Create forum
-      const { randomUUID } = await import('node:crypto')
       const newForum = await tx.forum.create({
         data: {
-          id: randomUUID(),
           slug: data.slug,
           status: data.status || ForumStatus.DRAFT,
           bannerUrl: data.bannerUrl,
@@ -226,15 +224,12 @@ export async function POST(request: NextRequest) {
           tags: data.tags,
           publishAt: data.publishAt ? new Date(data.publishAt) : null,
           createdById: authResult.user.userId,
-          createdAt: new Date(),
-          updatedAt: new Date(),
         },
       })
 
       // Create translations
       await tx.forumTranslation.createMany({
         data: data.translations.map((t) => ({
-          id: randomUUID(),
           forumId: newForum.id,
           locale: t.locale,
           title: t.title,
@@ -250,7 +245,6 @@ export async function POST(request: NextRequest) {
       for (const category of data.categories) {
         const newCategory = await tx.ticketCategory.create({
           data: {
-            id: randomUUID(),
             forumId: newForum.id,
             code: category.code,
             priceMinor: category.priceMinor,
@@ -258,14 +252,11 @@ export async function POST(request: NextRequest) {
             capacity: category.capacity || null,
             isActive: category.isActive,
             sortOrder: category.sortOrder,
-            createdAt: new Date(),
-            updatedAt: new Date(),
           },
         })
 
         await tx.ticketCategoryTranslation.createMany({
           data: category.translations.map((t) => ({
-            id: randomUUID(),
             categoryId: newCategory.id,
             locale: t.locale,
             name: t.name,
@@ -277,7 +268,6 @@ export async function POST(request: NextRequest) {
       // Log audit event
       await tx.auditLog.create({
         data: {
-          id: randomUUID(),
           actorId: authResult.user.userId,
           action: 'FORUM_CREATED',
           targetType: 'Forum',
@@ -297,14 +287,14 @@ export async function POST(request: NextRequest) {
     const completeForum = await prisma.forum.findUnique({
       where: { id: forum.id },
       include: {
-        ForumTranslation: true,
-        TicketCategory: {
+        translations: true,
+        categories: {
           include: {
-            TicketCategoryTranslation: true,
+            translations: true,
           },
           orderBy: { sortOrder: 'asc' },
         },
-        User: {
+        createdBy: {
           select: {
             id: true,
             firstName: true,

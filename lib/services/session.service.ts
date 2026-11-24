@@ -85,10 +85,8 @@ export class SessionService {
     const create = async (client: TransactionClient) => {
       await this._lockUserSessions(client, userId)
 
-      const { randomUUID } = await import('node:crypto')
       return client.session.create({
         data: {
-          id: randomUUID(),
           userId,
           refreshTokenHash,
           sessionFamilyId,
@@ -287,10 +285,8 @@ export class SessionService {
         const newTokenHash = hashToken(newRefreshToken)
         const newExpiresAt = new Date(Date.now() + SESSION_EXPIRY_MS)
 
-        const { randomUUID } = await import('node:crypto')
         const newSession = await tx.session.create({
           data: {
-            id: randomUUID(),
             userId,
             refreshTokenHash: newTokenHash,
             sessionFamilyId: currentSession.sessionFamilyId,
@@ -347,8 +343,7 @@ export class SessionService {
     tx: TransactionClient,
     userId: string
   ): Promise<void> {
-    // ::text — pg_advisory_xact_lock() returns `void`, which Prisma $queryRaw cannot deserialize (P2010).
-    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${userId}, 0))::text`
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${userId}, 0))`
   }
 
   /**
