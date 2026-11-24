@@ -5,7 +5,7 @@ import { actions, useAdminState } from '@/lib/admin/store'
 import { dateTime } from '@/lib/admin/format'
 import type { AdminTicket } from '@/lib/admin/types'
 import { useAdminUser } from '../AdminShell'
-import { Badge, Card, DataTable, DemoBanner, Field, Modal, PageHeader, btn, field } from '../ui'
+import { Badge, Card, DataTable, DemoBanner, Field, Modal, PageHeader, btn, field, select } from '../ui'
 import { TICKET_LABEL, TICKET_TONE } from './labels'
 
 export function Tickets() {
@@ -22,21 +22,21 @@ export function Tickets() {
     <div>
       <PageHeader title="Билеты" text="Выданные билеты. Ручное аннулирование записывается в журнал аудита." />
       <DemoBanner />
-      <div className="mb-4">
-        <select aria-label="Статус" value={status} onChange={(e) => setStatus(e.target.value)} className={`${field} w-56`}>
-          <option value="all">Все статусы</option>
-          {Object.entries(TICKET_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-        </select>
-      </div>
       <Card>
         <DataTable
           rows={rows}
           searchText={(t) => `${t.number} ${t.participant} ${t.buyerName}`}
           toolbar={
-            <select aria-label="Форум" value={forum} onChange={(e) => setForum(e.target.value)} className={field}>
-              <option value="all">Все форумы</option>
-              {s.forums.map((f) => <option key={f.id} value={f.id}>{f.title.ru}</option>)}
-            </select>
+            <div className="flex items-center gap-3">
+              <select aria-label="Форум" value={forum} onChange={(e) => setForum(e.target.value)} className={select}>
+                <option value="all">Все форумы</option>
+                {s.forums.map((f) => <option key={f.id} value={f.id}>{f.title.ru}</option>)}
+              </select>
+              <select aria-label="Статус" value={status} onChange={(e) => setStatus(e.target.value)} className={select}>
+                <option value="all">Все статусы</option>
+                {Object.entries(TICKET_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+            </div>
           }
           columns={[
             { key: 'n', header: 'Номер', sortValue: (t) => t.number, cell: (t) => <code className="text-xs font-bold text-ink">{t.number}</code> },

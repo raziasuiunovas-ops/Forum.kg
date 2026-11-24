@@ -6,7 +6,7 @@ import { createForum, listForums, setForumStatus, updateForum } from '@/lib/admi
 import { dateTime, fromLocalInput, money, toLocalInput } from '@/lib/admin/format'
 import type { AdminCategory, AdminForum, ForumStatus, L10n, Loc } from '@/lib/admin/types'
 import { useAdminUser } from '../AdminShell'
-import { Badge, Card, DataTable, Field, Modal, PageHeader, btn, field } from '../ui'
+import { Badge, Card, DataTable, Field, Modal, PageHeader, btn, field, DateTimeInput } from '../ui'
 import { ImageUpload } from '../ImageUpload'
 import { FORUM_LABEL, FORUM_TONE } from './labels'
 
@@ -158,13 +158,13 @@ function ForumForm({ initial, isNew, onClose, onSaved }: { initial: AdminForum; 
         />
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Начало (время Бишкека) *"><input type="datetime-local" className={field} value={toLocalInput(f.startsAt)} onChange={(e) => set('startsAt', fromLocalInput(e.target.value))} /></Field>
-          <Field label="Окончание (необязательно)"><input type="datetime-local" className={field} value={toLocalInput(f.endsAt)} onChange={(e) => set('endsAt', fromLocalInput(e.target.value) || null)} /></Field>
+          <Field label="Начало (время Бишкека) *"><DateTimeInput value={toLocalInput(f.startsAt)} onChange={(e) => set('startsAt', fromLocalInput(e.target.value))} /></Field>
+          <Field label="Окончание (необязательно)"><DateTimeInput value={toLocalInput(f.endsAt)} onChange={(e) => set('endsAt', fromLocalInput(e.target.value) || null)} /></Field>
           <Field label="Место *"><input className={field} value={f.venueName} onChange={(e) => set('venueName', e.target.value)} /></Field>
           <Field label="Адрес *"><input className={field} value={f.venueAddress} onChange={(e) => set('venueAddress', e.target.value)} /></Field>
           <Field label="Общая вместимость *"><input type="number" min={1} className={field} value={f.capacity} onChange={(e) => set('capacity', Number(e.target.value))} /></Field>
           <Field label="Билетов на аккаунт (по умолчанию 1) *"><input type="number" min={1} className={field} value={f.maxTicketsPerAccount} onChange={(e) => set('maxTicketsPerAccount', Number(e.target.value))} /></Field>
-          <Field label="Срок действия QR (время Бишкека) *" hint="После этого момента вход по QR невозможен, страница QR станет чёрной."><input type="datetime-local" className={field} value={toLocalInput(f.qrExpiresAt)} onChange={(e) => set('qrExpiresAt', fromLocalInput(e.target.value))} /></Field>
+          <Field label="Срок действия QR (время Бишкека) *" hint="После этого момента вход по QR невозможен, страница QR станет чёрной."><DateTimeInput value={toLocalInput(f.qrExpiresAt)} onChange={(e) => set('qrExpiresAt', fromLocalInput(e.target.value))} /></Field>
         </div>
 
         <div>
@@ -189,7 +189,7 @@ function ForumForm({ initial, isNew, onClose, onSaved }: { initial: AdminForum; 
               <button key={v} type="button" aria-pressed={publish === v} onClick={() => setPublish(v)} className={`rounded-lg px-4 py-2 text-xs font-bold ${publish === v ? 'bg-primary text-white' : 'bg-slate-100 text-slate-600'}`}>{label}</button>
             ))}
           </div>
-          {publish === 'scheduled' && <div className="mt-3 max-w-xs"><Field label="Опубликовать в (время Бишкека)"><input type="datetime-local" className={field} value={toLocalInput(f.publishAt)} onChange={(e) => set('publishAt', fromLocalInput(e.target.value) || null)} /></Field></div>}
+          {publish === 'scheduled' && <div className="mt-3 max-w-xs"><Field label="Опубликовать в (время Бишкека)"><DateTimeInput value={toLocalInput(f.publishAt)} onChange={(e) => set('publishAt', fromLocalInput(e.target.value) || null)} /></Field></div>}
           <p className="mt-2 text-[11px] text-slate-400">При публикации всем зарегистрированным пользователям создаются уведомления.</p>
         </div>
 

@@ -166,7 +166,7 @@ export function Scanner() {
         <form className="grid gap-3 sm:grid-cols-[1fr_1fr_9rem_auto]" onSubmit={(e) => { e.preventDefault(); if (!off.participant.trim() || !off.receipt.trim()) return; actions.addOffline({ forumId: forumId || 'unknown', participant: off.participant.trim(), receipt: off.receipt.trim(), app: off.app, operator: actor, observedAt: new Date().toISOString(), note: off.note }, actor); setOff({ participant: '', receipt: '', app: off.app, note: '' }) }}>
           <input className={field} placeholder="Имя участника" aria-label="Имя участника" value={off.participant} onChange={(e) => setOff({ ...off, participant: e.target.value })} />
           <input className={field} placeholder="Номер транзакции с чека" aria-label="Номер транзакции" value={off.receipt} onChange={(e) => setOff({ ...off, receipt: e.target.value })} />
-          <select className={field} aria-label="Приложение" value={off.app} onChange={(e) => setOff({ ...off, app: e.target.value })}><option>MBank</option><option>O!Dengi</option><option>Другое</option></select>
+          <select className={select} aria-label="Приложение" value={off.app} onChange={(e) => setOff({ ...off, app: e.target.value })}><option>MBank</option><option>O!Dengi</option><option>Другое</option></select>
           <button className={btn.primary} type="submit">Записать</button>
         </form>
         <div className="mt-5">
@@ -181,7 +181,7 @@ export function Scanner() {
               { key: 't', header: 'Время', cell: (o) => dateTime(o.observedAt) },
               { key: 'o', header: 'Оператор', cell: (o) => o.operator },
               { key: 's', header: 'Статус', cell: (o) => (
-                <select className={`${field} !h-9 w-44 text-xs`} aria-label="Статус сверки" value={o.status} onChange={(e) => actions.setOfflineStatus(o.id, e.target.value as typeof o.status, actor)}>
+                <select className={`${select} !h-9 !text-xs`} aria-label="Статус сверки" value={o.status} onChange={(e) => actions.setOfflineStatus(o.id, e.target.value as typeof o.status, actor)}>
                   <option value="PROVISIONAL">Непроверен</option><option value="VERIFIED">Подтверждён</option><option value="REJECTED">Отклонён</option><option value="DUPLICATE">Дубль</option>
                 </select>) },
             ]}

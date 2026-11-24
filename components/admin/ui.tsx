@@ -6,6 +6,9 @@ import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react'
 export const field =
   'h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-ink outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/25 disabled:bg-slate-50'
 
+export const dateField =
+  'h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-ink outline-none transition hover:border-primary/50 hover:bg-slate-50/50 focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20 disabled:bg-slate-50 disabled:cursor-not-allowed [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:rounded-lg [&::-webkit-calendar-picker-indicator]:p-1 [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:transition [&::-webkit-calendar-picker-indicator]:hover:opacity-100 [&::-webkit-calendar-picker-indicator]:hover:bg-slate-100'
+
 export const select =
   'h-10 w-full cursor-pointer appearance-none rounded-lg border border-slate-200 bg-white bg-[url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'16\' height=\'16\' viewBox=\'0 0 16 16\'%3E%3Cpath fill=\'%23475569\' d=\'M4.427 6.427l3.396 3.396a.25.25 0 00.354 0l3.396-3.396A.25.25 0 0011.396 6H4.604a.25.25 0 00-.177.427z\'/%3E%3C/svg%3E")] bg-[length:16px_16px] bg-[center_right_0.75rem] bg-no-repeat py-2 pl-3 pr-10 text-sm font-medium text-ink shadow-sm outline-none transition-all duration-200 hover:border-primary/50 hover:bg-slate-50 focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/25 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-50'
 
@@ -107,6 +110,51 @@ export function Field({ label, hint, children }: { label: string; hint?: string;
   )
 }
 
+/** Format current date as YYYY-MM-DD for date input */
+export function getTodayDate(): string {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+/** DateInput component with styled calendar picker */
+export function DateInput({ 
+  value, 
+  onChange, 
+  className = '', 
+  ...props 
+}: Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> & { value?: string; onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void }) {
+  return (
+    <input
+      type="date"
+      value={value}
+      onChange={onChange}
+      className={`${dateField} ${className}`}
+      {...props}
+    />
+  )
+}
+
+/** DateTimeInput component with styled calendar picker */
+export function DateTimeInput({ 
+  value, 
+  onChange, 
+  className = '', 
+  ...props 
+}: Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> & { value?: string; onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void }) {
+  return (
+    <input
+      type="datetime-local"
+      value={value}
+      onChange={onChange}
+      className={`${dateField} ${className}`}
+      {...props}
+    />
+  )
+}
+
 export interface Column<T> {
   key: string
   header: string
@@ -151,9 +199,9 @@ export function DataTable<T extends { id: string }>({
 
   return (
     <div>
-      <div className="mb-3 grid gap-3 sm:grid-cols-2">
+      <div className="mb-3 flex flex-wrap items-center gap-3">
         {searchText && (
-          <div className="relative">
+          <div className="relative flex-1 min-w-[200px]">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input value={q} onChange={(e) => { setQ(e.target.value); setPage(0) }} placeholder="Поиск..." aria-label="Поиск" className={`${field} w-full pl-9`} />
           </div>

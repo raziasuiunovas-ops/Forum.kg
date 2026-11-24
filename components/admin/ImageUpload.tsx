@@ -2,7 +2,6 @@
 
 import { useRef, useState } from 'react'
 import { Upload, X, Loader2, AlertCircle } from 'lucide-react'
-import { api } from '@/lib/client/api'
 import { btn } from './ui'
 
 interface ImageUploadProps {
@@ -65,11 +64,18 @@ export function ImageUpload({
       const formData = new FormData()
       formData.append('file', file)
 
+      // Получаем CSRF токен
+      const csrfRes = await fetch('/api/v1/auth/csrf-token', { credentials: 'include' })
+      const csrfData = await csrfRes.json()
+      
       // Загружаем файл через API
-      const response = await api('/api/v1/uploads', {
+      const response = await fetch('/api/v1/uploads', {
         method: 'POST',
         body: formData,
-        csrf: true,
+        credentials: 'include',
+        headers: {
+          'X-CSRF-Token': csrfData.csrfToken || '',
+        },
         // Не устанавливаем Content-Type - браузер сам установит multipart/form-data с boundary
       })
 

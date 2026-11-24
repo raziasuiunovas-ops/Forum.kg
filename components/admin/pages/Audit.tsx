@@ -4,11 +4,11 @@ import { useState } from 'react'
 import { Download } from 'lucide-react'
 import { useAdminState } from '@/lib/admin/store'
 import { bishkekDay, dateTime, downloadCsv } from '@/lib/admin/format'
-import { Badge, Card, DataTable, DemoBanner, PageHeader, btn, field } from '../ui'
+import { Badge, Card, DataTable, DemoBanner, PageHeader, btn, field, DateInput, getTodayDate } from '../ui'
 
 export function Audit() {
   const { audit } = useAdminState()
-  const [day, setDay] = useState('')
+  const [day, setDay] = useState(getTodayDate())
   const [actor, setActor] = useState('all')
   const actors = Array.from(new Set(audit.map((a) => a.actor)))
   const rows = audit.filter((a) => (!day || bishkekDay(a.at) === day) && (actor === 'all' || a.actor === actor))
@@ -26,7 +26,7 @@ export function Audit() {
           searchText={(a) => `${a.action} ${a.target} ${a.actor}`}
           toolbar={
             <div className="flex flex-wrap gap-2 sm:justify-end">
-              <input type="date" aria-label="Дата" className={`${field} w-full sm:w-44`} value={day} onChange={(e) => setDay(e.target.value)} />
+              <DateInput aria-label="Дата" className="w-full sm:w-44" value={day} onChange={(e) => setDay(e.target.value)} />
               <select aria-label="Сотрудник" className={`${field} w-full sm:w-52`} value={actor} onChange={(e) => setActor(e.target.value)}>
                 <option value="all">Все сотрудники</option>
                 {actors.map((a) => <option key={a}>{a}</option>)}

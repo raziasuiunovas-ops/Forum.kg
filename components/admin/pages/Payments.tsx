@@ -3,13 +3,13 @@
 import { useState } from 'react'
 import { useAdminState } from '@/lib/admin/store'
 import { bishkekDay, dateTime, money } from '@/lib/admin/format'
-import { Badge, Card, DataTable, DemoBanner, PageHeader, Stat, btn, field } from '../ui'
+import { Badge, Card, DataTable, DemoBanner, PageHeader, Stat, btn, field, DateInput, getTodayDate } from '../ui'
 import { PAY_LABEL, PAY_TONE } from './labels'
 
 /** Spec 8.4: who paid, for what, amount, status, EXACT date and time, reference. Filter by calendar date only. */
 export function Payments() {
   const s = useAdminState()
-  const [day, setDay] = useState('')
+  const [day, setDay] = useState(getTodayDate())
   const forumName = (id: string) => s.forums.find((f) => f.id === id)?.title.ru ?? '—'
   const rows = s.payments.filter((p) => !day || bishkekDay(p.paidAt) === day)
   const total = rows.filter((p) => p.status === 'PAID').reduce((a, p) => a + p.amountMinor, 0)
@@ -28,7 +28,7 @@ export function Payments() {
           rows={rows}
           searchText={(p) => `${p.userName} ${p.orderNumber} ${p.providerRef} ${forumName(p.forumId)}`}
           toolbar={
-            <input type="date" value={day} onChange={(e) => setDay(e.target.value)} className={field} />
+            <DateInput value={day} onChange={(e) => setDay(e.target.value)} />
           }
           columns={[
             { key: 'u', header: 'Плательщик', sortValue: (p) => p.userName, cell: (p) => <b>{p.userName}</b> },

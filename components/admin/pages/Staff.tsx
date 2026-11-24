@@ -5,7 +5,7 @@ import { Plus } from 'lucide-react'
 import { actions, useAdminState } from '@/lib/admin/store'
 import type { StaffRole } from '@/lib/admin/types'
 import { useAdminUser } from '../AdminShell'
-import { Badge, Card, DataTable, DemoBanner, Field, Modal, PageHeader, btn, field } from '../ui'
+import { Badge, Card, DataTable, DemoBanner, Field, Modal, PageHeader, btn, field, select } from '../ui'
 import { ROLE_LABEL } from './labels'
 
 export function Staff() {
