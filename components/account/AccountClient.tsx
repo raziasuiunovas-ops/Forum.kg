@@ -52,6 +52,10 @@ export function AccountClient({ locale, messages }: { locale: string; messages: 
   }, [router, locale])
 
   async function logout() {
+    // Запрос подтверждения перед выходом
+    if (!confirm(t('logoutConfirm'))) {
+      return
+    }
     await api('/api/v1/auth/logout', { method: 'POST', csrf: true })
     resetCsrf()
     router.push(`/${locale}`)

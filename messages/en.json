@@ -310,6 +310,7 @@
       "telegramText": "Connecting Telegram to receive tickets is coming soon."
     },
     "logout": "Log out",
+    "logoutConfirm": "Are you sure you want to log out of your account?",
     "errors": {
       "generic": "The action failed. Please try again.",
       "name": "Enter your first and last name."

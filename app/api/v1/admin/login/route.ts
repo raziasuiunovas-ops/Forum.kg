@@ -14,7 +14,6 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import bcrypt from 'bcryptjs'
 import { Admin2FAService } from '@/lib/services/admin-2fa.service'
 import { writeSecurityAuditEvent } from '@/lib/security/audit-logger'
 
@@ -22,13 +21,13 @@ import { writeSecurityAuditEvent } from '@/lib/security/audit-logger'
  * Admin credentials from environment
  */
 const ADMIN_LOGIN = process.env.ADMIN_LOGIN
-const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD
 const ADMIN_TELEGRAM_CHAT_ID = process.env.ADMIN_TELEGRAM_CHAT_ID
 
 // Validate configuration at module load
-if (!ADMIN_LOGIN || !ADMIN_PASSWORD_HASH || !ADMIN_TELEGRAM_CHAT_ID) {
+if (!ADMIN_LOGIN || !ADMIN_PASSWORD || !ADMIN_TELEGRAM_CHAT_ID) {
   console.error('⚠️  Admin 2FA credentials not fully configured in .env')
-  console.error('   Required: ADMIN_LOGIN, ADMIN_PASSWORD_HASH, ADMIN_TELEGRAM_CHAT_ID')
+  console.error('   Required: ADMIN_LOGIN, ADMIN_PASSWORD, ADMIN_TELEGRAM_CHAT_ID')
 }
 
 /**
@@ -46,7 +45,7 @@ interface LoginRequest {
 export async function POST(request: NextRequest) {
   try {
     // Check configuration
-    if (!ADMIN_LOGIN || !ADMIN_PASSWORD_HASH || !ADMIN_TELEGRAM_CHAT_ID) {
+    if (!ADMIN_LOGIN || !ADMIN_PASSWORD || !ADMIN_TELEGRAM_CHAT_ID) {
       writeSecurityAuditEvent({
         eventType: 'SUSPICIOUS_REQUEST',
         result: 'error',
@@ -130,8 +129,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verify password with bcrypt
-    const passwordMatch = await bcrypt.compare(password, ADMIN_PASSWORD_HASH)
+    // Verify password (plain text comparison for now)
+    const passwordMatch = password === ADMIN_PASSWORD
 
     if (!passwordMatch) {
       writeSecurityAuditEvent({
