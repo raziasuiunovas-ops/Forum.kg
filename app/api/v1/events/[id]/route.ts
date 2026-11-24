@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ForumStatus, Prisma } from '@prisma/client'
+import { randomUUID } from 'crypto'
 import { prisma } from '@/lib/db'
 import { conflict, notFound, validateBody, validationError, withErrorHandler } from '@/lib/api'
 import { updateEventSchema } from '@/lib/api/schemas/event'
@@ -113,8 +114,6 @@ export const PATCH = withErrorHandler(async (request: NextRequest, context: Even
               program: old?.program,
               venueName,
               venueAddress,
-              createdAt: new Date(),
-              updatedAt: new Date(),
             },
             update: {
               title,

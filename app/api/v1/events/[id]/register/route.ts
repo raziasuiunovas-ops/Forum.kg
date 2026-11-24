@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ForumStatus, Prisma } from '@prisma/client'
+import { randomUUID } from 'crypto'
 import { prisma } from '@/lib/db'
 import { conflict, notFound, validateBody, withErrorHandler } from '@/lib/api'
 import { uuidSchema } from '@/lib/api/schemas/common'
@@ -67,8 +68,6 @@ export const POST = withErrorHandler(async (
           attendeePhone: input.attendeePhone,
           attendeeEmail: input.attendeeEmail,
           additionalInfo: input.additionalInfo,
-          createdAt: new Date(),
-          updatedAt: new Date(),
         },
         select: {
           id: true,

@@ -12,6 +12,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
+import { randomUUID } from 'crypto'
 import { prisma } from '@/lib/db'
 import { z } from 'zod'
 import { requireRole } from '@/lib/auth/middleware'
@@ -171,8 +172,6 @@ export async function POST(request: NextRequest) {
             forumId: ticket.forumId,
             operatorId: user.userId,
             method: 'QR_ONLINE',
-            createdAt: new Date(),
-            updatedAt: new Date(),
           },
         })
 

@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { OtpDeliveryStatus, OtpPurpose } from '@prisma/client'
+import { randomUUID } from 'crypto'
 import { prisma } from '@/lib/db'
 import { safeJsonParse } from '@/lib/api'
 import {
@@ -262,8 +263,6 @@ export async function POST(request: NextRequest) {
                 attempts: 0,
                 deliveryStatus: OtpDeliveryStatus.PENDING,
                 requestedByUserId: requesterUserId,
-                createdAt: new Date(),
-                updatedAt: new Date(),
               },
               select: { id: true, expiresAt: true },
             })
