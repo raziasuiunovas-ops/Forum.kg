@@ -65,7 +65,7 @@ export function EmailAuthForm({
       mode === 'register' ? '/api/v1/auth/email/register' : '/api/v1/auth/email/login',
       {
         method: 'POST',
-        csrf: true,
+        csrf: false, // Email auth endpoints don't require CSRF (they're in CSRF_SKIP_PATHS)
         body:
           mode === 'register'
             ? { firstName: first.trim(), lastName: last.trim(), email: mail, password, preferredLocale: locale.toUpperCase() }
