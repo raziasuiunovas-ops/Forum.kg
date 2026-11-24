@@ -11,7 +11,6 @@ import { Notifications } from './pages/Notifications'
 import { Analytics } from './pages/Analytics'
 import { Staff } from './pages/Staff'
 import { Settings } from './pages/Settings'
-import { Storage } from './pages/Storage'
 import { Integrations } from './pages/Integrations'
 import { Audit } from './pages/Audit'
 
@@ -28,7 +27,6 @@ export function SectionView({ id, locale }: { id: string; locale: string }) {
     case 'analytics': return <Analytics />
     case 'staff': return <Staff />
     case 'settings': return <Settings />
-    case 'storage': return <Storage />
     case 'integrations': return <Integrations />
     case 'audit': return <Audit />
     default: return null

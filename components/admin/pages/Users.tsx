@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { listUsers, setUserStatus, type AdminUserRow } from '@/lib/admin/api'
 import { dateTime } from '@/lib/admin/format'
-import { Badge, Card, DataTable, Modal, PageHeader, btn, field } from '../ui'
+import { Badge, Card, DataTable, Modal, PageHeader, Select, btn, field } from '../ui'
 
 const ROLE: Record<string, string> = { USER: 'Пользователь', SUPER_ADMIN: 'Суперадмин', MANAGER: 'Менеджер', SCANNER: 'Сканер' }
 
@@ -40,16 +40,17 @@ export function Users() {
           rows={users.filter((u) => statusFilter === 'all' || u.status === statusFilter)}
           searchText={(u) => `${u.name} ${u.phone} ${u.email ?? ''}`}
           toolbar={
-            <select 
-              aria-label="Статус" 
-              value={statusFilter} 
-              onChange={(e) => setStatusFilter(e.target.value as 'all' | 'ACTIVE' | 'SUSPENDED')} 
-              className={`${field} w-full sm:w-56`}
-            >
-              <option value="all">Все статусы</option>
-              <option value="ACTIVE">Активные</option>
-              <option value="SUSPENDED">Заблокированные</option>
-            </select>
+            <Select
+              value={statusFilter}
+              onChange={(value) => setStatusFilter(value as 'all' | 'ACTIVE' | 'SUSPENDED')}
+              options={[
+                { value: 'all', label: 'Все статусы' },
+                { value: 'ACTIVE', label: 'Активные' },
+                { value: 'SUSPENDED', label: 'Заблокированные' }
+              ]}
+              aria-label="Статус"
+              className="w-full sm:w-56"
+            />
           }
           columns={[
             { key: 'n', header: 'Имя', sortValue: (u) => u.name, cell: (u) => <b>{u.name}</b> },

@@ -13,7 +13,6 @@ export const NAV: { id: string; label: string; roles: StaffRole[] }[] = [
   { id: 'analytics', label: 'Аналитика и экспорт', roles: ['SUPER_ADMIN', 'MANAGER'] },
   { id: 'staff', label: 'Сотрудники и роли', roles: ['SUPER_ADMIN'] },
   { id: 'settings', label: 'Настройки сайта', roles: ['SUPER_ADMIN'] },
-  { id: 'storage', label: 'Хранилище файлов', roles: ['SUPER_ADMIN'] },
   { id: 'integrations', label: 'Интеграции', roles: ['SUPER_ADMIN'] },
   { id: 'audit', label: 'Журнал аудита', roles: ['SUPER_ADMIN'] },
 ]

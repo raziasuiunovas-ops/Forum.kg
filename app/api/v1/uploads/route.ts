@@ -1,8 +1,9 @@
 import { randomUUID } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
+import { S3Client, HeadBucketCommand, CreateBucketCommand } from '@aws-sdk/client-s3'
 import { requireAuth } from '@/lib/auth/middleware'
 import { writeSecurityAuditEvent } from '@/lib/security/audit-logger'
-import { getPrivateUploadStore } from '@/lib/storage/private-upload-store'
+import { getPrivateUploadStore, createPrivateUploadStorageConfig } from '@/lib/storage/private-upload-store'
 import { MAX_UPLOAD_BYTES, validateUpload } from '@/lib/uploads/validation'
 
 export const runtime = 'nodejs'
@@ -10,10 +11,52 @@ export const runtime = 'nodejs'
 const MAX_MULTIPART_OVERHEAD = 64 * 1024
 const MAX_REQUEST_BYTES = MAX_UPLOAD_BYTES + MAX_MULTIPART_OVERHEAD
 
+let bucketInitialized = false
+
+/** Ensure bucket exists before uploading */
+async function ensureBucketExists(): Promise<void> {
+  if (bucketInitialized) return
+
+  try {
+    const config = createPrivateUploadStorageConfig(process.env)
+    const client = new S3Client({
+      endpoint: config.endpoint,
+      region: config.region,
+      credentials: {
+        accessKeyId: config.accessKeyId,
+        secretAccessKey: config.secretAccessKey,
+      },
+      forcePathStyle: true,
+    })
+
+    // Check if bucket exists
+    try {
+      await client.send(new HeadBucketCommand({ Bucket: config.bucket }))
+      bucketInitialized = true
+      return
+    } catch (error: any) {
+      if (error.name !== 'NotFound' && error.$metadata?.httpStatusCode !== 404) {
+        throw error
+      }
+    }
+
+    // Create bucket if it doesn't exist
+    await client.send(new CreateBucketCommand({ Bucket: config.bucket }))
+    bucketInitialized = true
+    console.log(`✅ S3 bucket "${config.bucket}" created successfully`)
+  } catch (error) {
+    console.error('Failed to initialize S3 bucket:', error)
+    // Don't throw - let the upload fail with proper error message
+  }
+}
+
 /** POST /api/v1/uploads — authenticated, private image upload. */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const authResult = await requireAuth(request)
   if (authResult instanceof NextResponse) return authResult
+
+  // Auto-initialize bucket on first upload
+  await ensureBucketExists()
 
   const contentType = request.headers.get('content-type') ?? ''
   if (!/^multipart\/form-data\s*;/i.test(contentType) || !/\bboundary=/i.test(contentType)) {
