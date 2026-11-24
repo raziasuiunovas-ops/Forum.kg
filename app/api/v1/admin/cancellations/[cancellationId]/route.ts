@@ -156,7 +156,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         select: { id: true, status: true, amountMinor: true, currency: true },
       })
 
-      const affectedTicketIds = targetItems.map(({ ticket }) => ticket!.id)
+      const affectedTicketIds = targetItems.map(({ Ticket }) => Ticket!.id)
       const ticketsUpdated = await tx.ticket.updateMany({
         where: { id: { in: affectedTicketIds }, status: TicketStatus.ACTIVE },
         data: { status: TicketStatus.CANCELLED, cancelledAt: now },
