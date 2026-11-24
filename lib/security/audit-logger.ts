@@ -10,6 +10,9 @@ export type SecurityAuditEventType =
   | 'REFRESH_TOKEN_REUSE'
   | 'LOGOUT'
   | 'LOGOUT_ALL'
+  | 'PASSWORD_RESET_REQUEST'
+  | 'PASSWORD_RESET_ATTEMPT'
+  | 'PASSWORD_RESET_SUCCESS'
   | 'ACCESS_DENIED'
   | 'RATE_LIMIT_EXCEEDED'
   | 'CSRF_REJECTED'
@@ -73,6 +76,9 @@ const SEVERITY_BY_EVENT: Record<SecurityAuditEventType, SecurityAuditSeverity> =
   REFRESH_TOKEN_REUSE: 'error',
   LOGOUT: 'info',
   LOGOUT_ALL: 'info',
+  PASSWORD_RESET_REQUEST: 'info',
+  PASSWORD_RESET_ATTEMPT: 'info',
+  PASSWORD_RESET_SUCCESS: 'info',
   ACCESS_DENIED: 'warning',
   RATE_LIMIT_EXCEEDED: 'warning',
   CSRF_REJECTED: 'warning',

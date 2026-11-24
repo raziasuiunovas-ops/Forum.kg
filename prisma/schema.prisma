@@ -764,6 +764,7 @@ enum SessionRevokeReason {
   EXPIRED
   ADMIN_REVOKED
   USER_SUSPENDED
+  PASSWORD_RESET
 }
 
 enum TicketStatus {
