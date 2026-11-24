@@ -250,6 +250,7 @@ export async function POST(request: NextRequest) {
       for (const category of data.categories) {
         const newCategory = await tx.ticketCategory.create({
           data: {
+            id: randomUUID(),
             forumId: newForum.id,
             code: category.code,
             priceMinor: category.priceMinor,
