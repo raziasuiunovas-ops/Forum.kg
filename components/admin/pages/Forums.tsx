@@ -23,12 +23,26 @@ const slugify = (s: string) =>
   `-${Math.random().toString(36).slice(2, 6)}`
 
 function blank(): AdminForum {
+  // Set default dates: start in 1 month, QR expires 1 hour after start
+  const now = new Date()
+  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate(), 10, 0, 0)
+  const qrExpiry = new Date(nextMonth.getTime() + 60 * 60 * 1000) // +1 hour
+  
   return {
     id: `f-${Math.random().toString(36).slice(2, 8)}`, slug: '', status: 'DRAFT',
     title: empty(), shortDescription: empty(), description: empty(), program: empty(),
-    bannerUrl: '', startsAt: '', endsAt: null, venueName: '', venueAddress: '',
-    capacity: 100, maxTicketsPerAccount: 1, qrExpiresAt: '', publishAt: null,
-    categories: [{ code: 'STANDARD', priceMinor: 0, capacity: null }], sold: 0, checkedIn: 0,
+    bannerUrl: '', 
+    startsAt: nextMonth.toISOString(), 
+    endsAt: null, 
+    venueName: '', 
+    venueAddress: '',
+    capacity: 100, 
+    maxTicketsPerAccount: 1, 
+    qrExpiresAt: qrExpiry.toISOString(), 
+    publishAt: null,
+    categories: [{ code: 'STANDARD', priceMinor: 0, capacity: null }], 
+    sold: 0, 
+    checkedIn: 0,
   }
 }
 

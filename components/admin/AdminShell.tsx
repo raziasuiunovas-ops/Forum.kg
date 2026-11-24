@@ -27,6 +27,27 @@ export const useAdminUser = () => {
 const STAFF_ROLES: string[] = ['SUPER_ADMIN', 'MANAGER', 'SCANNER']
 const ROLE_LABEL: Record<string, string> = { SUPER_ADMIN: 'Главный администратор', MANAGER: 'Менеджер', SCANNER: 'Оператор входа' }
 
+const LOGOUT_TRANSLATIONS = {
+  ru: {
+    title: 'Подтвердите действие',
+    text: 'Вы уверены, что хотите выйти из аккаунта?',
+    cancel: 'Отмена',
+    confirm: 'Выйти'
+  },
+  ky: {
+    title: 'Аракетти ырастаңыз',
+    text: 'Аккаунттан чыгууну каалайсызбы?',
+    cancel: 'Жокко чыгаруу',
+    confirm: 'Чыгуу'
+  },
+  en: {
+    title: 'Confirm action',
+    text: 'Are you sure you want to log out of your account?',
+    cancel: 'Cancel',
+    confirm: 'Log out'
+  }
+}
+
 /** Admin layout. The backend enforces permissions too; this only hides what the role cannot use. */
 export function AdminShell({ locale, children }: { locale: string; children: React.ReactNode }) {
   const router = useRouter()
@@ -149,22 +170,22 @@ export function AdminShell({ locale, children }: { locale: string; children: Rea
       {showLogoutConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
-            <h2 className="text-xl font-black tracking-tight text-ink">Подтвердите действие</h2>
-            <p className="mt-3 text-sm text-slate-600">Аккаунтан чыгууну каалайсызбы?</p>
+            <h2 className="text-xl font-black tracking-tight text-ink">{LOGOUT_TRANSLATIONS[locale as keyof typeof LOGOUT_TRANSLATIONS]?.title || LOGOUT_TRANSLATIONS.ru.title}</h2>
+            <p className="mt-3 text-sm text-slate-600">{LOGOUT_TRANSLATIONS[locale as keyof typeof LOGOUT_TRANSLATIONS]?.text || LOGOUT_TRANSLATIONS.ru.text}</p>
             <div className="mt-6 flex gap-3">
               <button
                 type="button"
                 onClick={() => setShowLogoutConfirm(false)}
                 className="flex-1 rounded-xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-200"
               >
-                Отмена
+                {LOGOUT_TRANSLATIONS[locale as keyof typeof LOGOUT_TRANSLATIONS]?.cancel || LOGOUT_TRANSLATIONS.ru.cancel}
               </button>
               <button
                 type="button"
                 onClick={confirmLogout}
                 className="flex-1 rounded-xl bg-red-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-red-700"
               >
-                Выйти
+                {LOGOUT_TRANSLATIONS[locale as keyof typeof LOGOUT_TRANSLATIONS]?.confirm || LOGOUT_TRANSLATIONS.ru.confirm}
               </button>
             </div>
           </div>
