@@ -343,7 +343,8 @@ export class SessionService {
     tx: TransactionClient,
     userId: string
   ): Promise<void> {
-    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${userId}, 0))`
+    // ::text — pg_advisory_xact_lock() returns `void`, which Prisma $queryRaw cannot deserialize (P2010).
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${userId}, 0))::text`
   }
 
   /**
