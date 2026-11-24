@@ -27,12 +27,12 @@ export function Tickets() {
           rows={rows}
           searchText={(t) => `${t.number} ${t.participant} ${t.buyerName}`}
           toolbar={
-            <div className="flex items-center gap-3">
-              <select aria-label="Форум" value={forum} onChange={(e) => setForum(e.target.value)} className={select}>
+            <div className="flex flex-wrap items-center gap-3">
+              <select aria-label="Форум" value={forum} onChange={(e) => setForum(e.target.value)} className={`${select} w-full sm:w-56`}>
                 <option value="all">Все форумы</option>
                 {s.forums.map((f) => <option key={f.id} value={f.id}>{f.title.ru}</option>)}
               </select>
-              <select aria-label="Статус" value={status} onChange={(e) => setStatus(e.target.value)} className={select}>
+              <select aria-label="Статус" value={status} onChange={(e) => setStatus(e.target.value)} className={`${select} w-full sm:w-56`}>
                 <option value="all">Все статусы</option>
                 {Object.entries(TICKET_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>

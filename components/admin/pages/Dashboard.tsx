@@ -34,8 +34,8 @@ export function Dashboard({ locale }: { locale: string }) {
     <div>
       <PageHeader title="Панель управления" text="Ключевые показатели по всем форумам или по одному." />
       
-      <div className="mb-6 flex items-center gap-3">
-        <select aria-label="Форум" value={forumId} onChange={(e) => setForumId(e.target.value)} className={select}>
+      <div className="mb-6 flex items-center justify-end gap-3">
+        <select aria-label="Форум" value={forumId} onChange={(e) => setForumId(e.target.value)} className={`${select} w-auto max-w-xs`}>
           <option value="all">Все форумы</option>
           {allForums.map((f) => <option key={f.id} value={f.id}>{f.title.ru}</option>)}
         </select>
