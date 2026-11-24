@@ -19,7 +19,7 @@ const replyPublicSelect = {
   deletedAt: true,
   createdAt: true,
   updatedAt: true,
-  author: {
+  User: {
     select: {
       id: true,
       firstName: true,

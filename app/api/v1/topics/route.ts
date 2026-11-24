@@ -29,10 +29,10 @@ const topicPublicSelect = {
   replyCount: true,
   createdAt: true,
   updatedAt: true,
-  category: {
+  TopicCategory: {
     select: { id: true, slug: true, name: true },
   },
-  author: {
+  User: {
     select: { id: true, firstName: true, lastName: true },
   },
 } satisfies Prisma.TopicSelect

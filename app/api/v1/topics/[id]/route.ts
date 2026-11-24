@@ -21,8 +21,8 @@ const publicSelect = {
   replyCount: true,
   createdAt: true,
   updatedAt: true,
-  category: { select: { id: true, slug: true, name: true } },
-  author: { select: { id: true, firstName: true, lastName: true } },
+  TopicCategory: { select: { id: true, slug: true, name: true } },
+  User: { select: { id: true, firstName: true, lastName: true } },
 } satisfies Prisma.TopicSelect
 
 const isModerator = (role: UserRole) =>
