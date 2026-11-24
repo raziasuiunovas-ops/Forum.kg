@@ -39,19 +39,19 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const forum = await prisma.forum.findUnique({
       where: { id: forumId },
       include: {
-        translations: {
+        ForumTranslation: {
           orderBy: { locale: 'asc' },
         },
-        categories: {
+        TicketCategory: {
           include: {
-            translations: {
+            ForumTranslation: {
               orderBy: { locale: 'asc' },
             },
             _count: {
               select: {
-                orderItems: {
+                OrderItem: {
                   where: {
-                    order: {
+                    Order: {
                       status: { in: ['PAID', 'PENDING_PAYMENT'] },
                     },
                   },
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
           },
           orderBy: { sortOrder: 'asc' },
         },
-        createdBy: {
+        User: {
           select: {
             id: true,
             firstName: true,
@@ -72,13 +72,13 @@ export async function GET(request: NextRequest, context: RouteContext) {
         },
         _count: {
           select: {
-            tickets: {
+            Ticket: {
               where: { status: 'ACTIVE' },
             },
-            orders: {
+            Order: {
               where: { status: { in: ['PAID', 'PARTIALLY_CANCELLED'] } },
             },
-            checkIns: true,
+            CheckIn: true,
           },
         },
       },
@@ -91,7 +91,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     // Calculate revenue
     const revenueResult = await prisma.payment.aggregate({
       where: {
-        order: {
+        Order: {
           forumId,
           status: { in: ['PAID', 'PARTIALLY_CANCELLED'] },
         },
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     // Count pending cancellations
     const pendingCancellations = await prisma.cancellationRequest.count({
       where: {
-        order: {
+        Order: {
           forumId,
         },
         status: 'SUBMITTED',
@@ -132,20 +132,20 @@ export async function GET(request: NextRequest, context: RouteContext) {
         publishAt: forum.publishAt?.toISOString() || null,
         publishedAt: forum.publishedAt?.toISOString() || null,
         createdById: forum.createdById,
-        createdBy: forum.createdBy,
+        createdBy: forum.User,
         createdAt: forum.createdAt.toISOString(),
         updatedAt: forum.updatedAt.toISOString(),
-        translations: forum.translations,
-        categories: forum.categories.map((cat) => ({
+        translations: forum.ForumTranslation,
+        categories: forum.TicketCategory.map((cat) => ({
           ...cat,
-          soldCount: cat._count.orderItems,
+          soldCount: cat._count.OrderItem,
         })),
         stats: {
-          activeTickets: forum._count.tickets,
-          paidOrders: forum._count.orders,
-          checkIns: forum._count.checkIns,
+          activeTickets: forum._count.Ticket,
+          paidOrders: forum._count.Order,
+          checkIns: forum._count.CheckIn,
           pendingCancellations,
-          availableCapacity: forum.capacity - forum._count.tickets,
+          availableCapacity: forum.capacity - forum._count.Ticket,
           totalRevenueMinor: revenueResult._sum.amountMinor || 0,
         },
       },
@@ -199,7 +199,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       include: {
         _count: {
           select: {
-            tickets: {
+            Ticket: {
               where: { status: { in: ['ACTIVE', 'USED'] } },
             },
           },
@@ -212,10 +212,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     }
 
     // Check if capacity decrease is allowed
-    if (data.capacity !== undefined && data.capacity < existingForum._count.tickets) {
+    if (data.capacity !== undefined && data.capacity < existingForum._count.Ticket) {
       return jsonError(
         'CAPACITY_TOO_LOW',
-        `Невозможно уменьшить вместимость ниже ${existingForum._count.tickets} (количество проданных билетов)`,
+        `Невозможно уменьшить вместимость ниже ${existingForum._count.Ticket} (количество проданных билетов)`,
         409
       )
     }
@@ -347,7 +347,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       if (criticalFieldsChanged && existingForum.status === ForumStatus.PUBLISHED) {
         const ticketHolders = await tx.user.findMany({
           where: {
-            purchasedTickets: {
+            Ticket: {
               some: {
                 forumId,
                 status: 'ACTIVE',
@@ -397,14 +397,14 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const completeForum = await prisma.forum.findUnique({
       where: { id: forumId },
       include: {
-        translations: true,
-        categories: {
+        ForumTranslation: true,
+        TicketCategory: {
           include: {
-            translations: true,
+            TicketCategoryTranslation: true,
           },
           orderBy: { sortOrder: 'asc' },
         },
-        createdBy: {
+        User: {
           select: {
             id: true,
             firstName: true,
@@ -452,7 +452,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       include: {
         _count: {
           select: {
-            tickets: {
+            Ticket: {
               where: { status: { in: ['ACTIVE', 'USED'] } },
             },
           },
@@ -465,7 +465,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     }
 
     // If tickets sold, change status to CANCELLED instead of deleting
-    if (forum._count.tickets > 0) {
+    if (forum._count.Ticket > 0) {
       await prisma.$transaction(async (tx) => {
         await tx.forum.update({
           where: { id: forumId },
@@ -475,7 +475,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
         // Notify ticket holders
         const ticketHolders = await tx.user.findMany({
           where: {
-            purchasedTickets: {
+            Ticket: {
               some: {
                 forumId,
                 status: { in: ['ACTIVE', 'USED'] },
@@ -508,7 +508,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
             targetId: forumId,
             metadata: {
               reason: 'admin_cancellation',
-              ticketsSold: forum._count.tickets,
+              ticketsSold: forum._count.Ticket,
             },
           },
         })
