@@ -110,8 +110,10 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   })
   if (!category) return notFound('Категория', 'TOPIC_CATEGORY_NOT_FOUND')
 
+  const { randomUUID } = await import('node:crypto')
   const topic = await prisma.topic.create({
     data: {
+      id: randomUUID(),
       categoryId: category.id,
       authorId: authResult.user.userId,
       title: input.title as Prisma.InputJsonValue,

@@ -310,6 +310,19 @@ model OtpChallenge {
   @@index([requestedByUserId])
 }
 
+model PasswordResetToken {
+  id        String    @id @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique @db.VarChar(128)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  User      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([expiresAt])
+}
+
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model Payment {
   id                  String                @id @db.Uuid
@@ -598,6 +611,7 @@ model User {
   Order                                                      Order[]
   OrderIdempotency                                           OrderIdempotency[]
   OtpChallenge                                               OtpChallenge[]
+  PasswordResetToken                                         PasswordResetToken[]
   Post                                                       Post[]
   PushSubscription                                           PushSubscription[]
   Session                                                    Session[]

@@ -107,8 +107,10 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   const now = new Date()
   const priceMinor = input.price?.amountMinor ?? 0
   try {
+    const { randomUUID } = await import('node:crypto')
     const event = await prisma.$transaction(async (tx) => tx.forum.create({
       data: {
+        id: randomUUID(),
         slug: input.slug,
         status: input.isPublished ? ForumStatus.PUBLISHED : ForumStatus.DRAFT,
         bannerUrl: input.coverImageUrl,

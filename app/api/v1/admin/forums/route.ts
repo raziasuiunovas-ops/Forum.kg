@@ -232,7 +232,6 @@ export async function POST(request: NextRequest) {
       })
 
       // Create translations
-      const { randomUUID } = await import('node:crypto')
       await tx.forumTranslation.createMany({
         data: data.translations.map((t) => ({
           id: randomUUID(),

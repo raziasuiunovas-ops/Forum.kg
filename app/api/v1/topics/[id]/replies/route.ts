@@ -126,6 +126,7 @@ export const POST = withErrorHandler(async (request: NextRequest, context: Repli
 
       const reply = await tx.post.create({
         data: {
+          id: randomUUID(),
           topicId: topic.id,
           authorId: authResult.user.userId,
           parentId: input.parentId,

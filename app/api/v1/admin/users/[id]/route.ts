@@ -298,8 +298,10 @@ export async function PATCH(
     })
 
     // Write audit log
+    const { randomUUID } = await import('node:crypto')
     await prisma.auditLog.create({
       data: {
+        id: randomUUID(),
         actorId: currentUser.userId,
         action: 'USER_UPDATED',
         targetType: 'User',

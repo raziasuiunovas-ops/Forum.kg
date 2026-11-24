@@ -278,6 +278,7 @@ export async function POST(request: NextRequest) {
     if (previousResponse) return previousResponse
 
     // Execute order creation in transaction with capacity checks
+    const { randomUUID } = await import('node:crypto')
     const createOrderTransaction = () => prisma.$transaction(
       async (tx) => {
         const idempotency = await tx.orderIdempotency.create({
@@ -424,6 +425,7 @@ export async function POST(request: NextRequest) {
 
         const order = await tx.order.create({
           data: {
+            id: randomUUID(),
             orderNumber,
             userId: user.userId,
             forumId: forum.id,
@@ -467,6 +469,7 @@ export async function POST(request: NextRequest) {
         // 6. Create payment record (CREATED status)
         const payment = await tx.payment.create({
           data: {
+            id: randomUUID(),
             orderId: order.id,
             provider: 'FINIK',
             status: PaymentStatus.CREATED,
