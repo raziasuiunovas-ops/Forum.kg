@@ -52,10 +52,10 @@ export async function GET(
         status: ForumStatus.PUBLISHED,
       },
       include: {
-        translations: true,
-        categories: {
+        ForumTranslation: true,
+        TicketCategory: {
           include: {
-            translations: true,
+            TicketCategoryTranslation: true,
           },
           orderBy: {
             sortOrder: 'asc',
@@ -70,12 +70,12 @@ export async function GET(
         },
         _count: {
           select: {
-            tickets: {
+            Ticket: {
               where: {
                 status: 'ACTIVE',
               },
             },
-            orders: {
+            Order: {
               where: {
                 status: {
                   in: ['PENDING_PAYMENT', 'PAID'],
@@ -113,8 +113,8 @@ export async function GET(
     }
 
     // Get translation for requested locale
-    const translation = forum.translations.find((t) => t.locale === locale)
-    const fallbackTranslation = forum.translations.find((t) => t.locale === Locale.RU)
+    const translation = forum.ForumTranslation.find((t) => t.locale === locale)
+    const fallbackTranslation = forum.ForumTranslation.find((t) => t.locale === Locale.RU)
 
     if (!translation && !fallbackTranslation) {
       return NextResponse.json(
@@ -129,7 +129,7 @@ export async function GET(
     }
 
     // Calculate available tickets
-    const soldTickets = forum._count.tickets
+    const soldTickets = forum._count.Ticket
     const availableTickets = Math.max(0, forum.capacity - soldTickets)
 
     // Check if sold out
@@ -166,9 +166,9 @@ export async function GET(
         firstName: forum.createdBy.firstName,
         lastName: forum.createdBy.lastName,
       },
-      categories: forum.categories.map((cat) => {
-        const catTranslation = cat.translations.find((t) => t.locale === locale)
-        const catFallback = cat.translations.find((t) => t.locale === Locale.RU)
+      categories: forum.TicketCategory.map((cat) => {
+        const catTranslation = cat.TicketCategoryTranslation.find((t) => t.locale === locale)
+        const catFallback = cat.TicketCategoryTranslation.find((t) => t.locale === Locale.RU)
 
         // Calculate category-specific availability
         const categorySold = cat.capacity

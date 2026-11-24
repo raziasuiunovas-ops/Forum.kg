@@ -128,8 +128,8 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
         createdById: authResult.user.userId,
         createdAt: new Date(),
         updatedAt: new Date(),
-        translations: { create: translationRows(input) },
-        categories: { create: categoryCreateData(input.categories, priceMinor) },
+        ForumTranslation: { create: translationRows(input) },
+        TicketCategory: { create: categoryCreateData(input.categories, priceMinor) },
       },
       select: publicEventSelect,
     }))

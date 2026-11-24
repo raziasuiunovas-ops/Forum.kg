@@ -124,6 +124,7 @@ export function translationRows(input: {
 }) {
   const languages = ['ru', 'ky', 'en'] as const
   return languages.map((language) => ({
+    id: randomUUID(),
     locale: language.toUpperCase() as 'RU' | 'KY' | 'EN',
     title: input.title[language] ?? input.title.ru,
     description: input.description[language] ?? null,

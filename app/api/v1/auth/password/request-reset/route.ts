@@ -10,7 +10,7 @@ import { prisma } from '@/lib/db'
 import { normalizeEmail } from '@/lib/auth/password'
 import { createPasswordResetToken } from '@/lib/auth/password-reset'
 import { checkPasswordResetRateLimit } from '@/lib/auth/password-reset-rate-limit'
-import { sendPasswordResetEmail } from '@/lib/services/email.service'
+import { sendPasswordResetEmail } from '@/lib/services/email-sendgrid.service'
 import { writeSecurityAuditEvent } from '@/lib/security/audit-logger'
 
 const requestResetSchema = z.object({
