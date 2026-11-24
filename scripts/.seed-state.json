@@ -1,0 +1,5 @@
+{
+  "csrfToken": "6101fa8fdbc6ba368fd36ed519bcb4f84037e0f8311d2f09ea2a11303a9c3121",
+  "pendingToken": "h8fygY_GxJPp7ZjxCgl5duShXRsoyxP0pnODQ9uoQC0",
+  "csrfCookie": "csrf_token=6101fa8fdbc6ba368fd36ed519bcb4f84037e0f8311d2f09ea2a11303a9c3121; Path=/; Expires=Wed, 25 Nov 2026 11:35:15 GMT; Max-Age=86400; HttpOnly; SameSite=strict"
+}
