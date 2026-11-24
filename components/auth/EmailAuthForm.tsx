@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { api, resetCsrf, type ApiResult } from '@/lib/client/api'
 import { makeT, type Messages } from '@/lib/i18n/client'

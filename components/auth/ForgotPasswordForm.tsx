@@ -19,6 +19,7 @@ export function ForgotPasswordForm({ locale, messages }: { locale: string; messa
     if (res.network) return t('errors.network')
     if (res.status === 429) return t('errors.tooMany')
     if (res.code === 'VALIDATION_ERROR') return t('emailErrors.invalidEmail')
+    if (res.code === 'EMAIL_SEND_FAILED') return 'Не удалось отправить письмо. Проверьте настройки SendGrid.'
     if (res.status >= 500) return res.code ? `${t('errors.server')} (${res.code})` : t('errors.server')
     return t('errors.generic')
   }
