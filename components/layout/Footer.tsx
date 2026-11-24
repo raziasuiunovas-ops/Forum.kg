@@ -29,7 +29,7 @@ export async function Footer({ locale, settings }: { locale: AppLocale; settings
 
   return (
     <footer id="contacts" className="relative overflow-hidden bg-footer text-white">
-      <div className="mx-auto max-w-6xl px-5 pb-6 pt-16 sm:px-8">
+      <div className="mx-auto max-w-6xl px-5 pb-6 pt-10 sm:px-8">
         <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr_1.2fr]">
           <div>
             <Logo locale={locale} name={settings.displayName} logoUrl={settings.logoUrl} />
@@ -70,14 +70,7 @@ export async function Footer({ locale, settings }: { locale: AppLocale; settings
           </div>
         </div>
 
-        <p
-          aria-hidden
-          className="pointer-events-none mt-10 select-none whitespace-nowrap text-center text-[19vw] font-black leading-[0.8] tracking-tighter text-white/[0.04] md:text-[15rem]"
-        >
-          FORUM.KG
-        </p>
-
-        <div className="mt-4 flex flex-col items-start justify-between gap-2 border-t border-white/10 pt-5 text-xs text-white/50 sm:flex-row sm:items-center">
+        <div className="mt-8 flex flex-col items-start justify-between gap-2 border-t border-white/10 pt-5 text-xs text-white/50 sm:flex-row sm:items-center">
           <p>{t('rights')}</p>
           <p className="inline-flex items-center gap-1">
             {t('madeFor')} <ArrowUpRight className="h-3 w-3" />

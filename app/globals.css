@@ -78,6 +78,19 @@
     mask-image: radial-gradient(ellipse at 60% 40%, #000 20%, transparent 75%);
   }
   .no-scrollbar::-webkit-scrollbar { display: none; }
+  
+  /* Styled dropdown options */
+  select option {
+    padding: 0.5rem;
+    background-color: white;
+    color: hsl(var(--foreground));
+  }
+  select option:hover,
+  select option:focus,
+  select option:checked {
+    background-color: hsl(var(--primary));
+    color: white;
+  }
 }
 
 /* Scroll reveal (see components/motion/Reveal.tsx) */

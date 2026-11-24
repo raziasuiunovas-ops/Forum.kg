@@ -131,6 +131,9 @@ export function CheckoutClient({
 
   const input =
     'mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-semibold text-ink outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30'
+  
+  const selectInput =
+    'mt-1.5 h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-semibold text-ink outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30 appearance-none bg-[url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23475569\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpolyline points=\'6 9 12 15 18 9\'%3E%3C/polyline%3E%3C/svg%3E")] bg-[length:1.25rem] bg-[right_0.75rem_center] bg-no-repeat pr-12 cursor-pointer hover:border-primary/50'
 
   if (isDemo) {
     return (
@@ -182,7 +185,7 @@ export function CheckoutClient({
                 </div>
               </div>
               <label htmlFor={`c${i}`} className="mt-3 block text-xs font-bold text-ink">{t('category')}</label>
-              <select id={`c${i}`} value={row.categoryId} onChange={(e) => update(i, { categoryId: e.target.value })} className={input}>
+              <select id={`c${i}`} value={row.categoryId} onChange={(e) => update(i, { categoryId: e.target.value })} className={selectInput}>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id} disabled={c.available <= 0}>
                     {c.name} — {c.priceLabel} {c.available <= 0 ? `(${t('soldOut')})` : `(${t('left', { n: c.available })})`}
