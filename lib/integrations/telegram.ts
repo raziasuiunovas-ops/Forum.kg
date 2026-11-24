@@ -4,7 +4,8 @@
  */
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
-const TELEGRAM_API_BASE = 'https://api.telegram.org'
+// Overridable only for local end-to-end tests (fake Telegram server); unset in production.
+const TELEGRAM_API_BASE = process.env.TELEGRAM_API_BASE_URL?.replace(/\/$/, '') || 'https://api.telegram.org'
 
 if (!TELEGRAM_BOT_TOKEN) {
   console.error('⚠️  TELEGRAM_BOT_TOKEN is not configured')

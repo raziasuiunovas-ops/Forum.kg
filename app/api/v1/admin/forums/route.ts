@@ -23,13 +23,13 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const validation = forumQuerySchema.safeParse({
-      page: searchParams.get('page'),
-      limit: searchParams.get('limit'),
-      status: searchParams.get('status'),
-      search: searchParams.get('search'),
-      sortBy: searchParams.get('sortBy'),
-      sortOrder: searchParams.get('sortOrder'),
-      includeStats: searchParams.get('includeStats'),
+      page: searchParams.get('page') ?? undefined,
+      limit: searchParams.get('limit') ?? undefined,
+      status: searchParams.get('status') ?? undefined,
+      search: searchParams.get('search') ?? undefined,
+      sortBy: searchParams.get('sortBy') ?? undefined,
+      sortOrder: searchParams.get('sortOrder') ?? undefined,
+      includeStats: searchParams.get('includeStats') ?? undefined,
     })
 
     if (!validation.success) {
