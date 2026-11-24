@@ -273,7 +273,6 @@ export async function POST(request: NextRequest) {
       }
 
       // Log audit event
-      const { randomUUID } = await import('node:crypto')
       await tx.auditLog.create({
         data: {
           id: randomUUID(),
