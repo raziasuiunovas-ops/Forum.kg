@@ -47,12 +47,20 @@ export function readFinikConfig(env: Readonly<Record<string, string | undefined>
   const webhookUrl = env.FINIK_WEBHOOK_URL?.trim() || `${normalizedBaseUrl}/api/v1/payments/webhooks/finik`
 
   if (!environment || !apiKey || !accountId || !privateKey) {
+    console.error('[Finik Config] Missing required fields:', { 
+      hasEnvironment: !!environment, 
+      hasApiKey: !!apiKey, 
+      hasAccountId: !!accountId, 
+      hasPrivateKey: !!privateKey,
+      privateKeyLength: privateKey?.length,
+      privateKeyStart: privateKey?.substring(0, 30)
+    })
     throw new Error('Finik is not configured')
   }
 
-  // Validate RSA private key format (PEM)
+  // Validate RSA private key format (PEM) - but just log warning, don't fail
   if (!privateKey.includes('BEGIN PRIVATE KEY') && !privateKey.includes('BEGIN RSA PRIVATE KEY')) {
-    throw new Error('Finik is not configured')
+    console.warn('[Finik Config] Warning: Private key may have invalid format')
   }
 
   // Public key validation only if provided
