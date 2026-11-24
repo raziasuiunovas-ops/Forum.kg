@@ -35,6 +35,7 @@ export function AdminShell({ locale, children }: { locale: string; children: Rea
   const section = pathname.split('/')[3] ?? ''
   const [user, setUser] = useState<AdminUser | null>(null)
   const [open, setOpen] = useState(false)
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -70,6 +71,11 @@ export function AdminShell({ locale, children }: { locale: string; children: Rea
     router.push(`/${locale}/admin/login`)
   }
 
+  function confirmLogout() {
+    setShowLogoutConfirm(false)
+    logout()
+  }
+
   const sidebar = (
     <nav className="flex h-full flex-col" aria-label="Админ-панель">
       <div className="flex items-center gap-2 px-5 py-5 text-white">
@@ -92,7 +98,7 @@ export function AdminShell({ locale, children }: { locale: string; children: Rea
       <div className="border-t border-white/10 p-4">
         <p className="truncate text-xs font-bold text-white">{actor}</p>
         <p className="text-[11px] text-white/50">{ROLE_LABEL[role]}</p>
-        <button type="button" onClick={logout} className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-white/70 transition hover:text-white">
+        <button type="button" onClick={() => setShowLogoutConfirm(true)} className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-white/70 transition hover:text-white">
           <LogOut className="h-4 w-4" /> Выйти
         </button>
       </div>
@@ -139,6 +145,31 @@ export function AdminShell({ locale, children }: { locale: string; children: Rea
           )}
         </main>
       </div>
+
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
+            <h2 className="text-xl font-black tracking-tight text-ink">Подтвердите действие</h2>
+            <p className="mt-3 text-sm text-slate-600">Аккаунтан чыгууну каалайсызбы?</p>
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 rounded-xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-200"
+              >
+                Отмена
+              </button>
+              <button
+                type="button"
+                onClick={confirmLogout}
+                className="flex-1 rounded-xl bg-red-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-red-700"
+              >
+                Выйти
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Ctx.Provider>
   )
 }

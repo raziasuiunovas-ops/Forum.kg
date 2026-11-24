@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useAdminState } from '@/lib/admin/store'
 import { bishkekDay, dateTime, money } from '@/lib/admin/format'
-import { Badge, Card, DataTable, DemoBanner, PageHeader, Stat, btn, field, DateInput, getTodayDate } from '../ui'
+import { Badge, Card, DataTable, DemoBanner, PageHeader, Stat, btn, field, select, DateInput, getTodayDate } from '../ui'
 import { PAY_LABEL, PAY_TONE } from './labels'
 
 /** Spec 8.4: who paid, for what, amount, status, EXACT date and time, reference. Filter by calendar date only. */

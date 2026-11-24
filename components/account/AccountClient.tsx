@@ -34,6 +34,7 @@ export function AccountClient({ locale, messages }: { locale: string; messages: 
   const [me, setMe] = useState<Me | null>(null)
   const [tab, setTab] = useState<Tab>('overview')
   const [failed, setFailed] = useState(false)
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -52,13 +53,14 @@ export function AccountClient({ locale, messages }: { locale: string; messages: 
   }, [router, locale])
 
   async function logout() {
-    // Запрос подтверждения перед выходом
-    if (!confirm(t('logoutConfirm'))) {
-      return
-    }
     await api('/api/v1/auth/logout', { method: 'POST', csrf: true })
     resetCsrf()
     router.push(`/${locale}`)
+  }
+
+  function confirmLogout() {
+    setShowLogoutConfirm(false)
+    logout()
   }
 
   if (failed) {
@@ -93,7 +95,7 @@ export function AccountClient({ locale, messages }: { locale: string; messages: 
         </div>
         <button
           type="button"
-          onClick={logout}
+          onClick={() => setShowLogoutConfirm(true)}
           className="inline-flex h-10 items-center gap-2 rounded-full bg-white px-5 text-xs font-bold text-ink shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50"
         >
           <LogOut className="h-4 w-4" /> {t('logout')}
@@ -157,6 +159,31 @@ export function AccountClient({ locale, messages }: { locale: string; messages: 
           {tab === 'profile' && <ProfileForm me={me} onSaved={setMe} t={t} locale={locale} />}
         </section>
       </div>
+
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
+            <h2 className="text-xl font-black tracking-tight text-ink">{t('logoutTitle') || 'Подтвердите действие'}</h2>
+            <p className="mt-3 text-sm text-slate-600">{t('logoutConfirm')}</p>
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 rounded-xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-200"
+              >
+                {t('cancel') || 'Отмена'}
+              </button>
+              <button
+                type="button"
+                onClick={confirmLogout}
+                className="flex-1 rounded-xl bg-red-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-red-700"
+              >
+                {t('logout')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -26,7 +26,7 @@ export function Staff() {
           columns={[
             { key: 'n', header: 'Сотрудник', cell: (x) => (<div><b>{x.name}</b><p className="text-xs text-slate-400">{x.contact}</p></div>) },
             { key: 'r', header: 'Роль', cell: (x) => (
-              <select aria-label="Роль" className={`${field} !h-9 w-52 text-xs`} value={x.role} onChange={(e) => actions.setStaffRole(x.id, e.target.value as StaffRole, actor)}>
+              <select aria-label="Роль" className={`${select} !h-9 !text-xs`} value={x.role} onChange={(e) => actions.setStaffRole(x.id, e.target.value as StaffRole, actor)}>
                 {Object.entries(ROLE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>) },
             { key: 'f', header: 'Форумы', cell: (x) => x.role === 'SCANNER' ? (x.forumIds.map((id) => s.forums.find((f) => f.id === id)?.title.ru).filter(Boolean).join(', ') || <span className="text-slate-300">не назначен</span>) : <span className="text-slate-300">все</span> },
@@ -40,7 +40,7 @@ export function Staff() {
           <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); if (!m.name.trim() || !m.contact.trim()) return; actions.addStaff({ ...m, name: m.name.trim(), contact: m.contact.trim(), active: true }, actor); setAdding(false); setM({ name: '', contact: '', role: 'SCANNER', forumIds: [] }) }}>
             <Field label="Имя"><input className={field} value={m.name} onChange={(e) => setM({ ...m, name: e.target.value })} /></Field>
             <Field label="Телефон или email"><input className={field} value={m.contact} onChange={(e) => setM({ ...m, contact: e.target.value })} /></Field>
-            <Field label="Роль"><select className={field} value={m.role} onChange={(e) => setM({ ...m, role: e.target.value as StaffRole })}>{Object.entries(ROLE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Field>
+            <Field label="Роль"><select className={select} value={m.role} onChange={(e) => setM({ ...m, role: e.target.value as StaffRole })}>{Object.entries(ROLE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Field>
             {m.role === 'SCANNER' && (
               <fieldset><legend className="mb-1.5 text-xs font-bold text-ink">Назначенные форумы</legend>
                 {s.forums.map((f) => (<label key={f.id} className="mr-4 inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={m.forumIds.includes(f.id)} onChange={(e) => setM({ ...m, forumIds: e.target.checked ? [...m.forumIds, f.id] : m.forumIds.filter((x) => x !== f.id) })} />{f.title.ru}</label>))}

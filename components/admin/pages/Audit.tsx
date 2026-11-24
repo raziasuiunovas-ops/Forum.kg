@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Download } from 'lucide-react'
 import { useAdminState } from '@/lib/admin/store'
 import { bishkekDay, dateTime, downloadCsv } from '@/lib/admin/format'
-import { Badge, Card, DataTable, DemoBanner, PageHeader, btn, field, DateInput, getTodayDate } from '../ui'
+import { Badge, Card, DataTable, DemoBanner, PageHeader, btn, field, select, DateInput, getTodayDate } from '../ui'
 
 export function Audit() {
   const { audit } = useAdminState()
