@@ -40,6 +40,10 @@ export function readFinikConfig(env: Readonly<Record<string, string | undefined>
   const baseUrl = env.NEXT_PUBLIC_APP_URL || 'https://forum-kg-ten.vercel.app'
   const redirectUrl = env.FINIK_REDIRECT_URL?.trim() || `${baseUrl}/payment/result`
   const webhookUrl = env.FINIK_WEBHOOK_URL?.trim() || `${baseUrl}/api/v1/payments/webhooks/finik`
+  
+  console.log('[Finik Config] Base URL:', baseUrl)
+  console.log('[Finik Config] Redirect URL:', redirectUrl)
+  console.log('[Finik Config] Webhook URL:', webhookUrl)
 
   if (!environment || !apiKey || !accountId || !privateKey) {
     throw new Error('Finik is not configured')

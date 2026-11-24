@@ -263,6 +263,7 @@
     },
     "tabRegister": "Register",
     "tabLogin": "Sign in",
+    "backToLogin": "Back to login",
     "forgotPasswordTitle": "Forgot password?",
     "forgotPasswordSubtitle": "Enter your email and we'll send you a password reset link.",
     "resetLinkSent": "Email sent",

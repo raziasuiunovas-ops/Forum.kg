@@ -263,6 +263,7 @@
     },
     "tabRegister": "Каттоо",
     "tabLogin": "Кирүү",
+    "backToLogin": "Кирүүгө кайтуу",
     "forgotPasswordTitle": "Сыр сөздү унуттуңузбу?",
     "forgotPasswordSubtitle": "Email киргизиңиз, биз сыр сөздү калыбына келтирүү шилтемесин жөнөтөбүз.",
     "resetLinkSent": "Катты жөнөтүлдү",

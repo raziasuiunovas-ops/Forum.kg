@@ -263,6 +263,7 @@
     },
     "tabRegister": "Регистрация",
     "tabLogin": "Вход",
+    "backToLogin": "Назад ко входу",
     "forgotPasswordTitle": "Забыли пароль?",
     "forgotPasswordSubtitle": "Введите email, и мы отправим ссылку для восстановления пароля.",
     "resetLinkSent": "Письмо отправлено",
