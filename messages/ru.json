@@ -262,7 +262,24 @@
       "google_suspended": "Аккаунт заблокирован. Свяжитесь с поддержкой."
     },
     "tabRegister": "Регистрация",
-    "tabLogin": "Вход"
+    "tabLogin": "Вход",
+    "forgotPasswordTitle": "Забыли пароль?",
+    "forgotPasswordSubtitle": "Введите email, и мы отправим ссылку для восстановления пароля.",
+    "resetLinkSent": "Письмо отправлено",
+    "resetLinkSentText": "Проверьте почту и перейдите по ссылке для восстановления пароля. Ссылка действительна 15 минут.",
+    "sendResetLink": "Отправить ссылку",
+    "sendingLink": "Отправляем...",
+    "resetPasswordTitle": "Новый пароль",
+    "resetPasswordSubtitle": "Введите новый пароль для вашего аккаунта.",
+    "newPassword": "Новый пароль",
+    "confirmNewPassword": "Подтвердите пароль",
+    "resetPassword": "Сменить пароль",
+    "resettingPassword": "Сохраняем...",
+    "passwordChanged": "Пароль изменён",
+    "passwordChangedText": "Теперь можете войти в аккаунт с новым паролем.",
+    "invalidResetLink": "Ссылка недействительна",
+    "invalidResetLinkText": "Возможно, она истекла или уже была использована. Запросите новую ссылку.",
+    "requestNewLink": "Запросить новую ссылку"
   },
   "account": {
     "loading": "Загружаем кабинет...",

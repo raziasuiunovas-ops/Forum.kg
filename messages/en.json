@@ -262,7 +262,24 @@
       "google_suspended": "The account is suspended. Please contact support."
     },
     "tabRegister": "Register",
-    "tabLogin": "Sign in"
+    "tabLogin": "Sign in",
+    "forgotPasswordTitle": "Forgot password?",
+    "forgotPasswordSubtitle": "Enter your email and we'll send you a password reset link.",
+    "resetLinkSent": "Email sent",
+    "resetLinkSentText": "Check your email and follow the link to reset your password. The link is valid for 15 minutes.",
+    "sendResetLink": "Send reset link",
+    "sendingLink": "Sending...",
+    "resetPasswordTitle": "New password",
+    "resetPasswordSubtitle": "Enter a new password for your account.",
+    "newPassword": "New password",
+    "confirmNewPassword": "Confirm password",
+    "resetPassword": "Change password",
+    "resettingPassword": "Saving...",
+    "passwordChanged": "Password changed",
+    "passwordChangedText": "You can now sign in with your new password.",
+    "invalidResetLink": "Invalid link",
+    "invalidResetLinkText": "The link may have expired or been used already. Request a new one.",
+    "requestNewLink": "Request new link"
   },
   "account": {
     "loading": "Loading your account...",

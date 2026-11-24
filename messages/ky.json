@@ -262,7 +262,24 @@
       "google_suspended": "Аккаунт бөгөттөлгөн. Колдоо кызматына кайрылыңыз."
     },
     "tabRegister": "Каттоо",
-    "tabLogin": "Кирүү"
+    "tabLogin": "Кирүү",
+    "forgotPasswordTitle": "Сыр сөздү унуттуңузбу?",
+    "forgotPasswordSubtitle": "Email киргизиңиз, биз сыр сөздү калыбына келтирүү шилтемесин жөнөтөбүз.",
+    "resetLinkSent": "Катты жөнөтүлдү",
+    "resetLinkSentText": "Почтаңызды текшерип, сыр сөздү калыбына келтирүү шилтемесин басыңыз. Шилтеме 15 мүнөт иштейт.",
+    "sendResetLink": "Шилтемени жөнөтүү",
+    "sendingLink": "Жөнөтүлүүдө...",
+    "resetPasswordTitle": "Жаңы сыр сөз",
+    "resetPasswordSubtitle": "Аккаунтуңуз үчүн жаңы сыр сөз киргизиңиз.",
+    "newPassword": "Жаңы сыр сөз",
+    "confirmNewPassword": "Сыр сөздү тастыктаңыз",
+    "resetPassword": "Сыр сөздү өзгөртүү",
+    "resettingPassword": "Сакталууда...",
+    "passwordChanged": "Сыр сөз өзгөртүлдү",
+    "passwordChangedText": "Эми жаңы сыр сөз менен аккаунтка кире аласыз.",
+    "invalidResetLink": "Шилтеме жараксыз",
+    "invalidResetLinkText": "Балким, анын мөөнөтү бүттү же буга чейин колдонулган. Жаңы шилтемени сураңыз.",
+    "requestNewLink": "Жаңы шилтемени сураңыз"
   },
   "account": {
     "loading": "Кабинет жүктөлүүдө...",

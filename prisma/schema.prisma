@@ -188,6 +188,7 @@ model User {
 
   authIdentities               AuthIdentity[]
   otpChallenges                OtpChallenge[]
+  passwordResetTokens          PasswordResetToken[]
   telegramConnection           TelegramConnection?
   pushSubscriptions            PushSubscription[]
   sessions                     Session[]
@@ -240,6 +241,20 @@ model OtpChallenge {
   @@index([phone, purpose, createdAt])
   @@index([expiresAt])
   @@index([requestedByUserId])
+}
+
+model PasswordResetToken {
+  id        String    @id @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique @db.VarChar(128)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  User User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([expiresAt])
 }
 
 model TelegramConnection {
