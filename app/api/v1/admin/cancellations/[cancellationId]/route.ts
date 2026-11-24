@@ -81,7 +81,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       if (!cancellation) return { kind: 'not_found' }
 
       const activeRefundStatuses: RefundStatus[] = [RefundStatus.PENDING, RefundStatus.PROCESSING, RefundStatus.SUCCEEDED]
-      const priorRefund = cancellation.Order.refunds.find((refund) =>
+      const priorRefund = cancellation.Order.Refund.find((refund) =>
         refund.ticketId === cancellation.ticketId && activeRefundStatuses.includes(refund.status))
 
       if (cancellation.status === CancellationStatus.APPROVED && parsed.data.decision === 'approve' && priorRefund) {
