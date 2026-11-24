@@ -254,6 +254,7 @@ export async function POST(request: NextRequest) {
 
             const challenge = await tx.otpChallenge.create({
               data: {
+                id: randomUUID(),
                 phone: normalizedPhone,
                 purpose,
                 codeHash,
@@ -261,6 +262,8 @@ export async function POST(request: NextRequest) {
                 attempts: 0,
                 deliveryStatus: OtpDeliveryStatus.PENDING,
                 requestedByUserId: requesterUserId,
+                createdAt: new Date(),
+                updatedAt: new Date(),
               },
               select: { id: true, expiresAt: true },
             })

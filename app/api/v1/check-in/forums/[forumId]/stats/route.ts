@@ -45,7 +45,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       select: {
         id: true,
         slug: true,
-        translations: {
+        ForumTranslation: {
           where: { locale: 'RU' },
           select: { title: true },
         },
@@ -95,7 +95,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       forum: {
         id: forum.id,
         slug: forum.slug,
-        title: forum.translations[0]?.title || 'Untitled',
+        title: forum.ForumTranslation[0]?.title || 'Untitled',
       },
       stats: {
         totalTickets,

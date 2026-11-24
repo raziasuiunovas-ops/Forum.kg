@@ -59,6 +59,7 @@ export const POST = withErrorHandler(async (
 
       return tx.eventRegistration.create({
         data: {
+          id: randomUUID(),
           forumId: event.id,
           userId: authResult.user.userId,
           attendeeFirstName: input.attendeeFirstName,
@@ -66,6 +67,8 @@ export const POST = withErrorHandler(async (
           attendeePhone: input.attendeePhone,
           attendeeEmail: input.attendeeEmail,
           additionalInfo: input.additionalInfo,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
         select: {
           id: true,

@@ -102,26 +102,26 @@ export async function POST(request: NextRequest) {
             qrTokenHash,
           },
           include: {
-            forum: {
+            Forum: {
               select: {
                 id: true,
                 slug: true,
                 startsAt: true,
                 endsAt: true,
-                translations: {
+                ForumTranslation: {
                   where: { locale: 'RU' },
                   select: { title: true },
                 },
               },
             },
-            orderItem: {
+            OrderItem: {
               select: {
                 participantFirstName: true,
                 participantLastName: true,
-                ticketCategory: {
+                TicketCategory: {
                   select: {
                     code: true,
-                    translations: {
+                    TicketCategoryTranslation: {
                       where: { locale: 'RU' },
                       select: { name: true },
                     },
@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
                 },
               },
             },
-            checkIn: true,
+            CheckIn: true,
           },
         })
 
@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
         }
 
         // 5. Check if already checked in (double-check in case of race)
-        if (ticket.checkIn) {
+        if (ticket.CheckIn) {
           throw new Error('ALREADY_CHECKED_IN')
         }
 
@@ -166,10 +166,13 @@ export async function POST(request: NextRequest) {
         // Database UNIQUE constraint on CheckIn.ticketId prevents double check-in
         const checkIn = await tx.checkIn.create({
           data: {
+            id: randomUUID(),
             ticketId: ticket.id,
             forumId: ticket.forumId,
             operatorId: user.userId,
             method: 'QR_ONLINE',
+            createdAt: new Date(),
+            updatedAt: new Date(),
           },
         })
 
@@ -186,8 +189,8 @@ export async function POST(request: NextRequest) {
           checkIn,
           ticket: {
             ...updatedTicket,
-            forum: ticket.forum,
-            orderItem: ticket.orderItem,
+            Forum: ticket.Forum,
+            OrderItem: ticket.OrderItem,
           },
         }
       },
@@ -211,20 +214,20 @@ export async function POST(request: NextRequest) {
         ticketNumber: result.ticket.ticketNumber,
         status: result.ticket.status,
         participant: {
-          firstName: result.ticket.orderItem.participantFirstName,
-          lastName: result.ticket.orderItem.participantLastName,
+          firstName: result.ticket.OrderItem.participantFirstName,
+          lastName: result.ticket.OrderItem.participantLastName,
         },
         category: {
-          code: result.ticket.orderItem.ticketCategory.code,
+          code: result.ticket.OrderItem.TicketCategory.code,
           name:
-            result.ticket.orderItem.ticketCategory.translations[0]?.name ||
-            result.ticket.orderItem.ticketCategory.code,
+            result.ticket.OrderItem.TicketCategory.TicketCategoryTranslation[0]?.name ||
+            result.ticket.OrderItem.TicketCategory.code,
         },
         forum: {
-          id: result.ticket.forum.id,
-          slug: result.ticket.forum.slug,
-          title: result.ticket.forum.translations[0]?.title || 'Untitled',
-          startsAt: result.ticket.forum.startsAt.toISOString(),
+          id: result.ticket.Forum.id,
+          slug: result.ticket.Forum.slug,
+          title: result.ticket.Forum.ForumTranslation[0]?.title || 'Untitled',
+          startsAt: result.ticket.Forum.startsAt.toISOString(),
         },
       },
     }
