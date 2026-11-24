@@ -34,12 +34,12 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   }
   if (filters.organizerId) where.createdById = filters.organizerId
   if (filters.category) {
-    where.categories = {
+    where.TicketCategory = {
       some: {
         isActive: true,
         OR: [
           { code: filters.category },
-          { translations: { some: { name: { contains: filters.category, mode: 'insensitive' } } } },
+          { TicketCategoryTranslation: { some: { name: { contains: filters.category, mode: 'insensitive' } } } },
         ],
       },
     }
@@ -52,7 +52,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     }
   }
   if (filters.search) {
-    where.translations = {
+    where.ForumTranslation = {
       some: {
         OR: [
           { title: { contains: filters.search, mode: 'insensitive' } },
@@ -66,7 +66,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   const sortOrder = filters.sortOrder ?? 'asc'
   const dateSortField = filters.sortBy === 'createdAt' ? 'createdAt' : 'startsAt'
   const orderBy: Prisma.ForumOrderByWithRelationInput[] = filters.sortBy === 'registrationCount'
-    ? [{ registrations: { _count: sortOrder } }, { startsAt: 'asc' }, { id: 'asc' }]
+    ? [{ EventRegistration: { _count: sortOrder } }, { startsAt: 'asc' }, { id: 'asc' }]
     : [{ [dateSortField]: sortOrder }, { id: 'asc' }]
   const skip = (filters.page - 1) * filters.limit
 

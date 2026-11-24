@@ -27,7 +27,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
         attendeeEmail: true,
         additionalInfo: true,
         createdAt: true,
-        forum: { select: publicEventSelect },
+        Forum: { select: publicEventSelect },
       },
       orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
       skip: (pagination.page - 1) * pagination.limit,
@@ -45,7 +45,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       attendeeEmail: registration.attendeeEmail,
       additionalInfo: registration.additionalInfo,
       createdAt: registration.createdAt,
-      event: toEventDto(registration.forum),
+      event: toEventDto(registration.Forum),
     })),
     pagination: calculatePagination(pagination.page, pagination.limit, total),
   }, { status: 200 })
