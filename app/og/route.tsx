@@ -1,11 +1,13 @@
 /**
  * GET /og?l=ru|ky|en[&slug=forum-slug]
  * 1200x630 Open Graph preview image (Telegram, WhatsApp, Facebook, X, LinkedIn...).
- * Text is localized; a forum slug renders that forum's title, date, venue and price.
+ * For home page: returns static image from public/og/
+ * For forum pages: generates dynamic image with forum details
  */
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { ImageResponse } from 'next/og'
+import { NextResponse } from 'next/server'
 import { isAppLocale, type AppLocale } from '@/i18n/routing'
 import { getForumBySlug } from '@/lib/forums'
 import { formatMoneyMinor } from '@/lib/format'
@@ -155,16 +157,56 @@ export async function GET(request: Request) {
   const locale: AppLocale = isAppLocale(l) ? l : 'ru'
   const slug = url.searchParams.get('slug')
 
-  const forum = slug ? await getForumBySlug(locale, slug).catch(() => null) : null
-  const element = forum ? forumImage(locale, forum) : homeImage(locale)
+  // For home page: return static image
+  if (!slug) {
+    const imageMap: Record<AppLocale, string> = {
+      ru: 'opengraph-ru.jpg',
+      ky: 'opengraph-kg.jpg',
+      en: 'opengraph-en.jpg',
+    }
+    const imagePath = join(process.cwd(), 'public/og', imageMap[locale])
+    
+    try {
+      const imageBuffer = await readFile(imagePath)
+      return new NextResponse(imageBuffer, {
+        headers: {
+          'Content-Type': 'image/jpeg',
+          'Cache-Control': 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800',
+        },
+      })
+    } catch {
+      // Fallback to generated image if static file not found
+      const element = homeImage(locale)
+      return new ImageResponse(element, {
+        ...SIZE,
+        fonts: await loadFonts(),
+        headers: {
+          'Cache-Control': 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800',
+        },
+      })
+    }
+  }
 
+  // For forum pages: generate dynamic image
+  const forum = await getForumBySlug(locale, slug).catch(() => null)
+  if (!forum) {
+    // If forum not found, return home image
+    const element = homeImage(locale)
+    return new ImageResponse(element, {
+      ...SIZE,
+      fonts: await loadFonts(),
+      headers: {
+        'Cache-Control': 'public, max-age=600, s-maxage=3600, stale-while-revalidate=86400',
+      },
+    })
+  }
+
+  const element = forumImage(locale, forum)
   return new ImageResponse(element, {
     ...SIZE,
     fonts: await loadFonts(),
     headers: {
-      'Cache-Control': forum
-        ? 'public, max-age=600, s-maxage=3600, stale-while-revalidate=86400'
-        : 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800',
+      'Cache-Control': 'public, max-age=600, s-maxage=3600, stale-while-revalidate=86400',
     },
   })
 }

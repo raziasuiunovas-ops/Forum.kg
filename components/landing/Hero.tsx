@@ -16,7 +16,7 @@ const AVATARS = [
 export async function Hero({ locale, settings }: { locale: AppLocale; settings: SiteSettingsView }) {
   const t = await getT(locale, 'hero')
   const lineClass =
-    'block text-[clamp(3.2rem,11vw,8.2rem)] font-black uppercase leading-[0.88] tracking-tighter animate-fade-up'
+    'block text-[clamp(2.8rem,11vw,8.2rem)] font-black uppercase leading-[0.88] tracking-tighter animate-fade-up'
 
   return (
     <section className="relative isolate overflow-hidden bg-footer pb-24 pt-32 text-white sm:pt-36">
@@ -28,7 +28,7 @@ export async function Hero({ locale, settings }: { locale: AppLocale; settings: 
         <span className="absolute left-1/2 top-0 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary" />
       </div>
 
-      <div className="mx-auto grid max-w-6xl items-center gap-14 px-5 sm:px-8 lg:grid-cols-[1.1fr_1fr]">
+      <div className="mx-auto grid max-w-6xl items-center gap-14 px-6 sm:px-8 lg:grid-cols-[1.1fr_1fr]">
         <div>
           <p
             className="flex items-center gap-2 text-[11px] font-bold tracking-[0.22em] text-white/70 animate-fade-up"
@@ -91,11 +91,11 @@ export async function Hero({ locale, settings }: { locale: AppLocale; settings: 
         </div>
 
         {/* Visual: photo card + ticket + badge. Photo is editable in the Admin Panel (heroImageUrl). */}
-        <div className="relative mx-auto w-full max-w-[460px] animate-fade-up" style={{ animationDelay: '250ms' }}>
+        <div className="relative mx-auto w-full max-w-[420px] animate-fade-up sm:max-w-[460px]" style={{ animationDelay: '250ms' }}>
           <svg className="absolute -left-10 top-1/3 h-6 w-6 animate-twinkle text-sky-300" viewBox="0 0 24 24" aria-hidden>
             <path fill="currentColor" d="M12 0c.8 6.4 5.6 11.2 12 12-6.4.8-11.2 5.6-12 12-.8-6.4-5.6-11.2-12-12 6.4-.8 11.2-5.6 12-12z" />
           </svg>
-          <div className="animate-float">
+          <div className="animate-float px-4 sm:px-0">
             <TiltCard className="rotate-[4deg]">
               <div className="overflow-hidden rounded-[2rem] border border-white/15 bg-white/5 p-2 shadow-[0_40px_80px_-30px_hsl(var(--primary)/.7)] backdrop-blur">
                   {/* the photo is a cut-out (transparent sky), so the sky comes from this gradient */}
@@ -112,7 +112,7 @@ export async function Hero({ locale, settings }: { locale: AppLocale; settings: 
             </TiltCard>
           </div>
 
-          <div className="absolute -bottom-8 -left-6 animate-float-rot sm:-left-14">
+          <div className="absolute -bottom-6 left-2 animate-float-rot sm:-bottom-8 sm:-left-14">
             <TicketCard label={t('ticketLabel')} title="Bishkek Digital Forum 2026" />
           </div>
 

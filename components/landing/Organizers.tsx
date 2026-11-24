@@ -10,14 +10,14 @@ export async function Organizers({ locale, email }: { locale: AppLocale; email: 
   return (
     <section id="organizers" className="bg-white px-3 pb-6 sm:px-6">
       <Reveal>
-        <div className="relative mx-auto max-w-[78rem] overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#3550ff] via-[#3d5bff] to-[#6574ff] p-8 text-white sm:p-12 lg:p-16">
+        <div className="relative mx-auto max-w-[78rem] overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#3550ff] via-[#3d5bff] to-[#6574ff] p-6 text-white sm:p-12 lg:p-16">
           <div className="absolute -right-24 -top-24 h-96 w-96 rounded-full bg-white/10 blur-2xl" aria-hidden />
           <div className="absolute -bottom-32 left-1/3 h-96 w-96 rounded-full bg-violet-400/30 blur-3xl" aria-hidden />
 
           <div className="relative grid items-center gap-12 lg:grid-cols-2">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-white/70">{t('eyebrow')}</p>
-              <h2 className="mt-5 text-5xl font-black leading-[0.95] tracking-tighter sm:text-6xl">
+              <h2 className="mt-5 text-4xl font-black leading-[0.95] tracking-tighter sm:text-5xl lg:text-6xl">
                 {t('title1')}
                 <span className="block text-[#a5f0ff]">{t('title2')}</span>
               </h2>
@@ -43,16 +43,18 @@ export async function Organizers({ locale, email }: { locale: AppLocale; email: 
               </a>
             </div>
 
-            <DashboardMock
-              labels={{
-                forum: t('mock.forum'),
-                active: t('mock.active'),
-                sold: t('mock.sold'),
-                registered: t('mock.registered'),
-                revenue: t('mock.revenue'),
-                dynamics: t('mock.dynamics'),
-              }}
-            />
+            <div className="mx-auto w-full max-w-md scale-90 sm:scale-100">
+              <DashboardMock
+                labels={{
+                  forum: t('mock.forum'),
+                  active: t('mock.active'),
+                  sold: t('mock.sold'),
+                  registered: t('mock.registered'),
+                  revenue: t('mock.revenue'),
+                  dynamics: t('mock.dynamics'),
+                }}
+              />
+            </div>
           </div>
         </div>
       </Reveal>

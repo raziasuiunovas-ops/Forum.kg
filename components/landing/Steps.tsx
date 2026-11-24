@@ -9,10 +9,10 @@ export async function Steps({ locale }: { locale: AppLocale }) {
 
   return (
     <section id="how" className="bg-white py-20 sm:py-28">
-      <div className="mx-auto grid max-w-6xl gap-14 px-5 sm:px-8 lg:grid-cols-2 lg:gap-20">
+      <div className="mx-auto grid max-w-6xl gap-14 px-6 sm:px-8 lg:grid-cols-2 lg:gap-20">
         <Reveal>
           <Eyebrow>{t('eyebrow')}</Eyebrow>
-          <h2 className="mt-5 text-5xl font-black leading-[0.95] tracking-tighter text-ink sm:text-6xl">
+          <h2 className="mt-5 text-[2.75rem] font-black leading-[0.95] tracking-tighter text-ink sm:text-5xl lg:text-6xl">
             {t.rich('title', { accent: (chunks) => <span className="block text-primary">{chunks}</span> })}
           </h2>
           <p className="mt-6 max-w-sm text-sm leading-relaxed text-slate-500">{t('text')}</p>
