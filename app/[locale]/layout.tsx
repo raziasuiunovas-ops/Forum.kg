@@ -5,7 +5,6 @@ import '../globals.css'
 import { isAppLocale, locales, type AppLocale } from '@/i18n/routing'
 import { getT } from '@/lib/i18n/server'
 import { getSiteSettings } from '@/lib/site/settings'
-import { buildThemeStyle } from '@/lib/site/theme'
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'], display: 'swap' })
 
@@ -32,16 +31,9 @@ export default async function LocaleLayout({
 }) {
   const { locale } = await params
   if (!isAppLocale(locale)) notFound()
-  const settings = await getSiteSettings(locale as AppLocale)
 
   return (
-    <html
-      lang={locale}
-      style={buildThemeStyle({
-        primary: settings.primaryColorHex,
-        accent: settings.accentColorHex,
-      }) as React.CSSProperties}
-    >
+    <html lang={locale}>
       <body className={`${inter.className} bg-surface text-ink`}>
         {/* If JS is disabled the scroll-reveal content must stay visible */}
         <noscript>
