@@ -262,8 +262,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         })
 
         // Create new translations
+        const { randomUUID } = await import('node:crypto')
         await tx.forumTranslation.createMany({
           data: data.translations.map((t) => ({
+            id: randomUUID(),
             forumId,
             locale: t.locale,
             title: t.title,
@@ -284,9 +286,11 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         })
 
         // Create new categories with translations
+        const { randomUUID } = await import('node:crypto')
         for (const category of data.categories) {
           const newCategory = await tx.ticketCategory.create({
             data: {
+              id: randomUUID(),
               forumId,
               code: category.code,
               priceMinor: category.priceMinor,
@@ -299,6 +303,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
           await tx.ticketCategoryTranslation.createMany({
             data: category.translations.map((t) => ({
+              id: randomUUID(),
               categoryId: newCategory.id,
               locale: t.locale,
               name: t.name,
