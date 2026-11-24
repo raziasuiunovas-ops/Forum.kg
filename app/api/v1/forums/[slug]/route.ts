@@ -61,7 +61,7 @@ export async function GET(
             sortOrder: 'asc',
           },
         },
-        createdBy: {
+        User: {
           select: {
             id: true,
             firstName: true,
@@ -162,9 +162,9 @@ export async function GET(
       description: translation?.description || fallbackTranslation?.description || null,
       program: translation?.program || fallbackTranslation?.program || null,
       createdBy: {
-        id: forum.createdBy.id,
-        firstName: forum.createdBy.firstName,
-        lastName: forum.createdBy.lastName,
+        id: forum.User.id,
+        firstName: forum.User.firstName,
+        lastName: forum.User.lastName,
       },
       categories: forum.TicketCategory.map((cat) => {
         const catTranslation = cat.TicketCategoryTranslation.find((t) => t.locale === locale)
