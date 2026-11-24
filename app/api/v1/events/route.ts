@@ -34,12 +34,12 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   }
   if (filters.organizerId) where.createdById = filters.organizerId
   if (filters.category) {
-    where.TicketCategory = {
+    where.categories = {
       some: {
         isActive: true,
         OR: [
           { code: filters.category },
-          { TicketCategoryTranslation: { some: { name: { contains: filters.category, mode: 'insensitive' } } } },
+          { translations: { some: { name: { contains: filters.category, mode: 'insensitive' } } } },
         ],
       },
     }
@@ -52,7 +52,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     }
   }
   if (filters.search) {
-    where.ForumTranslation = {
+    where.translations = {
       some: {
         OR: [
           { title: { contains: filters.search, mode: 'insensitive' } },
@@ -66,7 +66,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   const sortOrder = filters.sortOrder ?? 'asc'
   const dateSortField = filters.sortBy === 'createdAt' ? 'createdAt' : 'startsAt'
   const orderBy: Prisma.ForumOrderByWithRelationInput[] = filters.sortBy === 'registrationCount'
-    ? [{ EventRegistration: { _count: sortOrder } }, { startsAt: 'asc' }, { id: 'asc' }]
+    ? [{ registrations: { _count: sortOrder } }, { startsAt: 'asc' }, { id: 'asc' }]
     : [{ [dateSortField]: sortOrder }, { id: 'asc' }]
   const skip = (filters.page - 1) * filters.limit
 
@@ -107,10 +107,8 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   const now = new Date()
   const priceMinor = input.price?.amountMinor ?? 0
   try {
-    const { randomUUID } = await import('node:crypto')
     const event = await prisma.$transaction(async (tx) => tx.forum.create({
       data: {
-        id: randomUUID(),
         slug: input.slug,
         status: input.isPublished ? ForumStatus.PUBLISHED : ForumStatus.DRAFT,
         bannerUrl: input.coverImageUrl,
@@ -126,10 +124,8 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
         tags: input.tags ?? [],
         publishedAt: input.isPublished ? now : null,
         createdById: authResult.user.userId,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        ForumTranslation: { create: translationRows(input) },
-        TicketCategory: { create: categoryCreateData(input.categories, priceMinor) },
+        translations: { create: translationRows(input) },
+        categories: { create: categoryCreateData(input.categories, priceMinor) },
       },
       select: publicEventSelect,
     }))

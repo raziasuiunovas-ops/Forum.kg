@@ -59,7 +59,7 @@ export async function GET(
             linkedAt: true,
           },
         },
-        Session: {
+        sessions: {
           select: {
             id: true,
             createdAt: true,
@@ -73,14 +73,14 @@ export async function GET(
         },
         _count: {
           select: {
-            Session: true,
-            Order: true,
-            Ticket: true,
-            Topic: true,
-            Post: true,
-            EventRegistration: true,
-            Forum: true,
-            CheckIn: true,
+            sessions: true,
+            orders: true,
+            purchasedTickets: true,
+            authoredTopics: true,
+            authoredPosts: true,
+            eventRegistrations: true,
+            createdForums: true,
+            performedCheckIns: true,
           },
         },
       },
@@ -135,7 +135,7 @@ export async function GET(
         providerEmail: identity.providerEmail,
         linkedAt: identity.linkedAt.toISOString(),
       })),
-      sessions: user.Session.map((session) => ({
+      sessions: user.sessions.map((session) => ({
         id: session.id,
         createdAt: session.createdAt.toISOString(),
         expiresAt: session.expiresAt.toISOString(),
@@ -144,14 +144,14 @@ export async function GET(
         userAgent: session.userAgent,
       })),
       stats: {
-        totalSessions: user._count.Session,
-        totalOrders: user._count.Order,
-        totalTickets: user._count.Ticket,
-        totalTopics: user._count.Topic,
-        totalPosts: user._count.Post,
-        totalEventRegistrations: user._count.EventRegistration,
-        totalForumsCreated: user._count.Forum,
-        totalCheckInsPerformed: user._count.CheckIn,
+        totalSessions: user._count.sessions,
+        totalOrders: user._count.orders,
+        totalTickets: user._count.purchasedTickets,
+        totalTopics: user._count.authoredTopics,
+        totalPosts: user._count.authoredPosts,
+        totalEventRegistrations: user._count.eventRegistrations,
+        totalForumsCreated: user._count.createdForums,
+        totalCheckInsPerformed: user._count.performedCheckIns,
         ordersByStatus: orderStats.reduce((acc, stat) => {
           acc[stat.status] = {
             count: stat._count.id,
@@ -298,10 +298,8 @@ export async function PATCH(
     })
 
     // Write audit log
-    const { randomUUID } = await import('node:crypto')
     await prisma.auditLog.create({
       data: {
-        id: randomUUID(),
         actorId: currentUser.userId,
         action: 'USER_UPDATED',
         targetType: 'User',

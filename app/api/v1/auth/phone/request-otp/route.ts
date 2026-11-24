@@ -5,7 +5,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { OtpDeliveryStatus, OtpPurpose } from '@prisma/client'
-import { randomUUID } from 'crypto'
 import { prisma } from '@/lib/db'
 import { safeJsonParse } from '@/lib/api'
 import {
@@ -255,7 +254,6 @@ export async function POST(request: NextRequest) {
 
             const challenge = await tx.otpChallenge.create({
               data: {
-                id: randomUUID(),
                 phone: normalizedPhone,
                 purpose,
                 codeHash,

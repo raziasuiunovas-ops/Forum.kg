@@ -19,7 +19,7 @@ const replyPublicSelect = {
   deletedAt: true,
   createdAt: true,
   updatedAt: true,
-  User: {
+  author: {
     select: {
       id: true,
       firstName: true,
@@ -126,13 +126,10 @@ export const POST = withErrorHandler(async (request: NextRequest, context: Repli
 
       const reply = await tx.post.create({
         data: {
-          id: randomUUID(),
           topicId: topic.id,
           authorId: authResult.user.userId,
           parentId: input.parentId,
           content: input.content as Prisma.InputJsonValue,
-          createdAt: new Date(),
-          updatedAt: new Date(),
         },
         select: replyPublicSelect,
       })

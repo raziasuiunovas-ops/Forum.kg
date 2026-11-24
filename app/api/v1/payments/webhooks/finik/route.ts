@@ -128,9 +128,9 @@ export async function POST(request: NextRequest) {
       const priorEvent = await tx.paymentWebhookEvent.findUnique({ where: { dedupeKey: `finik:${transactionId}` } })
       if (priorEvent) return { outcome: 'duplicate' as const }
 
-      const candidate = await tx.Payment.findUnique({
+      const candidate = await tx.payment.findUnique({
         where: { providerPaymentId: paymentId },
-        include: { Order: { select: { id: true, forumId: true } } },
+        include: { order: { select: { id: true, forumId: true } } },
       })
       if (!candidate) {
         await tx.paymentWebhookEvent.create({
@@ -148,11 +148,11 @@ export async function POST(request: NextRequest) {
 
       // Match the lock used by RSVP and order reservation before touching the order,
       // payment, tickets, or capacity counts.
-      await lockEventRow(tx, candidate.Order.forumId)
-      const payment = await tx.Payment.findUnique({ where: { id: candidate.id } })
-      const order = await tx.Order.findUnique({
-        where: { id: candidate.Order.id },
-        include: { items: true, Forum: { select: { capacity: true, qrExpiresAt: true } } },
+      await lockEventRow(tx, candidate.order.forumId)
+      const payment = await tx.payment.findUnique({ where: { id: candidate.id } })
+      const order = await tx.order.findUnique({
+        where: { id: candidate.order.id },
+        include: { items: true, forum: { select: { capacity: true, qrExpiresAt: true } } },
       })
       if (!payment || !order) return { outcome: 'unknown-payment' as const }
 
@@ -202,15 +202,15 @@ export async function POST(request: NextRequest) {
       const occupied = await countOccupiedSeats(tx, order.forumId, new Date())
       const reservationActive = order.status === OrderStatus.PENDING_PAYMENT && !!order.reservedUntil && order.reservedUntil > new Date()
       const extraCapacity = reservationActive ? 0 : order.items.length
-      const capacityUnavailable = occupied > order.Forum.capacity || occupied + extraCapacity > order.Forum.capacity
+      const capacityUnavailable = occupied > order.forum.capacity || occupied + extraCapacity > order.forum.capacity
 
-      await tx.Payment.update({
+      await tx.payment.update({
         where: { id: payment.id },
         data: { status: PaymentStatus.SUCCEEDED, paidAt },
       })
 
       if (capacityUnavailable || order.status !== OrderStatus.PENDING_PAYMENT) {
-        await tx.Order.update({ where: { id: order.id }, data: { status: OrderStatus.CANCELLED } })
+        await tx.order.update({ where: { id: order.id }, data: { status: OrderStatus.CANCELLED } })
         await tx.refund.create({
           data: {
             orderId: order.id,
@@ -226,13 +226,13 @@ export async function POST(request: NextRequest) {
         return { outcome: 'refund-required' as const }
       }
 
-      await tx.Order.update({ where: { id: order.id }, data: { status: OrderStatus.PAID, paidAt } })
+      await tx.order.update({ where: { id: order.id }, data: { status: OrderStatus.PAID, paidAt } })
       for (const item of order.items) {
-        const existingTicket = await tx.Ticket.findUnique({ where: { orderItemId: item.id } })
+        const existingTicket = await tx.ticket.findUnique({ where: { orderItemId: item.id } })
         if (existingTicket) continue
 
         const token = generateQRToken()
-        await tx.Ticket.create({
+        await tx.ticket.create({
           data: {
             ticketNumber: `TIX-${randomUUID()}`,
             orderItemId: item.id,
@@ -241,7 +241,7 @@ export async function POST(request: NextRequest) {
             status: TicketStatus.ACTIVE,
             qrTokenHash: hashQRToken(token),
             qrTokenEncrypted: encryptQRToken(token),
-            expiresAt: order.Forum.qrExpiresAt || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+            expiresAt: order.forum.qrExpiresAt || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
           },
         })
       }

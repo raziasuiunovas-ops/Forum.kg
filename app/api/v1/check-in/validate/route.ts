@@ -12,7 +12,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
-import { randomUUID } from 'crypto'
 import { prisma } from '@/lib/db'
 import { z } from 'zod'
 import { requireRole } from '@/lib/auth/middleware'
@@ -103,26 +102,26 @@ export async function POST(request: NextRequest) {
             qrTokenHash,
           },
           include: {
-            Forum: {
+            forum: {
               select: {
                 id: true,
                 slug: true,
                 startsAt: true,
                 endsAt: true,
-                ForumTranslation: {
+                translations: {
                   where: { locale: 'RU' },
                   select: { title: true },
                 },
               },
             },
-            OrderItem: {
+            orderItem: {
               select: {
                 participantFirstName: true,
                 participantLastName: true,
-                TicketCategory: {
+                ticketCategory: {
                   select: {
                     code: true,
-                    TicketCategoryTranslation: {
+                    translations: {
                       where: { locale: 'RU' },
                       select: { name: true },
                     },
@@ -130,7 +129,7 @@ export async function POST(request: NextRequest) {
                 },
               },
             },
-            CheckIn: true,
+            checkIn: true,
           },
         })
 
@@ -159,7 +158,7 @@ export async function POST(request: NextRequest) {
         }
 
         // 5. Check if already checked in (double-check in case of race)
-        if (ticket.CheckIn) {
+        if (ticket.checkIn) {
           throw new Error('ALREADY_CHECKED_IN')
         }
 
@@ -167,7 +166,6 @@ export async function POST(request: NextRequest) {
         // Database UNIQUE constraint on CheckIn.ticketId prevents double check-in
         const checkIn = await tx.checkIn.create({
           data: {
-            id: randomUUID(),
             ticketId: ticket.id,
             forumId: ticket.forumId,
             operatorId: user.userId,
@@ -188,8 +186,8 @@ export async function POST(request: NextRequest) {
           checkIn,
           ticket: {
             ...updatedTicket,
-            Forum: ticket.Forum,
-            OrderItem: ticket.OrderItem,
+            forum: ticket.forum,
+            orderItem: ticket.orderItem,
           },
         }
       },
@@ -213,20 +211,20 @@ export async function POST(request: NextRequest) {
         ticketNumber: result.ticket.ticketNumber,
         status: result.ticket.status,
         participant: {
-          firstName: result.ticket.OrderItem.participantFirstName,
-          lastName: result.ticket.OrderItem.participantLastName,
+          firstName: result.ticket.orderItem.participantFirstName,
+          lastName: result.ticket.orderItem.participantLastName,
         },
         category: {
-          code: result.ticket.OrderItem.TicketCategory.code,
+          code: result.ticket.orderItem.ticketCategory.code,
           name:
-            result.ticket.OrderItem.TicketCategory.TicketCategoryTranslation[0]?.name ||
-            result.ticket.OrderItem.TicketCategory.code,
+            result.ticket.orderItem.ticketCategory.translations[0]?.name ||
+            result.ticket.orderItem.ticketCategory.code,
         },
         forum: {
-          id: result.ticket.Forum.id,
-          slug: result.ticket.Forum.slug,
-          title: result.ticket.Forum.ForumTranslation[0]?.title || 'Untitled',
-          startsAt: result.ticket.Forum.startsAt.toISOString(),
+          id: result.ticket.forum.id,
+          slug: result.ticket.forum.slug,
+          title: result.ticket.forum.translations[0]?.title || 'Untitled',
+          startsAt: result.ticket.forum.startsAt.toISOString(),
         },
       },
     }

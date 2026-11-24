@@ -40,8 +40,7 @@ export default async function LocaleLayout({
       style={buildThemeStyle({
         primary: settings.primaryColorHex,
         accent: settings.accentColorHex,
-        footer: settings.footerColorHex,
-      })}
+      }) as React.CSSProperties}
     >
       <body className={`${inter.className} bg-surface text-ink`}>
         {/* If JS is disabled the scroll-reveal content must stay visible */}

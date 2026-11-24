@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { api, resetCsrf, type ApiResult } from '@/lib/client/api'
 import { makeT, type Messages } from '@/lib/i18n/client'
@@ -140,17 +139,10 @@ export function EmailAuthForm({
         className={input}
       />
 
-      <div className="mt-4 flex items-center justify-between">
-        <label htmlFor="e-pass" className="block text-xs font-bold text-ink">
-          {t('passwordLabel')}
-        </label>
-        {!isReg && (
-          <Link href={`/${locale}/forgot-password`} className="text-xs font-bold text-primary hover:underline">
-            {t('forgotPassword')}
-          </Link>
-        )}
-      </div>
-      <div className="relative mt-2">
+      <label htmlFor="e-pass" className="mt-4 block text-xs font-bold text-ink">
+        {t('passwordLabel')}
+      </label>
+      <div className="relative">
         <input
           id="e-pass"
           type={show ? 'text' : 'password'}
@@ -163,7 +155,7 @@ export function EmailAuthForm({
           type="button"
           onClick={() => setShow((v) => !v)}
           aria-label={show ? t('hidePassword') : t('showPassword')}
-          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-slate-400 transition hover:text-ink"
+          className="absolute right-3 top-1/2 mt-1 -translate-y-1/2 rounded-full p-1.5 text-slate-400 transition hover:text-ink"
         >
           {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </button>

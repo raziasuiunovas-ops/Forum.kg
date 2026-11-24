@@ -19,9 +19,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     
     const validation = listForumsSchema.safeParse({
-      page: searchParams.get('page') ?? undefined,
-      limit: searchParams.get('limit') ?? undefined,
-      locale: searchParams.get('locale') ?? undefined,
+      page: searchParams.get('page'),
+      limit: searchParams.get('limit'),
+      locale: searchParams.get('locale'),
     })
 
     if (!validation.success) {
@@ -55,14 +55,14 @@ export async function GET(request: NextRequest) {
           ],
         },
         include: {
-          ForumTranslation: {
+          translations: {
             where: {
               locale,
             },
           },
-          TicketCategory: {
+          categories: {
             include: {
-              TicketCategoryTranslation: {
+              translations: {
                 where: {
                   locale,
                 },
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
           },
           _count: {
             select: {
-              Ticket: {
+              tickets: {
                 where: {
                   status: 'ACTIVE',
                 },
@@ -101,11 +101,11 @@ export async function GET(request: NextRequest) {
 
     // Transform to API format
     const forumsWithTranslations = forums.map((forum) => {
-      const translation = forum.ForumTranslation[0] // Primary locale
-      const fallbackTranslation = forum.ForumTranslation.find((t) => t.locale === Locale.RU)
+      const translation = forum.translations[0] // Primary locale
+      const fallbackTranslation = forum.translations.find((t) => t.locale === Locale.RU)
 
       // Calculate available tickets
-      const soldTickets = forum._count.Ticket
+      const soldTickets = forum._count.tickets
       const availableTickets = Math.max(0, forum.capacity - soldTickets)
 
       return {
@@ -130,9 +130,9 @@ export async function GET(request: NextRequest) {
         shortDescription: translation?.shortDescription || fallbackTranslation?.shortDescription || null,
         description: translation?.description || fallbackTranslation?.description || null,
         program: translation?.program || fallbackTranslation?.program || null,
-        categories: forum.TicketCategory.map((cat) => {
-          const catTranslation = cat.TicketCategoryTranslation[0]
-          const catFallback = cat.TicketCategoryTranslation.find((t) => t.locale === Locale.RU)
+        categories: forum.categories.map((cat) => {
+          const catTranslation = cat.translations[0]
+          const catFallback = cat.translations.find((t) => t.locale === Locale.RU)
           
           return {
             id: cat.id,
