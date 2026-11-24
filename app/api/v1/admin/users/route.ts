@@ -99,9 +99,9 @@ export async function GET(request: NextRequest) {
           updatedAt: true,
           _count: {
             select: {
-              sessions: true,
-              orders: true,
-              purchasedTickets: true,
+              Session: true,
+              Order: true,
+              Ticket: true,
             },
           },
         },
@@ -147,9 +147,9 @@ export async function GET(request: NextRequest) {
       announcementsPushEnabled: user.announcementsPushEnabled,
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString(),
-      sessionCount: user._count.sessions,
-      orderCount: user._count.orders,
-      ticketCount: user._count.purchasedTickets,
+      sessionCount: user._count.Session,
+      orderCount: user._count.Order,
+      ticketCount: user._count.Ticket,
       lastActivityAt: lastActivityMap.get(user.id)?.toISOString() || null,
     }))
 
