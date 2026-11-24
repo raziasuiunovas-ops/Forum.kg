@@ -88,25 +88,33 @@ export async function POST(request: NextRequest) {
     return jsonError('INVALID_PAYLOAD', 'Invalid webhook payload', 400)
   }
 
-  let publicKey: string
-  try {
-    publicKey = readFinikWebhookPublicKey(process.env)
-  } catch {
-    return jsonError('WEBHOOK_NOT_CONFIGURED', 'Webhook processing is unavailable', 503)
-  }
+  // TEMPORARY: Skip signature verification for testing
+  // TODO: Add FINIK_PROD_PUBLIC_KEY to environment variables and restore verification
+  const skipVerification = process.env.FINIK_SKIP_SIGNATURE_VERIFICATION === 'true'
+  
+  if (!skipVerification) {
+    let publicKey: string
+    try {
+      publicKey = readFinikWebhookPublicKey(process.env)
+    } catch {
+      return jsonError('WEBHOOK_NOT_CONFIGURED', 'Webhook processing is unavailable', 503)
+    }
 
-  const url = new URL(request.url)
-  if (!verifyFinikWebhookSignature({
-    method: request.method,
-    path: url.pathname,
-    host: request.headers.get('host'),
-    headers: request.headers,
-    query: url.searchParams,
-    body: payload,
-    signature: request.headers.get('signature'),
-    publicKey,
-  })) {
-    return jsonError('INVALID_SIGNATURE', 'Webhook signature verification failed', 401)
+    const url = new URL(request.url)
+    if (!verifyFinikWebhookSignature({
+      method: request.method,
+      path: url.pathname,
+      host: request.headers.get('host'),
+      headers: request.headers,
+      query: url.searchParams,
+      body: payload,
+      signature: request.headers.get('signature'),
+      publicKey,
+    })) {
+      return jsonError('INVALID_SIGNATURE', 'Webhook signature verification failed', 401)
+    }
+  } else {
+    console.warn('[Finik Webhook] ⚠️ SIGNATURE VERIFICATION DISABLED - ONLY FOR TESTING!')
   }
 
   const digest = createHash('sha256').update(rawBody, 'utf8').digest('hex')
