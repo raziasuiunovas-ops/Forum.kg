@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { listUsers, setUserStatus, type AdminUserRow } from '@/lib/admin/api'
 import { dateTime } from '@/lib/admin/format'
-import { Badge, Card, DataTable, Modal, PageHeader, btn } from '../ui'
+import { Badge, Card, DataTable, Modal, PageHeader, btn, field } from '../ui'
 
 const ROLE: Record<string, string> = { USER: 'Пользователь', SUPER_ADMIN: 'Суперадмин', MANAGER: 'Менеджер', SCANNER: 'Сканер' }
 
@@ -44,7 +44,7 @@ export function Users() {
               aria-label="Статус" 
               value={statusFilter} 
               onChange={(e) => setStatusFilter(e.target.value as 'all' | 'ACTIVE' | 'SUSPENDED')} 
-              className="h-10 w-full cursor-pointer appearance-none rounded-lg border border-slate-200 bg-white bg-[url(\"data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath fill='%23475569' d='M4.427 6.427l3.396 3.396a.25.25 0 00.354 0l3.396-3.396A.25.25 0 0011.396 6H4.604a.25.25 0 00-.177.427z'/%3E%3C/svg%3E\")] bg-[length:16px_16px] bg-[center_right_0.75rem] bg-no-repeat py-2 pl-3 pr-10 text-sm font-medium text-ink shadow-sm outline-none transition-all duration-200 hover:border-primary/50 hover:bg-slate-50 focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/25 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-50 sm:w-56"
+              className={`${field} w-full sm:w-56`}
             >
               <option value="all">Все статусы</option>
               <option value="ACTIVE">Активные</option>

@@ -206,7 +206,7 @@ export function DataTable<T extends { id: string }>({
             <input value={q} onChange={(e) => { setQ(e.target.value); setPage(0) }} placeholder="Поиск..." aria-label="Поиск" className={`${field} w-full pl-9`} />
           </div>
         )}
-        {toolbar && <div className="flex-1 min-w-[200px] max-w-md">{toolbar}</div>}
+        {toolbar}
       </div>
       <div className="overflow-x-auto rounded-xl ring-1 ring-slate-200/70">
         <table className="w-full min-w-[640px] text-left text-sm">

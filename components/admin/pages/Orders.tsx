@@ -35,10 +35,12 @@ export function Orders() {
             rows={s.orders.filter((o) => status === 'all' || o.status === status)}
             searchText={(o) => `${o.number} ${o.userName} ${forumName(o.forumId)}`}
             toolbar={
-              <select aria-label="Статус" value={status} onChange={(e) => setStatus(e.target.value)} className={`${select} w-full`}>
-                <option value="all">Все статусы</option>
-                {Object.entries(ORDER_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
+              <div className="flex-1 min-w-[180px] max-w-md">
+                <select aria-label="Статус" value={status} onChange={(e) => setStatus(e.target.value)} className={`${select} w-full`}>
+                  <option value="all">Все статусы</option>
+                  {Object.entries(ORDER_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </div>
             }
             columns={[
               { key: 'n', header: 'Номер', sortValue: (o) => o.number, cell: (o) => <b>{o.number}</b> },
