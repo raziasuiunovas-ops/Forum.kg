@@ -132,8 +132,17 @@ export async function createFinikPayment(
   }
 
   const amount = input.amountMinor / 100
+  
+  // TEST MODE: Override amount to 1 KGS if enabled
+  const testMode = options.env?.FINIK_TEST_MODE === 'true' || process.env.FINIK_TEST_MODE === 'true'
+  const finalAmount = testMode ? 1 : amount
+  
+  if (testMode) {
+    console.log('[Finik Test Mode] Original amount:', amount, 'KGS, using test amount: 1 KGS')
+  }
+  
   const body = {
-    Amount: amount,
+    Amount: finalAmount,
     CardType: 'FINIK_QR',
     PaymentId: input.paymentId,
     RedirectUrl: config.redirectUrl,
