@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowRight, Loader2, Pencil } from 'lucide-react'
-import { api, resetCsrf, type ApiResult } from '@/lib/client/api'
+import { api, isSignedIn, resetCsrf, type ApiResult } from '@/lib/client/api'
 import { EmailAuthForm } from './EmailAuthForm'
 import { makeT, type Messages } from '@/lib/i18n/client'
 
@@ -73,8 +73,8 @@ export function LoginForm({ locale, messages }: { locale: string; messages: Mess
   useEffect(() => {
     if (sessionChecked.current) return
     sessionChecked.current = true
-    api('/api/v1/auth/session').then((res) => {
-      if (res.ok) router.replace(next)
+    isSignedIn().then((signedIn) => {
+      if (signedIn) router.replace(next)
       else setStep((s) => (s === 'checking' ? 'phone' : s))
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps

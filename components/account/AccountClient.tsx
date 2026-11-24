@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Bell, CreditCard, Loader2, LogOut, Receipt, Send, Ticket, User, LayoutDashboard, ArrowUpRight } from 'lucide-react'
+import { Bell, CreditCard, Loader2, LogOut, Receipt, Send, Ticket, User, LayoutDashboard, ArrowUpRight, Home } from 'lucide-react'
 import { api, resetCsrf } from '@/lib/client/api'
 import { makeT, type Messages } from '@/lib/i18n/client'
 
@@ -52,9 +52,16 @@ export function AccountClient({ locale, messages }: { locale: string; messages: 
   }, [router, locale])
 
   async function logout() {
-    await api('/api/v1/auth/logout', { method: 'POST', csrf: true })
-    resetCsrf()
-    router.push(`/${locale}`)
+    try {
+      await api('/api/v1/auth/logout', { method: 'POST', csrf: true })
+      resetCsrf()
+      router.push(`/${locale}`)
+    } catch (error) {
+      console.error('Logout error:', error)
+      // Force redirect even if API fails
+      resetCsrf()
+      router.push(`/${locale}`)
+    }
   }
 
   if (failed) {
@@ -87,13 +94,21 @@ export function AccountClient({ locale, messages }: { locale: string; messages: 
           </h1>
           <p className="mt-2 text-sm text-slate-500">{t('subtitle')}</p>
         </div>
-        <button
-          type="button"
-          onClick={logout}
-          className="inline-flex h-10 items-center gap-2 rounded-full bg-white px-5 text-xs font-bold text-ink shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50"
-        >
-          <LogOut className="h-4 w-4" /> {t('logout')}
-        </button>
+        <div className="flex gap-3">
+          <Link
+            href={`/${locale}`}
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-white px-5 text-xs font-bold text-ink shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50"
+          >
+            <Home className="h-4 w-4" /> На главную
+          </Link>
+          <button
+            type="button"
+            onClick={logout}
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-white px-5 text-xs font-bold text-ink shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50"
+          >
+            <LogOut className="h-4 w-4" /> {t('logout')}
+          </button>
+        </div>
       </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[15rem_1fr]">
@@ -129,8 +144,8 @@ export function AccountClient({ locale, messages }: { locale: string; messages: 
                 </Link>
               </div>
               <div className="rounded-2xl bg-surface p-6">
-                <p className="text-xs font-bold uppercase tracking-widest text-primary">{t('profile.phone')}</p>
-                <p className="mt-3 text-lg font-black text-ink">{me.phone}</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-primary">{me.phone ? t('profile.phone') : 'Email'}</p>
+                <p className="mt-3 break-all text-lg font-black text-ink">{me.phone ?? me.email}</p>
                 {me.phoneVerifiedAt && (
                   <p className="mt-1 text-xs font-semibold text-emerald-600">✓ {t('profile.verified')}</p>
                 )}
@@ -222,14 +237,17 @@ function ProfileForm({
 
   const field =
     'mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-ink outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30'
+  
+  const selectField =
+    'mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-ink outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30 appearance-none bg-[url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23475569\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpolyline points=\'6 9 12 15 18 9\'%3E%3C/polyline%3E%3C/svg%3E")] bg-[length:1.25rem] bg-[right_0.75rem_center] bg-no-repeat pr-12 cursor-pointer hover:border-primary/50'
 
   return (
     <form onSubmit={save} className="max-w-md" noValidate>
       <h2 className="text-2xl font-black tracking-tight text-ink">{t('profile.title')}</h2>
 
-      <p className="mt-6 text-xs font-bold text-ink">{t('profile.phone')}</p>
+      <p className="mt-6 text-xs font-bold text-ink">{me.phone ? t('profile.phone') : 'Email'}</p>
       <p className="mt-2 flex h-12 items-center justify-between rounded-xl bg-slate-100 px-4 text-sm font-semibold text-slate-600">
-        {me.phone}
+        {me.phone ?? me.email}
         {me.phoneVerifiedAt && <span className="text-xs text-emerald-600">✓ {t('profile.verified')}</span>}
       </p>
 
@@ -246,7 +264,7 @@ function ProfileForm({
       <label htmlFor="plang" className="mt-4 block text-xs font-bold text-ink">
         {t('profile.language')}
       </label>
-      <select id="plang" value={lang} onChange={(e) => setLang(e.target.value as Me['preferredLocale'])} className={field}>
+      <select id="plang" value={lang} onChange={(e) => setLang(e.target.value as Me['preferredLocale'])} className={selectField}>
         <option value="RU">Русский</option>
         <option value="KY">Кыргызча</option>
         <option value="EN">English</option>

@@ -85,7 +85,7 @@ export function AdminLogin({ locale }: { locale: string }) {
             <form onSubmit={submitCode} noValidate>
               <p className="mt-2 text-sm text-slate-500">Мы отправили код подтверждения в Telegram. Введите его ниже.</p>
               <label htmlFor="adm-code" className="mt-6 block text-xs font-bold text-ink">Код подтверждения</label>
-              <input id="adm-code" inputMode="numeric" autoComplete="one-time-code" maxLength={8} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} className={`${input} text-center text-2xl tracking-[0.4em]`} />
+              <input id="adm-code" inputMode="numeric" autoComplete="one-time-code" maxLength={8} placeholder="000000" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} className={`${input} text-center text-2xl tracking-[0.4em] placeholder:text-slate-300`} />
               {error && <p role="alert" className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-xs font-semibold text-red-600">{error}</p>}
               <button type="submit" disabled={busy} className={submit}>{busy ? <><Loader2 className="h-4 w-4 animate-spin" /> Проверяем...</> : 'Войти'}</button>
               <button type="button" onClick={() => { setStep('credentials'); setCode(''); setError(null) }} className="mt-3 w-full text-center text-xs font-bold text-primary">Назад</button>

@@ -53,7 +53,7 @@ export default async function LoginPage({ params }: { params: Promise<{ locale: 
             ))}
           </ul>
         </div>
-        <div className="animate-float-rot self-start">
+        <div className="fixed bottom-12 left-12 animate-float-rot">
           <TicketCard label="YOUR ACCESS PASS" title="Bishkek Digital Forum 2026" />
         </div>
       </section>

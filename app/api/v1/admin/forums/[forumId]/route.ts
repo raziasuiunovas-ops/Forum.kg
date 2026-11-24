@@ -15,6 +15,7 @@ import { requireManager } from '@/lib/auth/middleware'
 import { forumUpdateSchema } from '@/lib/api/schemas/forum'
 import { ForumStatus, NotificationType, Prisma } from '@prisma/client'
 import { error as jsonError } from '@/lib/api/response'
+import { revalidatePublicForums } from '@/lib/forums/revalidate'
 
 type RouteContext = { params: Promise<{ forumId: string }> }
 
@@ -415,6 +416,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       },
     })
 
+    revalidatePublicForums()
     return NextResponse.json({
       message: 'Мероприятие успешно обновлено',
       forum: completeForum,
@@ -514,6 +516,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
         })
       })
 
+      revalidatePublicForums()
       return NextResponse.json({
         message: 'Мероприятие отменено (есть проданные билеты)',
         status: ForumStatus.CANCELLED,
@@ -543,6 +546,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
         })
       })
 
+      revalidatePublicForums()
       return NextResponse.json({
         message: 'Мероприятие удалено',
         deleted: true,

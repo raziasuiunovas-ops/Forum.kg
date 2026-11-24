@@ -28,9 +28,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
 
     const validation = listTicketsSchema.safeParse({
-      page: searchParams.get('page'),
-      limit: searchParams.get('limit'),
-      status: searchParams.get('status'),
+      page: searchParams.get('page') ?? undefined,
+      limit: searchParams.get('limit') ?? undefined,
+      status: searchParams.get('status') ?? undefined,
     })
 
     if (!validation.success) {

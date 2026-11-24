@@ -15,6 +15,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
+import { createHash, timingSafeEqual } from 'node:crypto'
 import { Admin2FAService } from '@/lib/services/admin-2fa.service'
 import { writeSecurityAuditEvent } from '@/lib/security/audit-logger'
 
@@ -22,13 +23,16 @@ import { writeSecurityAuditEvent } from '@/lib/security/audit-logger'
  * Admin credentials from environment
  */
 const ADMIN_LOGIN = process.env.ADMIN_LOGIN
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD
+const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH?.trim() || undefined
+/** Plain-text fallback (ADMIN_PASSWORD) — prefer ADMIN_PASSWORD_HASH (bcrypt) in production. */
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || undefined
+const HAS_PASSWORD = Boolean(ADMIN_PASSWORD_HASH || ADMIN_PASSWORD)
 const ADMIN_TELEGRAM_CHAT_ID = process.env.ADMIN_TELEGRAM_CHAT_ID
 
 // Validate configuration at module load
-if (!ADMIN_LOGIN || !ADMIN_PASSWORD || !ADMIN_TELEGRAM_CHAT_ID) {
+if (!ADMIN_LOGIN || !HAS_PASSWORD || !ADMIN_TELEGRAM_CHAT_ID) {
   console.error('⚠️  Admin 2FA credentials not fully configured in .env')
-  console.error('   Required: ADMIN_LOGIN, ADMIN_PASSWORD, ADMIN_TELEGRAM_CHAT_ID')
+  console.error('   Required: ADMIN_LOGIN, ADMIN_PASSWORD_HASH (or ADMIN_PASSWORD), ADMIN_TELEGRAM_CHAT_ID')
 }
 
 /**
@@ -44,14 +48,9 @@ interface LoginRequest {
  * Step 1: Verify credentials and send 2FA code
  */
 export async function POST(request: NextRequest) {
-  // DEBUG: Log credentials on each request
-  console.log('[Admin Login] ADMIN_LOGIN:', ADMIN_LOGIN)
-  console.log('[Admin Login] ADMIN_PASSWORD:', ADMIN_PASSWORD ? 'SET' : 'NOT SET')
-  console.log('[Admin Login] ADMIN_TELEGRAM_CHAT_ID:', ADMIN_TELEGRAM_CHAT_ID)
-  
   try {
     // Check configuration
-    if (!ADMIN_LOGIN || !ADMIN_PASSWORD || !ADMIN_TELEGRAM_CHAT_ID) {
+    if (!ADMIN_LOGIN || !HAS_PASSWORD || !ADMIN_TELEGRAM_CHAT_ID) {
       writeSecurityAuditEvent({
         eventType: 'SUSPICIOUS_REQUEST',
         result: 'error',
@@ -114,12 +113,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify username (case-insensitive)
-    console.log('[Admin Login] Input username:', username)
-    console.log('[Admin Login] Expected username:', ADMIN_LOGIN)
-    console.log('[Admin Login] Username match:', username.toLowerCase() === ADMIN_LOGIN.toLowerCase())
-    
     if (username.toLowerCase() !== ADMIN_LOGIN.toLowerCase()) {
-      console.log('[Admin Login] ❌ Username mismatch!')
       writeSecurityAuditEvent({
         eventType: 'AUTH_FAILURE',
         result: 'denied',
@@ -140,15 +134,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verify password (simple comparison)
-    console.log('[Admin Login] Testing password...')
-    console.log('[Admin Login] Input password:', password)
-    console.log('[Admin Login] Expected password:', ADMIN_PASSWORD)
-    const passwordMatch = password === ADMIN_PASSWORD
-    console.log('[Admin Login] Password match:', passwordMatch)
+    // Verify password with bcrypt
+    const passwordMatch = ADMIN_PASSWORD_HASH
+      ? await bcrypt.compare(password, ADMIN_PASSWORD_HASH)
+      : safeEqual(password, ADMIN_PASSWORD!)
 
     if (!passwordMatch) {
-      console.log('[Admin Login] ❌ Password mismatch!')
       writeSecurityAuditEvent({
         eventType: 'AUTH_FAILURE',
         result: 'denied',
@@ -264,4 +255,11 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+/** Constant-time comparison for the plain-text fallback. */
+function safeEqual(a: string, b: string): boolean {
+  const ha = createHash('sha256').update(a).digest()
+  const hb = createHash('sha256').update(b).digest()
+  return timingSafeEqual(ha, hb)
 }

@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Loader2, LogOut, Menu, X } from 'lucide-react'
+import { Loader2, LogOut, Menu, X, Home } from 'lucide-react'
 import { api, resetCsrf } from '@/lib/client/api'
 import { NAV } from '@/lib/admin/nav'
 import type { StaffRole } from '@/lib/admin/types'
@@ -65,9 +65,16 @@ export function AdminShell({ locale, children }: { locale: string; children: Rea
   const actor = user.email ?? [user.firstName, user.lastName].filter(Boolean).join(' ') ?? 'admin'
 
   async function logout() {
-    await api('/api/v1/auth/logout', { method: 'POST', csrf: true })
-    resetCsrf()
-    router.push(`/${locale}/admin/login`)
+    try {
+      await api('/api/v1/auth/logout', { method: 'POST', csrf: true })
+      resetCsrf()
+      router.push(`/${locale}/admin/login`)
+    } catch (error) {
+      console.error('Admin logout error:', error)
+      // Force redirect even if API fails
+      resetCsrf()
+      router.push(`/${locale}/admin/login`)
+    }
   }
 
   const sidebar = (
@@ -92,9 +99,14 @@ export function AdminShell({ locale, children }: { locale: string; children: Rea
       <div className="border-t border-white/10 p-4">
         <p className="truncate text-xs font-bold text-white">{actor}</p>
         <p className="text-[11px] text-white/50">{ROLE_LABEL[role]}</p>
-        <button type="button" onClick={logout} className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-white/70 transition hover:text-white">
-          <LogOut className="h-4 w-4" /> Выйти
-        </button>
+        <div className="mt-3 flex flex-col gap-2">
+          <Link href={`/${locale}`} className="inline-flex items-center gap-2 text-xs font-bold text-white/70 transition hover:text-white">
+            <Home className="h-4 w-4" /> На сайт
+          </Link>
+          <button type="button" onClick={logout} className="inline-flex items-center gap-2 text-xs font-bold text-white/70 transition hover:text-white">
+            <LogOut className="h-4 w-4" /> Выйти
+          </button>
+        </div>
       </div>
     </nav>
   )

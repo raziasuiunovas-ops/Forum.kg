@@ -89,7 +89,7 @@ async function checkEmailRateLimit(email: string): Promise<{ allowed: boolean; r
   const recentRequests = await prisma.passwordResetToken.findMany({
     where: {
       createdAt: { gte: cutoff },
-      User: { email: normalizedEmail },
+      user: { email: normalizedEmail },
     },
     orderBy: { createdAt: 'asc' },
     select: { createdAt: true },

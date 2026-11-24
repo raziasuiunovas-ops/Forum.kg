@@ -137,7 +137,7 @@ export async function sendPasswordResetEmail(
     }
 
     await sgMail.send(msg)
-    console.log('[Email Service] Password reset email sent via SendGrid')
+    // sent
     return { success: true }
   } catch (error: any) {
     console.error('[Email Service] SendGrid error:', error.response?.body || error.message || error)

@@ -12,18 +12,18 @@ export function LogoMark({ className = 'h-6 w-6' }: { className?: string }) {
 
 export function Logo({
   locale,
-  name = 'FORUM.KG',
+  name,
   logoUrl,
   dark = true,
 }: {
   locale: AppLocale
-  name?: string
+  name: string
   logoUrl?: string | null
   dark?: boolean
 }) {
-  const [main, ext] = (name || 'FORUM.KG').split('.')
+  const [main, ext] = name.split('.')
   return (
-    <Link href={`/${locale}`} className="flex items-center gap-2" aria-label={name || 'FORUM.KG'}>
+    <Link href={`/${locale}`} className="flex items-center gap-2" aria-label={name}>
       {logoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={logoUrl} alt="" className="h-7 w-auto" />

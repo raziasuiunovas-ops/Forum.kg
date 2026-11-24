@@ -153,10 +153,8 @@ export const Admin2FAService = {
 
     // Store 2FA code in database
     try {
-      const { randomUUID } = await import('node:crypto')
       await prisma.admin2FACode.create({
         data: {
-          id: randomUUID(),
           pendingToken,
           username,
           codeHash,

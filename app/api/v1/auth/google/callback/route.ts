@@ -30,9 +30,6 @@ export async function GET(request: NextRequest) {
     if (!cfg) return fail('google_not_configured', 'not_configured')
 
     const saved = request.cookies.get(OAUTH_COOKIE)?.value
-    const allCookies = Array.from(request.cookies.getAll().map(c => c.name))
-    console.log('[Google OAuth Debug] All cookies received:', allCookies)
-    console.log('[Google OAuth Debug] OAuth cookie value:', saved ? 'present' : 'MISSING')
     if (!saved) return fail('google_failed', 'missing_cookie')
     const { state, verifier, next, locale: loc } = JSON.parse(saved) as { state: string; verifier: string; next: string; locale: string }
     if (LOCALES.includes(loc)) locale = loc
@@ -40,7 +37,6 @@ export async function GET(request: NextRequest) {
     if (url.searchParams.get('error')) return fail('google_cancelled', 'user_cancelled')
     const code = url.searchParams.get('code')
     const returnedState = url.searchParams.get('state')
-    console.log('[Google OAuth Debug] Code:', code ? 'present' : 'MISSING', 'State match:', returnedState && safeEqual(returnedState, state))
     if (!code || !returnedState || !safeEqual(returnedState, state)) return fail('google_failed', 'bad_state')
 
     // 1. Exchange the authorization code (server-to-server, uses the client secret + PKCE verifier)
@@ -57,20 +53,16 @@ export async function GET(request: NextRequest) {
       }),
       signal: AbortSignal.timeout(8000),
     })
-    console.log('[Google OAuth Debug] Token response status:', tokenRes.status, tokenRes.ok ? 'OK' : 'ERROR')
     if (!tokenRes.ok) {
       const errorText = await tokenRes.text().catch(() => 'could not read error')
       console.error('[Google OAuth Debug] Token error response:', errorText.slice(0, 500))
       return fail('google_failed', `token_${tokenRes.status}`)
     }
     const { id_token } = (await tokenRes.json()) as { id_token?: string }
-    console.log('[Google OAuth Debug] ID token:', id_token ? 'present' : 'MISSING')
     if (!id_token) return fail('google_failed', 'no_id_token')
 
     // 2. Validate the identity
-    console.log('[Google OAuth Debug] Parsing ID token...')
     const claims = parseIdToken(id_token, cfg.clientId)
-    console.log('[Google OAuth Debug] Claims:', { email: claims.email, sub: claims.sub.slice(0, 10) + '...' })
 
     // 3. Find or create the user
     let user = (await prisma.authIdentity.findUnique({
@@ -110,7 +102,6 @@ export async function GET(request: NextRequest) {
     if (user.status === UserStatus.SUSPENDED) return fail('google_suspended', 'suspended')
 
     // 4. Session + redirect
-    console.log('[Google OAuth Debug] Starting session for user:', user.id)
     await startSession(user, request)
     writeSecurityAuditEvent({ eventType: 'AUTH_SUCCESS', result: 'success', request, userId: user.id, reason: 'google_login', statusCode: 302 })
 

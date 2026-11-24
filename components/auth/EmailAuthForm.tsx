@@ -161,6 +161,13 @@ export function EmailAuthForm({
         </button>
       </div>
       {isReg && <p className="mt-1.5 text-[11px] text-slate-400">{t('passwordHint')}</p>}
+      {!isReg && (
+        <p className="mt-2 text-right">
+          <a href={`/${locale}/forgot-password`} className="text-[11px] font-bold text-primary hover:underline">
+            {t('forgotPassword')}
+          </a>
+        </p>
+      )}
 
       {isReg && (
         <>

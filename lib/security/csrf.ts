@@ -22,6 +22,10 @@ const CSRF_SKIP_PATHS: string[] = [
   // Email auth endpoints - new session creation, no existing cookie to protect
   '/api/v1/auth/email/register',
   '/api/v1/auth/email/login',
+  // Password reset - the user is signed out; protected by single-use hashed tokens and rate limits
+  '/api/v1/auth/password/request-reset',
+  '/api/v1/auth/password/validate-token',
+  '/api/v1/auth/password/reset',
   // Add other public endpoints here if needed
 ]
 
