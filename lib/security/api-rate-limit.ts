@@ -289,7 +289,7 @@ function getStore(env: Readonly<Record<string, string | undefined>>): RateLimitS
   const endpoint = env.UPSTASH_REDIS_REST_URL
   const token = env.UPSTASH_REDIS_REST_TOKEN
 
-  if (!endpoint || !token) return env.NODE_ENV === 'production' ? null : localStore
+  if (!endpoint || !token) return localStore // Используем memory store если нет Redis
 
   if (!cachedRedisStore || cachedRedisStore.endpoint !== endpoint || cachedRedisStore.token !== token) {
     try {
