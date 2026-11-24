@@ -40,3 +40,4 @@ next-env.d.ts
 /uploads
 check-*.js
 PRODUCTION_*.md
+ADMIN_CREDENTIALS.txt

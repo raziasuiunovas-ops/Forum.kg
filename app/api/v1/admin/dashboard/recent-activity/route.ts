@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
           totalMinor: true,
           createdAt: true,
           paidAt: true,
-          user: {
+          User: {
             select: {
               firstName: true,
               lastName: true,
@@ -84,13 +84,13 @@ export async function GET(request: NextRequest) {
           id: true,
           title: true,
           createdAt: true,
-          author: {
+          User: {
             select: {
               firstName: true,
               lastName: true,
             },
           },
-          category: {
+          TopicCategory: {
             select: {
               name: true,
             },
@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
           createdAt: true,
           attendeeFirstName: true,
           attendeeLastName: true,
-          forum: {
+          Forum: {
             select: {
               id: true,
               translations: {
@@ -129,9 +129,9 @@ export async function GET(request: NextRequest) {
           amountMinor: true,
           status: true,
           createdAt: true,
-          order: {
+          Order: {
             select: {
-              user: {
+              User: {
                 select: {
                   firstName: true,
                   lastName: true,
@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
           id: true,
           slug: true,
           createdAt: true,
-          createdBy: {
+          User: {
             select: {
               firstName: true,
               lastName: true,
@@ -189,7 +189,7 @@ export async function GET(request: NextRequest) {
 
     // Orders
     recentOrders.forEach((order) => {
-      const userName = `${order.user.firstName} ${order.user.lastName || ''}`.trim()
+      const userName = `${order.User.firstName} ${order.User.lastName || ''}`.trim()
       const amount = (order.totalMinor / 100).toFixed(2)
       
       if (order.status === OrderStatus.PAID && order.paidAt) {
@@ -200,7 +200,7 @@ export async function GET(request: NextRequest) {
           timestamp: order.paidAt.toISOString(),
           metadata: {
             orderId: order.id,
-            userId: order.user,
+            userId: order.User,
             amountMinor: order.totalMinor,
           },
         })
@@ -221,7 +221,7 @@ export async function GET(request: NextRequest) {
 
     // Topics
     recentTopics.forEach((topic) => {
-      const authorName = `${topic.author.firstName} ${topic.author.lastName || ''}`.trim()
+      const authorName = `${topic.User.firstName} ${topic.User.lastName || ''}`.trim()
       activities.push({
         id: topic.id,
         type: 'TOPIC_CREATED' as ActivityType,
@@ -229,7 +229,7 @@ export async function GET(request: NextRequest) {
         timestamp: topic.createdAt.toISOString(),
         metadata: {
           topicId: topic.id,
-          categoryName: topic.category.name,
+          categoryName: topic.TopicCategory.name,
         },
       })
     })
@@ -237,7 +237,7 @@ export async function GET(request: NextRequest) {
     // Event registrations
     recentRegistrations.forEach((reg) => {
       const userName = `${reg.attendeeFirstName} ${reg.attendeeLastName}`.trim()
-      const eventTitle = reg.forum.translations[0]?.title || 'Мероприятие'
+      const eventTitle = reg.Forum.translations[0]?.title || 'Мероприятие'
       activities.push({
         id: reg.id,
         type: 'EVENT_REGISTRATION' as ActivityType,
@@ -245,15 +245,15 @@ export async function GET(request: NextRequest) {
         timestamp: reg.createdAt.toISOString(),
         metadata: {
           registrationId: reg.id,
-          forumId: reg.forum.id,
+          forumId: reg.Forum.id,
         },
       })
     })
 
     // Payments
     recentPayments.forEach((payment) => {
-      const userName = payment.order?.user 
-        ? `${payment.order.user.firstName} ${payment.order.user.lastName || ''}`.trim()
+      const userName = payment.Order?.User 
+        ? `${payment.Order.User.firstName} ${payment.Order.User.lastName || ''}`.trim()
         : 'Пользователь'
       const amount = (payment.amountMinor / 100).toFixed(2)
       activities.push({
@@ -270,7 +270,7 @@ export async function GET(request: NextRequest) {
 
     // Forums
     recentForums.forEach((forum) => {
-      const creatorName = `${forum.createdBy.firstName} ${forum.createdBy.lastName || ''}`.trim()
+      const creatorName = `${forum.User.firstName} ${forum.User.lastName || ''}`.trim()
       const forumTitle = forum.translations[0]?.title || forum.slug
       activities.push({
         id: forum.id,
