@@ -44,7 +44,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
         },
         TicketCategory: {
           include: {
-            ForumTranslation: {
+            TicketCategoryTranslation: {
               orderBy: { locale: 'asc' },
             },
             _count: {
