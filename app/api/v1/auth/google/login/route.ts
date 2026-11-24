@@ -35,7 +35,9 @@ export async function GET(request: NextRequest) {
   const next = safeNext(url.searchParams.get('next'), `/${locale}/account`)
 
   const res = NextResponse.redirect(buildAuthUrl(cfg, state, challenge))
-  res.cookies.set(OAUTH_COOKIE, JSON.stringify({ state, verifier, next, locale }), {
+  const cookieValue = JSON.stringify({ state, verifier, next, locale })
+  console.log('[Google OAuth Debug] Setting cookie:', OAUTH_COOKIE, 'with maxAge:', OAUTH_COOKIE_MAX_AGE)
+  res.cookies.set(OAUTH_COOKIE, cookieValue, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax', // Google redirects back with a cross-site top-level GET; Strict would drop the cookie

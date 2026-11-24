@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowUpRight, Minus, Plus, Ticket } from 'lucide-react'
-import { api } from '@/lib/client/api'
+import { isSignedIn } from '@/lib/client/api'
 import { makeT, type Messages } from '@/lib/i18n/client'
 
 export interface BuyCategory {
@@ -44,9 +44,9 @@ export function BuyPanel({
 
   async function onBuy() {
     setState('checking')
-    const res = await api('/api/v1/auth/session')
+    const signedIn = await isSignedIn()
     const checkout = `/${locale}/forums/${slug}/checkout?cat=${encodeURIComponent(code ?? '')}&qty=${qty}`
-    if (!res.ok) {
+    if (!signedIn) {
       router.push(`/${locale}/login?next=${encodeURIComponent(checkout)}`)
     } else if (isDemo) {
       // Built-in demo events cannot be ordered (they are not in the database).

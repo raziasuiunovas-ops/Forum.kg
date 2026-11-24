@@ -19,9 +19,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     
     const validation = listForumsSchema.safeParse({
-      page: searchParams.get('page'),
-      limit: searchParams.get('limit'),
-      locale: searchParams.get('locale'),
+      page: searchParams.get('page') ?? undefined,
+      limit: searchParams.get('limit') ?? undefined,
+      locale: searchParams.get('locale') ?? undefined,
     })
 
     if (!validation.success) {

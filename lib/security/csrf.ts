@@ -19,6 +19,9 @@ const CSRF_SKIP_PATHS: string[] = [
   // OTP endpoints - these are rate-limited and don't rely on cookies for auth
   '/api/v1/auth/phone/request-otp',
   '/api/v1/auth/phone/verify-otp',
+  // Email auth endpoints - new session creation, no existing cookie to protect
+  '/api/v1/auth/email/register',
+  '/api/v1/auth/email/login',
   // Add other public endpoints here if needed
 ]
 
