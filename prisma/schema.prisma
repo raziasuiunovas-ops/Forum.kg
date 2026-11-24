@@ -40,6 +40,13 @@ enum OtpPurpose {
   CHANGE_PHONE
 }
 
+enum OtpDeliveryStatus {
+  PENDING
+  ACCEPTED
+  FAILED
+  UNKNOWN
+}
+
 enum ForumStatus {
   DRAFT
   SCHEDULED
@@ -180,6 +187,7 @@ model User {
   updatedAt                DateTime   @updatedAt
 
   authIdentities               AuthIdentity[]
+  otpChallenges                OtpChallenge[]
   telegramConnection           TelegramConnection?
   pushSubscriptions            PushSubscription[]
   sessions                     Session[]
@@ -216,17 +224,22 @@ model AuthIdentity {
 }
 
 model OtpChallenge {
-  id         String     @id @default(uuid()) @db.Uuid
-  phone      String     @db.VarChar(20)
-  purpose    OtpPurpose
-  codeHash   String     @db.VarChar(255) // Never store raw OTP codes
-  attempts   Int        @default(0)
-  expiresAt  DateTime
-  consumedAt DateTime?
-  createdAt  DateTime   @default(now())
+  id                String            @id @default(uuid()) @db.Uuid
+  phone             String            @db.VarChar(20)
+  purpose           OtpPurpose
+  codeHash          String            @db.VarChar(255) // Never store raw OTP codes
+  attempts          Int               @default(0)
+  expiresAt         DateTime
+  consumedAt        DateTime?
+  deliveryStatus    OtpDeliveryStatus @default(UNKNOWN)
+  requestedByUserId String?           @db.Uuid
+  createdAt         DateTime          @default(now())
+
+  requestedBy User? @relation(fields: [requestedByUserId], references: [id], onDelete: Cascade)
 
   @@index([phone, purpose, createdAt])
   @@index([expiresAt])
+  @@index([requestedByUserId])
 }
 
 model TelegramConnection {
