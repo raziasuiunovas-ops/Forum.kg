@@ -1,0 +1,59 @@
+{
+  "name": "FORUM.KG",
+  "short_name": "FORUM.KG",
+  "description": "Платформа для регистрации на форумы и события Кыргызстана",
+  "start_url": "/ru",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#070B24",
+  "theme_color": "#070B24",
+  "lang": "ru",
+  "categories": ["events", "education", "business"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/opengraph-ru.jpg",
+      "sizes": "1200x630",
+      "type": "image/jpeg",
+      "form_factor": "wide"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Мои билеты",
+      "url": "/ru/account",
+      "description": "Открыть личный кабинет"
+    },
+    {
+      "name": "Форумы",
+      "url": "/ru/forums",
+      "description": "Список форумов"
+    }
+  ]
+}

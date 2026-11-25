@@ -16,7 +16,38 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params
   if (!isAppLocale(locale)) return {}
-  return pageMetadata(locale, 'home', '')
+  const base = pageMetadata(locale, 'home', '')
+  return {
+    ...base,
+    manifest: '/manifest.json',
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: 'black-translucent',
+      title: 'FORUM.KG',
+      startupImage: '/icons/icon-512.png',
+    },
+    icons: {
+      icon: [
+        { url: '/icons/favicon-32.png', sizes: '32x32', type: 'image/png' },
+        { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+        { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+      ],
+      apple: [
+        { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+        { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+      ],
+      shortcut: '/icons/favicon-32.png',
+    },
+    other: {
+      'mobile-web-app-capable': 'yes',
+      'apple-mobile-web-app-capable': 'yes',
+      'apple-mobile-web-app-status-bar-style': 'black-translucent',
+      'apple-mobile-web-app-title': 'FORUM.KG',
+      'msapplication-TileColor': '#070B24',
+      'msapplication-TileImage': '/icons/icon-192.png',
+      'theme-color': '#070B24',
+    },
+  }
 }
 
 export default async function LocaleLayout({
