@@ -38,7 +38,7 @@ export default async function ForgotPasswordPage({ params }: { params: Promise<{
         <div className="flex flex-1 items-center justify-center py-10">
           <div className="w-full max-w-md animate-fade-up rounded-[2rem] bg-white p-7 text-ink shadow-[0_40px_90px_-30px_rgba(0,0,0,.8)] sm:p-9">
             <div className="mb-6 flex justify-center">
-              <Logo locale={locale} name={settings.displayName} logoUrl={settings.logoUrl} className="text-primary" />
+              <Logo locale={locale} name={settings.displayName} logoUrl={settings.logoUrl} />
             </div>
             <ForgotPasswordForm locale={locale} messages={all.auth as Messages} />
           </div>
