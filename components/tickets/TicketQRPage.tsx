@@ -48,7 +48,7 @@ export function TicketQRPage({ locale, ticketId }: { locale: string; ticketId: s
       const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgText)}`
 
       const W = 900
-      const H = 1200
+      const H = 1300  // increased to fit all content
 
       const qrImg = new Image()
       qrImg.crossOrigin = 'anonymous'
@@ -63,18 +63,14 @@ export function TicketQRPage({ locale, ticketId }: { locale: string; ticketId: s
       canvas.height = H
       const ctx = canvas.getContext('2d')!
 
-      // ── Pure white background ──
+      // ── Pure white background — NO rounded corners ──
       ctx.fillStyle = '#ffffff'
-      ctx.beginPath()
-      ctx.roundRect(0, 0, W, H, 48)
-      ctx.fill()
+      ctx.fillRect(0, 0, W, H)
 
-      // ── Dark navy header block ──
+      // ── Dark navy header block — NO rounded corners ──
       const headerH = 280
       ctx.fillStyle = '#0f172a'
-      ctx.beginPath()
-      ctx.roundRect(0, 0, W, headerH, [48, 48, 0, 0])
-      ctx.fill()
+      ctx.fillRect(0, 0, W, headerH)
 
       // FORUM.KG small label
       ctx.fillStyle = 'rgba(255,255,255,0.4)'
@@ -147,14 +143,9 @@ export function TicketQRPage({ locale, ticketId }: { locale: string; ticketId: s
         ctx.font = '20px Arial, sans-serif'
         ctx.fillStyle = '#94a3b8'
         ctx.fillText(label, x, y)
-        ctx.font = 'bold 28px Arial, sans-serif'
+        ctx.font = 'bold 26px Arial, sans-serif'
         ctx.fillStyle = '#0f172a'
-        // truncate long values
-        const maxW = W / 2 - 80
-        let val = value
-        while (ctx.measureText(val).width > maxW && val.length > 3) val = val.slice(0, -1)
-        if (val !== value) val += '…'
-        ctx.fillText(val, x, y + 36)
+        ctx.fillText(value, x, y + 34)
       }
 
       field('УЧАСТНИК', `${ticket.participant.firstName} ${ticket.participant.lastName}`, col1x, iy)
@@ -171,9 +162,9 @@ export function TicketQRPage({ locale, ticketId }: { locale: string; ticketId: s
       ctx.font = '20px Arial, sans-serif'
       ctx.fillStyle = '#94a3b8'
       ctx.fillText('СТАТУС', col1x, iy)
-      ctx.font = 'bold 28px Arial, sans-serif'
+      ctx.font = 'bold 26px Arial, sans-serif'
       ctx.fillStyle = ticket.status === 'ACTIVE' ? '#059669' : '#dc2626'
-      ctx.fillText(ticket.status === 'ACTIVE' ? '✓  Действителен' : '✗  Недействителен', col1x, iy + 36)
+      ctx.fillText(ticket.status === 'ACTIVE' ? 'Действителен' : 'Недействителен', col1x, iy + 34)
 
       // ── Ticket number ──
       ctx.textAlign = 'center'

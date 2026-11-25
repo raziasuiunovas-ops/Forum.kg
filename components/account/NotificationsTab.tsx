@@ -40,7 +40,12 @@ export function NotificationsTab({ locale }: { locale: string }) {
       const reg = await navigator.serviceWorker.register('/sw.js')
       await navigator.serviceWorker.ready
 
-      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+      if (!vapidKey) {
+        setStatus('error')
+        setMsg('Уведомления пока не настроены на сервере.')
+        return
+      }
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidKey) as unknown as ArrayBuffer,
@@ -168,12 +173,12 @@ export function NotificationsTab({ locale }: { locale: string }) {
         <h3 className="font-bold text-ink">Какие уведомления вы получите</h3>
         <ul className="mt-4 space-y-3">
           {[
-            { icon: '🎫', text: 'Билет оплачен — сразу после успешной оплаты' },
-            { icon: '📅', text: 'Напоминание о форуме — за день до начала' },
-            { icon: '📢', text: 'Новые форумы — когда открывается регистрация' },
+            { text: 'Билет оплачен — сразу после успешной оплаты' },
+            { text: 'Напоминание о форуме — за день до начала' },
+            { text: 'Новые форумы — когда открывается регистрация' },
           ].map((item, i) => (
             <li key={i} className="flex items-start gap-3 text-sm text-slate-600">
-              <span className="text-lg">{item.icon}</span>
+              <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
               {item.text}
             </li>
           ))}
