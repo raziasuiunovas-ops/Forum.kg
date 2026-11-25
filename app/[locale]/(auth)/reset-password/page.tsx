@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { isAppLocale } from '@/i18n/routing'
@@ -24,24 +23,10 @@ export default async function ResetPasswordPage({ params }: { params: Promise<{ 
   const [t, all, settings] = await Promise.all([getT(locale, 'auth'), loadMessages(locale), getSiteSettings(locale)])
 
   return (
-    <div className="relative isolate grid min-h-screen overflow-hidden bg-footer text-white lg:grid-cols-[1.05fr_1fr]">
+    <div className="relative isolate grid min-h-screen overflow-hidden bg-footer text-white">
       <div className="bg-grid absolute inset-0 -z-10" aria-hidden />
       <div className="absolute -left-40 top-0 -z-10 h-[30rem] w-[30rem] animate-glow rounded-full bg-primary/30 blur-[120px]" aria-hidden />
 
-      {/* brand side */}
-      <section className="relative hidden flex-col justify-between p-12 lg:flex">
-        <Logo locale={locale} name={settings.displayName} logoUrl={settings.logoUrl} />
-        <div>
-          <h2 className="text-[clamp(2.5rem,5vw,4.5rem)] font-black uppercase leading-[0.9] tracking-tighter">
-            <span className="block animate-fade-up">{t('resetPasswordTitle')}</span>
-          </h2>
-          <p className="mt-6 max-w-sm text-sm leading-relaxed text-white/60 animate-fade-up" style={{ animationDelay: '120ms' }}>
-            {t('resetPasswordSubtitle')}
-          </p>
-        </div>
-      </section>
-
-      {/* form side */}
       <section className="flex flex-col px-5 py-6 sm:px-10">
         <div className="flex items-center justify-between">
           <Link href={`/${locale}/login`} className="inline-flex items-center gap-2 text-xs font-bold text-white/70 transition hover:text-white">
@@ -52,9 +37,10 @@ export default async function ResetPasswordPage({ params }: { params: Promise<{ 
 
         <div className="flex flex-1 items-center justify-center py-10">
           <div className="w-full max-w-md animate-fade-up rounded-[2rem] bg-white p-7 text-ink shadow-[0_40px_90px_-30px_rgba(0,0,0,.8)] sm:p-9">
-            <Suspense fallback={null}>
-              <ResetPasswordForm locale={locale} messages={all.auth as Messages} />
-            </Suspense>
+            <div className="mb-6 flex justify-center">
+              <Logo locale={locale} name={settings.displayName} logoUrl={settings.logoUrl} className="text-primary" />
+            </div>
+            <ResetPasswordForm locale={locale} messages={all.auth as Messages} />
           </div>
         </div>
       </section>
