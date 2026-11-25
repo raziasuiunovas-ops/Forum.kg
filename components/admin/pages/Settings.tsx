@@ -5,7 +5,7 @@ import { Plus, Trash2 } from 'lucide-react'
 import { actions, useAdminState } from '@/lib/admin/store'
 import type { Loc, SiteSettingsData } from '@/lib/admin/types'
 import { useAdminUser } from '../AdminShell'
-import { Card, DemoBanner, Field, PageHeader, btn, field, select } from '../ui'
+import { Card, Field, PageHeader, btn, field, select } from '../ui'
 import { ImageUpload } from '../ImageUpload'
 
 const HEX = /^#[0-9a-fA-F]{6}$/
@@ -36,28 +36,64 @@ export function Settings() {
   const [s, setS] = useState<SiteSettingsData>(stored)
   const [loc, setLoc] = useState<Loc>('ru')
   const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<string[]>([])
 
   const set = <K extends keyof SiteSettingsData>(k: K, v: SiteSettingsData[K]) => { setS((x) => ({ ...x, [k]: v })); setSaved(false) }
 
-  function save(e: React.FormEvent) {
+  async function save(e: React.FormEvent) {
     e.preventDefault()
     const errs: string[] = []
     if (!s.displayName.trim()) errs.push('Укажите название сайта.')
-    for (const [k, v] of [['Основной цвет', s.primaryColorHex], ['Акцентный цвет', s.accentColorHex], ['Цвет футера', s.footerColorHex]]) if (!HEX.test(v)) errs.push(`${k}: формат #RRGGBB.`)
+    for (const [k, v] of [['Основной цвет', s.primaryColorHex], ['Акцентный цвет', s.accentColorHex], ['Цвет футера', s.footerColorHex]] as [string, string][]) {
+      if (!HEX.test(v)) errs.push(`${k}: формат #RRGGBB.`)
+    }
     if (HEX.test(s.primaryColorHex) && contrastWithWhite(s.primaryColorHex) < 3) errs.push('Основной цвет слишком светлый: белый текст на кнопках будет плохо читаться.')
     if (s.contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.contactEmail)) errs.push('Некорректный email.')
     if (s.socialLinks.some((l) => l.url && !/^https?:\/\//.test(l.url))) errs.push('Ссылки соцсетей должны начинаться с http:// или https://')
     setErrors(errs)
     if (errs.length) return
-    actions.saveSettings(s, actor)
-    setSaved(true)
+
+    setSaving(true)
+    try {
+      // Save to real DB via API
+      const res = await fetch('/api/v1/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          displayName: s.displayName,
+          logoUrl: s.logoUrl || null,
+          heroImageUrl: s.heroImageUrl || null,
+          primaryColorHex: s.primaryColorHex,
+          accentColorHex: s.accentColorHex,
+          footerColorHex: s.footerColorHex,
+          contactEmail: s.contactEmail,
+          contactPhone: s.contactPhone,
+          socialLinks: s.socialLinks,
+          translations: (['ru', 'ky', 'en'] as Loc[]).map((l) => ({
+            locale: l,
+            heroTitle: s.heroSlogan[l] || null,
+            heroSubtitle: null,
+            aboutText: s.organizerInfo[l] || null,
+          })),
+        }),
+      })
+      if (!res.ok) throw new Error('API error')
+
+      // Also update local store for immediate preview
+      actions.saveSettings(s, actor)
+      setSaved(true)
+    } catch {
+      setErrors(['Не удалось сохранить настройки. Попробуйте ещё раз.'])
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
     <div>
       <PageHeader title="Настройки сайта" text="Название, логотип, цвета, фото, слоган и контакты меняются без участия разработчика." />
-      <DemoBanner note="Пока сохраняется только в браузере. После появления /api/v1/admin/settings изменения сразу будут применяться на публичном сайте." />
       <form onSubmit={save} noValidate className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
         <div className="space-y-6">
           <Card title="Основное">
@@ -116,8 +152,10 @@ export function Settings() {
 
           {errors.length > 0 && <ul role="alert" className="list-disc space-y-1 rounded-xl bg-red-50 py-3 pl-8 pr-4 text-xs font-semibold text-red-600">{errors.map((e) => <li key={e}>{e}</li>)}</ul>}
           <div className="flex items-center gap-3">
-            <button type="submit" className={btn.primary}>Сохранить настройки</button>
-            {saved && <span role="status" className="text-xs font-bold text-emerald-600">Сохранено, запись добавлена в журнал аудита</span>}
+            <button type="submit" disabled={saving} className={btn.primary}>
+              {saving ? 'Сохранение...' : 'Сохранить настройки'}
+            </button>
+            {saved && <span role="status" className="text-xs font-bold text-emerald-600">Сохранено — лендинг обновится в течение минуты</span>}
           </div>
         </div>
 

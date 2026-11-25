@@ -145,7 +145,7 @@ export function AdminLogin({ locale }: { locale: string }) {
               <label className="mt-6 block text-xs font-bold text-ink">Код подтверждения</label>
               
               {/* 6 separate input boxes */}
-              <div className="mt-3 flex justify-center gap-2">
+              <div className="mt-3 flex justify-center gap-1.5 sm:gap-2">
                 {[0, 1, 2, 3, 4, 5].map((index) => (
                   <input
                     key={index}
@@ -157,7 +157,7 @@ export function AdminLogin({ locale }: { locale: string }) {
                     onChange={(e) => handleCodeInput(index, e.target.value)}
                     onKeyDown={(e) => handleKeyDown(index, e)}
                     onPaste={index === 0 ? handlePaste : undefined}
-                    className="h-14 w-14 rounded-xl border-2 border-slate-200 bg-white text-center text-2xl font-bold text-ink outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30"
+                    className="h-12 w-12 sm:h-14 sm:w-14 rounded-lg sm:rounded-xl border-2 border-slate-200 bg-white text-center text-xl sm:text-2xl font-bold text-ink outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30"
                     aria-label={`Цифра ${index + 1} из 6`}
                   />
                 ))}

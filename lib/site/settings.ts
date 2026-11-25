@@ -1,11 +1,6 @@
 /**
- * Site settings used by the public pages (name, logo, colours, images, contacts).
- *
- * Admin Panel will edit these values (spec 8.5 / BR-18). Backend contract:
- * GET /api/v1/settings?locale=RU  (see docs/openapi.yaml -> SiteSettings).
- *
- * For now defaults below are used. When the backend endpoint is ready, set
- * NEXT_PUBLIC_USE_API=true and the API response is merged over the defaults.
+ * Site settings — reads from /api/v1/admin/settings (real DB).
+ * Falls back to DEFAULT_SITE_SETTINGS if DB not available.
  */
 import type { AppLocale } from '@/i18n/routing'
 
@@ -24,7 +19,6 @@ export interface SiteSettingsView {
   footerColorHex: string
   contactEmail: string
   contactPhone: string
-  /** Optional admin overrides of translated texts; fall back to messages/*.json. */
   heroTitle?: string
   heroSubtitle?: string
   aboutText?: string
@@ -51,27 +45,30 @@ export const DEFAULT_SITE_SETTINGS: SiteSettingsView = {
 }
 
 export async function getSiteSettings(locale: AppLocale): Promise<SiteSettingsView> {
-  if (process.env.NEXT_PUBLIC_USE_API !== 'true') return DEFAULT_SITE_SETTINGS
-
   try {
     const base = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
-    const res = await fetch(`${base}/api/v1/settings?locale=${locale.toUpperCase()}`, {
+    const res = await fetch(`${base}/api/v1/admin/settings`, {
       next: { revalidate: 60, tags: ['site-settings'] },
     })
     if (!res.ok) return DEFAULT_SITE_SETTINGS
+
     const api = await res.json()
     const tr = (api.translations ?? []).find(
       (t: { locale: string }) => t.locale === locale.toUpperCase(),
     )
+
     return {
       ...DEFAULT_SITE_SETTINGS,
       displayName: api.displayName ?? DEFAULT_SITE_SETTINGS.displayName,
       logoUrl: api.logoUrl ?? null,
       heroImageUrl: api.heroImageUrl ?? DEFAULT_SITE_SETTINGS.heroImageUrl,
+      aboutImageUrl: null,
       primaryColorHex: api.primaryColorHex ?? DEFAULT_SITE_SETTINGS.primaryColorHex,
       accentColorHex: api.accentColorHex ?? DEFAULT_SITE_SETTINGS.accentColorHex,
+      footerColorHex: api.footerColorHex ?? DEFAULT_SITE_SETTINGS.footerColorHex,
       contactEmail: api.contactEmail ?? DEFAULT_SITE_SETTINGS.contactEmail,
       contactPhone: api.contactPhone ?? DEFAULT_SITE_SETTINGS.contactPhone,
+      socialLinks: api.socialLinks?.length ? api.socialLinks : DEFAULT_SITE_SETTINGS.socialLinks,
       heroTitle: tr?.heroTitle ?? undefined,
       heroSubtitle: tr?.heroSubtitle ?? undefined,
       aboutText: tr?.aboutText ?? undefined,

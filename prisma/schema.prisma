@@ -629,8 +629,9 @@ model SiteSettings {
   displayName     String   @default("FORUM.KG") @db.VarChar(120)
   logoUrl         String?  @db.Text
   heroImageUrl    String?  @db.Text
-  primaryColorHex String   @default("#2563EB") @db.VarChar(7)
-  accentColorHex  String   @default("#10B981") @db.VarChar(7)
+  primaryColorHex String   @default("#3B5BFF") @db.VarChar(7)
+  accentColorHex  String   @default("#7C5CFF") @db.VarChar(7)
+  footerColorHex  String   @default("#070B24") @db.VarChar(7)
   contactPhone    String?  @db.VarChar(30)
   contactEmail    String?  @db.VarChar(255)
   updatedAt       DateTime @updatedAt

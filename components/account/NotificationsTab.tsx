@@ -11,7 +11,20 @@ export function NotificationsTab({ locale }: { locale: string }) {
   const [msg, setMsg] = useState('')
 
   useEffect(() => {
-    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+    // Detailed browser support check
+    const hasNotifications = 'Notification' in window
+    const hasServiceWorker = 'serviceWorker' in navigator
+    const hasPushManager = hasServiceWorker && 'pushManager' in ServiceWorkerRegistration.prototype
+    
+    console.log('[Push Debug]', {
+      hasNotifications,
+      hasServiceWorker,
+      hasPushManager,
+      userAgent: navigator.userAgent,
+      isSecureContext: window.isSecureContext
+    })
+    
+    if (!hasNotifications || !hasServiceWorker || !hasPushManager) {
       setPermission('unsupported')
       return
     }

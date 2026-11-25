@@ -112,8 +112,12 @@ export function AdminShell({ locale, children }: { locale: string; children: Rea
 
   return (
     <Ctx.Provider value={{ user, actor }}>
-      <div className="min-h-screen bg-surface lg:grid lg:grid-cols-[16rem_1fr]">
-        <aside className="hidden bg-footer lg:block">{sidebar}</aside>
+      <div className="min-h-screen bg-surface lg:flex">
+        <aside className="hidden lg:block lg:w-64 lg:shrink-0">
+          <div className="sticky top-0 h-screen overflow-y-auto bg-footer">
+            {sidebar}
+          </div>
+        </aside>
 
         <div className="flex items-center justify-between bg-footer px-4 py-3 text-white lg:hidden">
           <div className="flex items-center gap-2">
@@ -136,7 +140,7 @@ export function AdminShell({ locale, children }: { locale: string; children: Rea
           </div>
         )}
 
-        <main className="min-w-0 px-4 py-6 sm:px-8 sm:py-8">
+        <main className="min-w-0 flex-1 px-4 py-6 sm:px-8 sm:py-8">
           {allowed ? (
             children
           ) : (
