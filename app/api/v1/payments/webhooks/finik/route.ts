@@ -172,6 +172,14 @@ export async function POST(request: NextRequest) {
         include: { order: { select: { id: true, forumId: true } } },
       })
       if (!candidate) {
+        console.error('[Finik Webhook] Payment not found by providerPaymentId:', paymentId)
+        // Try to find by searching all payments to debug
+        const allPayments = await tx.payment.findMany({
+          select: { id: true, providerPaymentId: true, status: true },
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+        })
+        console.error('[Finik Webhook] Recent payments:', JSON.stringify(allPayments))
         await tx.paymentWebhookEvent.create({
           data: {
             provider: 'FINIK',
@@ -249,7 +257,9 @@ export async function POST(request: NextRequest) {
       const paidAt = typeof payload.transactionDate === 'number' && Number.isFinite(payload.transactionDate)
         ? new Date(payload.transactionDate)
         : new Date()
-      if (!Number.isFinite(paidAt.getTime()) || paidAt.getTime() > Date.now() + 5 * 60 * 1000) {
+      // Allow up to 1 hour in the future to handle clock skew
+      if (!Number.isFinite(paidAt.getTime()) || paidAt.getTime() > Date.now() + 60 * 60 * 1000) {
+        console.error('[Finik Webhook] Invalid transaction date:', payload.transactionDate)
         await tx.paymentWebhookEvent.update({ where: { id: webhookEvent.id }, data: { status: WebhookEventStatus.IGNORED } })
         return { outcome: 'mismatch' as const }
       }
