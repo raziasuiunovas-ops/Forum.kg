@@ -19,17 +19,29 @@ export function TicketQRPage({ locale, ticketId }: { locale: string; ticketId: s
   const router = useRouter()
   const [ticket, setTicket] = useState<TicketInfo | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<'notfound' | 'auth' | null>(null)
   const [downloading, setDownloading] = useState(false)
 
   useEffect(() => {
-    api<{ tickets: TicketInfo[] }>('/api/v1/profile/tickets').then((res) => {
+    api<{ tickets: TicketInfo[] }>('/api/v1/profile/tickets?limit=100').then((res) => {
+      if (res.status === 401 || res.status === 403) {
+        // Not logged in — redirect to login
+        router.replace(`/${locale}/login?next=${encodeURIComponent(`/${locale}/tickets/${ticketId}/qr`)}`)
+        return
+      }
       if (res.ok && res.data?.tickets) {
         const t = res.data.tickets.find((t) => t.id === ticketId)
-        setTicket(t ?? null)
+        if (t) {
+          setTicket(t)
+        } else {
+          setError('notfound')
+        }
+      } else {
+        setError('notfound')
       }
       setLoading(false)
     })
-  }, [ticketId])
+  }, [ticketId, locale, router])
 
   const downloadQR = async () => {
     if (!ticket) return
@@ -164,10 +176,21 @@ export function TicketQRPage({ locale, ticketId }: { locale: string; ticketId: s
     </div>
   )
 
-  if (!ticket) return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-950 text-white">
-      <p className="text-lg">Билет не найден</p>
-      <button onClick={() => router.back()} className="mt-4 text-sm text-slate-400 underline">Назад</button>
+  if (error === 'notfound' || !ticket) return (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-950 px-6 text-center text-white">
+      <div className="rounded-full bg-red-500/20 p-5">
+        <svg className="h-10 w-10 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </div>
+      <h1 className="text-xl font-bold">Билет не найден</h1>
+      <p className="text-sm text-slate-400">Этот билет не относится к вашему аккаунту</p>
+      <button
+        onClick={() => router.push(`/${locale}/account`)}
+        className="mt-2 rounded-full bg-white/10 px-6 py-2.5 text-sm font-semibold transition hover:bg-white/20"
+      >
+        Мои билеты
+      </button>
     </div>
   )
 
