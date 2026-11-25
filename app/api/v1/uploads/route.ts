@@ -123,7 +123,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   try {
     await getPrivateUploadStore().put(key, bytes, validation.format.contentType, storedFileName)
-  } catch {
+  } catch (err) {
+    console.error('[upload] storage put failed:', err)
     writeSecurityAuditEvent({
       eventType: 'API_ERROR',
       result: 'error',

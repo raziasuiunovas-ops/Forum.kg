@@ -64,9 +64,20 @@ export function ImageUpload({
       const formData = new FormData()
       formData.append('file', file)
 
-      // Получаем CSRF токен
+      // Получаем CSRF токен (заодно проверяем сессию)
       const csrfRes = await fetch('/api/v1/auth/csrf-token', { credentials: 'include' })
       const csrfData = await csrfRes.json()
+
+      // Если сессия истекла — обновляем токен через refresh
+      const statusRes = await fetch('/api/v1/auth/status', { credentials: 'include' })
+      const statusData = await statusRes.json()
+      if (!statusData?.authenticated && statusData?.canRefresh) {
+        await fetch('/api/v1/auth/refresh', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'X-CSRF-Token': csrfData.csrfToken || '' },
+        })
+      }
       
       // Загружаем файл через API
       const response = await fetch('/api/v1/uploads', {

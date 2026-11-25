@@ -279,33 +279,71 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
       // Update categories if provided
       if (data.categories && data.categories.length > 0) {
-        // Delete existing categories and their translations
-        await tx.ticketCategory.deleteMany({
+        // Get existing categories
+        const existingCategories = await tx.ticketCategory.findMany({
           where: { forumId },
+          select: { id: true, code: true },
         })
 
-        // Create new categories with translations
-        for (const category of data.categories) {
-          const newCategory = await tx.ticketCategory.create({
-            data: {
-              forumId,
-              code: category.code,
-              priceMinor: category.priceMinor,
-              currency: category.currency,
-              capacity: category.capacity || null,
-              isActive: category.isActive,
-              sortOrder: category.sortOrder,
-            },
-          })
+        const incomingCodes = data.categories.map((c) => c.code)
 
-          await tx.ticketCategoryTranslation.createMany({
-            data: category.translations.map((t) => ({
-              categoryId: newCategory.id,
-              locale: t.locale,
-              name: t.name,
-              description: t.description || null,
-            })),
+        // Deactivate categories that were removed (don't delete — OrderItem references them)
+        const removedCategories = existingCategories.filter((ec) => !incomingCodes.includes(ec.code))
+        if (removedCategories.length > 0) {
+          await tx.ticketCategory.updateMany({
+            where: { id: { in: removedCategories.map((c) => c.id) } },
+            data: { isActive: false },
           })
+        }
+
+        // Upsert each incoming category
+        for (const category of data.categories) {
+          const existing = existingCategories.find((ec) => ec.code === category.code)
+
+          if (existing) {
+            // Update existing category
+            await tx.ticketCategory.update({
+              where: { id: existing.id },
+              data: {
+                priceMinor: category.priceMinor,
+                currency: category.currency,
+                capacity: category.capacity || null,
+                isActive: category.isActive ?? true,
+                sortOrder: category.sortOrder,
+              },
+            })
+
+            // Upsert translations
+            for (const t of category.translations) {
+              await tx.ticketCategoryTranslation.upsert({
+                where: { categoryId_locale: { categoryId: existing.id, locale: t.locale } },
+                update: { name: t.name, description: t.description || null },
+                create: { categoryId: existing.id, locale: t.locale, name: t.name, description: t.description || null },
+              })
+            }
+          } else {
+            // Create new category
+            const newCategory = await tx.ticketCategory.create({
+              data: {
+                forumId,
+                code: category.code,
+                priceMinor: category.priceMinor,
+                currency: category.currency,
+                capacity: category.capacity || null,
+                isActive: category.isActive ?? true,
+                sortOrder: category.sortOrder,
+              },
+            })
+
+            await tx.ticketCategoryTranslation.createMany({
+              data: category.translations.map((t) => ({
+                categoryId: newCategory.id,
+                locale: t.locale,
+                name: t.name,
+                description: t.description || null,
+              })),
+            })
+          }
         }
       }
 

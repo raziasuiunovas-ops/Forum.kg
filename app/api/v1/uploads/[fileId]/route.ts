@@ -20,8 +20,6 @@ export async function GET(
   const match = FILE_ID_PATTERN.exec(fileId)
   if (!match) return notFoundResponse()
 
-  // User identity comes only from the DB-backed auth result. The client never
-  // supplies an owner ID or storage key.
   const key = `private/${authResult.user.userId}/${fileId}`
   let bytes: Uint8Array | null
   try {
@@ -62,10 +60,11 @@ export async function GET(
     headers: {
       'Content-Type': validation.format.contentType,
       'Content-Length': String(bytes.byteLength),
-      'Content-Disposition': `attachment; filename="${match[1]}.${validation.format.extension}"`,
-      'Cache-Control': 'private, no-store, max-age=0',
+      // inline — браузер показывает картинку, а не скачивает
+      'Content-Disposition': `inline; filename="${match[1]}.${validation.format.extension}"`,
+      // Кешируем на 1 час — картинка не меняется после загрузки
+      'Cache-Control': 'private, max-age=3600',
       'X-Content-Type-Options': 'nosniff',
-      'Content-Security-Policy': "default-src 'none'; sandbox",
       'Cross-Origin-Resource-Policy': 'same-origin',
       'Referrer-Policy': 'no-referrer',
     },

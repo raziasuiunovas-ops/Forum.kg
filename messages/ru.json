@@ -145,6 +145,11 @@
       "title": "Контакты",
       "address": "Бишкек, Кыргызстан"
     },
+    "aruna": {
+      "title": "Aruna IT Studio",
+      "tagline": "Цифровые решения для бизнеса",
+      "made": "Иштен чыккан Aruna IT Studio"
+    },
     "rights": "© 2026 FORUM.KG · Дизайн-концепт",
     "madeFor": "Сделано для людей встреч"
   },

@@ -145,6 +145,11 @@
       "title": "Contacts",
       "address": "Bishkek, Kyrgyzstan"
     },
+    "aruna": {
+      "title": "Aruna IT Studio",
+      "tagline": "Digital solutions for business",
+      "made": "Made by Aruna IT Studio"
+    },
     "rights": "© 2026 FORUM.KG · Design concept",
     "madeFor": "Made for people who meet"
   },
