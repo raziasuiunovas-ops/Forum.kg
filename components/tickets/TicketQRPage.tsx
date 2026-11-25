@@ -35,18 +35,120 @@ export function TicketQRPage({ locale, ticketId }: { locale: string; ticketId: s
     if (!ticket) return
     setDownloading(true)
     try {
-      const response = await fetch(`/api/v1/tickets/${ticketId}/qr?size=800`)
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
+      // Fetch the QR SVG
+      const response = await fetch(`/api/v1/tickets/${ticketId}/qr?size=400`)
+      const svgText = await response.text()
+
+      // Create canvas with ticket card design
+      const canvas = document.createElement('canvas')
+      const W = 600
+      const H = 820
+      canvas.width = W
+      canvas.height = H
+      const ctx = canvas.getContext('2d')!
+
+      // Background
+      const grad = ctx.createLinearGradient(0, 0, 0, H)
+      grad.addColorStop(0, '#1e3a8a')
+      grad.addColorStop(1, '#1e40af')
+      ctx.fillStyle = grad
+      ctx.roundRect(0, 0, W, H, 32)
+      ctx.fill()
+
+      // White card for QR
+      ctx.fillStyle = '#ffffff'
+      ctx.roundRect(W / 2 - 190, 60, 380, 380, 20)
+      ctx.fill()
+
+      // Draw QR SVG onto canvas
+      const svgBlob = new Blob([svgText], { type: 'image/svg+xml' })
+      const svgUrl = URL.createObjectURL(svgBlob)
+      const img = new Image()
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve()
+        img.onerror = reject
+        img.src = svgUrl
+      })
+      ctx.drawImage(img, W / 2 - 180, 70, 360, 360)
+      URL.revokeObjectURL(svgUrl)
+
+      // Forum title
+      ctx.fillStyle = '#ffffff'
+      ctx.font = 'bold 26px system-ui, sans-serif'
+      ctx.textAlign = 'center'
+      const title = ticket.forum.title
+      // Word wrap for long titles
+      const words = title.split(' ')
+      let line = ''
+      let y = 495
+      for (const word of words) {
+        const test = line ? `${line} ${word}` : word
+        if (ctx.measureText(test).width > 520 && line) {
+          ctx.fillText(line, W / 2, y)
+          line = word
+          y += 34
+        } else {
+          line = test
+        }
+      }
+      ctx.fillText(line, W / 2, y)
+      y += 34
+
+      // Date
+      ctx.font = '18px system-ui, sans-serif'
+      ctx.fillStyle = 'rgba(255,255,255,0.75)'
+      const dateStr = new Date(ticket.forum.startsAt).toLocaleDateString(locale, {
+        day: 'numeric', month: 'long', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bishkek'
+      })
+      ctx.fillText(dateStr, W / 2, y + 5)
+
+      // Divider
+      ctx.strokeStyle = 'rgba(255,255,255,0.2)'
+      ctx.lineWidth = 1
+      ctx.setLineDash([6, 4])
+      ctx.beginPath()
+      ctx.moveTo(40, y + 32)
+      ctx.lineTo(W - 40, y + 32)
+      ctx.stroke()
+      ctx.setLineDash([])
+
+      // Participant & category
+      ctx.textAlign = 'left'
+      ctx.font = '15px system-ui, sans-serif'
+      ctx.fillStyle = 'rgba(255,255,255,0.6)'
+      ctx.fillText('Участник', 50, y + 65)
+      ctx.fillText('Категория', W / 2 + 20, y + 65)
+
+      ctx.font = 'bold 17px system-ui, sans-serif'
+      ctx.fillStyle = '#ffffff'
+      ctx.fillText(`${ticket.participant.firstName} ${ticket.participant.lastName}`, 50, y + 88)
+      ctx.fillText(ticket.category.name, W / 2 + 20, y + 88)
+
+      // Ticket number
+      ctx.font = '12px monospace'
+      ctx.fillStyle = 'rgba(255,255,255,0.4)'
+      ctx.textAlign = 'center'
+      ctx.fillText(ticket.ticketNumber, W / 2, y + 120)
+
+      // FORUM.KG branding
+      ctx.font = 'bold 15px system-ui, sans-serif'
+      ctx.fillStyle = 'rgba(255,255,255,0.5)'
+      ctx.fillText('FORUM.KG', W / 2, H - 24)
+
+      // Download
+      const dataUrl = canvas.toDataURL('image/png')
       const a = document.createElement('a')
-      a.href = url
+      a.href = dataUrl
       a.download = `ticket-${ticket.ticketNumber}.png`
       document.body.appendChild(a)
       a.click()
-      window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
-    } catch { /* ignore */ }
-    finally { setDownloading(false) }
+    } catch (e) {
+      console.error('Download failed', e)
+    } finally {
+      setDownloading(false)
+    }
   }
 
   const formatDate = (iso: string) =>
