@@ -19,6 +19,12 @@ import {
 } from 'lucide-react'
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import styles from './StaffScanner.module.css'
+// jsQR is used as a fallback when BarcodeDetector is not available (most iOS browsers, Firefox)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let jsQR: any = null
+if (typeof window !== 'undefined') {
+  import('jsqr').then((m) => { jsQR = m.default ?? m }).catch(() => {})
+}
 
 type StaffRole = 'SCANNER' | 'MANAGER' | 'SUPER_ADMIN'
 type AccessState = 'checking' | 'ready' | 'signed-out' | 'forbidden' | 'error'
@@ -373,14 +379,18 @@ export default function StaffScanner() {
 
     const Detector = (window as unknown as { BarcodeDetector?: BarcodeDetectorConstructor }).BarcodeDetector
     if (!Detector) {
-      setCameraError('В этом браузере нет встроенного распознавания QR-кодов. Используйте браузер с поддержкой BarcodeDetector или ручной ввод полного QR payload.')
-      return
+      // Try jsQR fallback instead of blocking
+      if (!jsQR) {
+        setCameraError('В этом браузере нет встроенного распознавания QR-кодов. Используйте браузер с поддержкой BarcodeDetector или ручной ввод полного QR payload.')
+        return
+      }
+      // jsQR is available, continue with canvas-based scanning (works in all browsers!)
     }
 
     cameraStartInFlightRef.current = true
     setCameraStarting(true)
     try {
-      const supportedFormats = await Detector.getSupportedFormats?.()
+      const supportedFormats = await Detector?.getSupportedFormats?.()
       if (supportedFormats && !supportedFormats.includes('qr_code')) {
         setCameraError('Браузер не поддерживает распознавание QR-кодов. Используйте ручной ввод полного QR payload.')
         return
@@ -396,7 +406,9 @@ export default function StaffScanner() {
         video: { ...videoConstraints, width: { ideal: 1280 }, height: { ideal: 960 } },
       })
       streamRef.current = stream
-      detectorRef.current = new Detector({ formats: ['qr_code'] })
+      // Use BarcodeDetector if available, otherwise jsQR handles scanning via canvas
+      const Detector2 = (window as unknown as { BarcodeDetector?: BarcodeDetectorConstructor }).BarcodeDetector
+      detectorRef.current = Detector2 ? new Detector2({ formats: ['qr_code'] }) : null
       setFacingMode(nextFacingMode)
 
       const video = videoRef.current
@@ -443,16 +455,37 @@ export default function StaffScanner() {
       const video = videoRef.current
       const detector = detectorRef.current
 
-      if (video && detector && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && !detecting) {
+      if (video && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && !detecting) {
         detecting = true
         try {
-          const codes = await detector.detect(video)
-          const qr = codes.find((code) => code.format === 'qr_code' && code.rawValue)
-          if (qr && !cancelled) {
-            cancelled = true
-            stopCamera()
-            void submitRef.current(qr.rawValue)
-            return
+          const detector = detectorRef.current
+          if (detector) {
+            // Native BarcodeDetector path
+            const codes = await detector.detect(video)
+            const qr = codes.find((code) => code.format === 'qr_code' && code.rawValue)
+            if (qr && !cancelled) {
+              cancelled = true
+              stopCamera()
+              void submitRef.current(qr.rawValue)
+              return
+            }
+          } else if (jsQR) {
+            // jsQR fallback — draw frame to canvas and scan
+            const canvas = document.createElement('canvas')
+            canvas.width = video.videoWidth
+            canvas.height = video.videoHeight
+            const ctx = canvas.getContext('2d')
+            if (ctx && video.videoWidth > 0) {
+              ctx.drawImage(video, 0, 0)
+              const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+              const code = jsQR(imageData.data, imageData.width, imageData.height)
+              if (code?.data && !cancelled) {
+                cancelled = true
+                stopCamera()
+                void submitRef.current(code.data)
+                return
+              }
+            }
           }
         } catch {
           // A temporary frame decode failure should not interrupt camera playback.
