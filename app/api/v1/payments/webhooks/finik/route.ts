@@ -10,6 +10,7 @@ import {
   readLimitedRequestText,
   verifyFinikWebhookSignature,
 } from '@/lib/payments/finik'
+import { sendPushToUser } from '@/lib/push/send'
 
 type FinikWebhookPayload = {
   id?: unknown
@@ -359,7 +360,7 @@ export async function POST(request: NextRequest) {
       }
 
       await tx.paymentWebhookEvent.update({ where: { id: webhookEvent.id }, data: { status: WebhookEventStatus.PROCESSED, processedAt: new Date() } })
-      return { outcome: 'processed' as const, ticketsIssued: order.items.length }
+      return { outcome: 'processed' as const, ticketsIssued: order.items.length, orderId: order.id }
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
 
     if (result.outcome === 'duplicate') return NextResponse.json({ success: true, duplicate: true })
@@ -367,6 +368,23 @@ export async function POST(request: NextRequest) {
     if (result.outcome === 'mismatch') return jsonError('PAYMENT_DETAILS_MISMATCH', 'Webhook payment details do not match', 400)
     if (result.outcome === 'already-paid') return NextResponse.json({ success: true, duplicate: true })
     if (result.outcome === 'refund-required') return NextResponse.json({ success: true, processed: true, refundRequired: true })
+
+    // Send push notification after successful payment
+    if (result.outcome === 'processed') {
+      const order = await prisma.order.findUnique({
+        where: { id: result.orderId },
+        include: { forum: { include: { translations: { where: { locale: 'RU' } } } } },
+      }).catch(() => null)
+      if (order) {
+        const title = order.forum.translations[0]?.title ?? 'Форум'
+        void sendPushToUser(order.userId, {
+          title: '🎫 Билет оплачен!',
+          body: `Ваш билет на «${title}» готов. Откройте приложение чтобы увидеть QR-код.`,
+          url: '/ru/account',
+        })
+      }
+    }
+
     return NextResponse.json({ success: true, processed: true, ticketsIssued: result.ticketsIssued })
   } catch (error) {
     if (isPrismaCode(error, 'P2002')) return NextResponse.json({ success: true, duplicate: true })

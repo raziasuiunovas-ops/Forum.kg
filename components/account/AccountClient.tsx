@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Bell, CreditCard, Loader2, LogOut, Receipt, Send, Ticket, User, LayoutDashboard, ArrowUpRight } from 'lucide-react'
 import { api, resetCsrf } from '@/lib/client/api'
 import { makeT, type Messages } from '@/lib/i18n/client'
+import { NotificationsTab } from './NotificationsTab'
 
 interface Me {
   id: string
@@ -149,13 +150,7 @@ export function AccountClient({ locale, messages }: { locale: string; messages: 
           )}
 
           {tab === 'notifications' && (
-            <EmptyState
-              Icon={TABS.find((x) => x.id === tab)!.Icon}
-              title={t(`empty.${tab}`)}
-              text={t(`empty.${tab}Text`)}
-              cta={t('empty.browse')}
-              href={`/${locale}/forums`}
-            />
+            <NotificationsTab locale={locale} />
           )}
 
           {tab === 'tickets' && <TicketsTab locale={locale} t={t} />}
