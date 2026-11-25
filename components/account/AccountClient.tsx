@@ -361,41 +361,96 @@ function TicketsTab({ locale, t }: { locale: string; t: ReturnType<typeof makeT>
   return (
     <div>
       <h2 className="text-2xl font-black tracking-tight text-ink">{t('tickets.title')}</h2>
-      <ul className="mt-6 grid gap-5 md:grid-cols-2">
+      <ul className="mt-6 grid gap-6 md:grid-cols-2">
         {tickets.map((tk) => {
           const state = tk.status === 'CANCELLED' ? 'cancelled' : tk.status === 'USED' || tk.isCheckedIn ? 'used' : tk.isExpired ? 'expired' : 'active'
-          const badge = {
-            active: 'bg-emerald-50 text-emerald-700',
-            used: 'bg-slate-100 text-slate-600',
-            cancelled: 'bg-red-50 text-red-600',
-            expired: 'bg-amber-50 text-amber-700',
-          }[state]
+          const isActive = state === 'active'
+          const isCancelled = state === 'cancelled'
+
           return (
-            <li key={tk.id} className="overflow-hidden rounded-2xl bg-surface ring-1 ring-slate-200/70">
-              <div className="flex gap-4 p-5">
-                <div className="min-w-0 flex-1">
-                  <span className={`inline-block rounded-full px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider ${badge}`}>
-                    {t(`tickets.${state}`)}
-                  </span>
-                  <h3 className="mt-3 text-lg font-black leading-tight tracking-tight text-ink">{tk.forum.title}</h3>
-                  <p className="mt-1 text-xs text-slate-500">{dateFmt.format(new Date(tk.forum.startsAt))}</p>
-                  <dl className="mt-3 space-y-1 text-xs">
-                    <div className="flex gap-2"><dt className="text-slate-400">{t('tickets.participant')}:</dt><dd className="font-bold text-ink">{tk.participant.firstName} {tk.participant.lastName}</dd></div>
-                    <div className="flex gap-2"><dt className="text-slate-400">{t('tickets.category')}:</dt><dd className="font-bold text-ink">{tk.category.name}</dd></div>
-                    <div className="flex gap-2"><dt className="text-slate-400">{t('tickets.number')}:</dt><dd className="font-bold text-ink">{tk.ticketNumber}</dd></div>
-                  </dl>
-                </div>
-                {state === 'active' && (
-                  <div className="w-28 shrink-0">
-                    <a href={`/${locale}/tickets/${tk.id}/qr`} className="block">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={`/api/v1/tickets/${tk.id}/qr?size=240`} alt={`QR ${tk.ticketNumber}`} className="aspect-square w-full rounded-xl bg-white p-1.5 ring-1 ring-slate-200 transition hover:ring-primary" />
-                    </a>
-                    <p className="mt-1.5 text-center text-[10px] text-slate-400">{t('tickets.qrNote')}</p>
+            <li key={tk.id} className="relative">
+              {/* Ticket body */}
+              <div className={`overflow-hidden rounded-3xl shadow-lg transition-all ${isCancelled ? 'opacity-60' : ''}`}>
+
+                {/* TOP PART — main info */}
+                <div className={`relative px-5 pt-5 pb-4 ${isActive ? 'bg-primary' : 'bg-slate-700'}`}>
+                  {/* Decorative circles for perforation — left */}
+                  <div className="absolute -left-3 bottom-0 h-6 w-6 translate-y-1/2 rounded-full bg-surface" />
+                  {/* right */}
+                  <div className="absolute -right-3 bottom-0 h-6 w-6 translate-y-1/2 rounded-full bg-surface" />
+
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <span className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
+                        isActive ? 'bg-white/20 text-white' : 'bg-white/10 text-white/70'
+                      }`}>
+                        {t(`tickets.${state}`)}
+                      </span>
+                      <h3 className="mt-2 text-lg font-black leading-tight text-white">{tk.forum.title}</h3>
+                      <p className="mt-0.5 text-xs text-white/70">{dateFmt.format(new Date(tk.forum.startsAt))}</p>
+                    </div>
+                    {/* QR — only for active */}
+                    {isActive && (
+                      <a href={`/${locale}/tickets/${tk.id}/qr`} className="shrink-0">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={`/api/v1/tickets/${tk.id}/qr?size=200`}
+                          alt={`QR ${tk.ticketNumber}`}
+                          className="h-20 w-20 rounded-xl bg-white p-1 shadow-md transition hover:scale-105"
+                        />
+                      </a>
+                    )}
                   </div>
-                )}
+                </div>
+
+                {/* PERFORATION LINE */}
+                <div className={`relative flex items-center ${isActive ? 'bg-primary' : 'bg-slate-700'}`}>
+                  {/* dashed line */}
+                  <div className="mx-6 flex-1 border-t-2 border-dashed border-white/30" />
+                </div>
+
+                {/* BOTTOM PART — details + stub */}
+                <div className={`relative px-5 pt-4 pb-5 ${isActive ? 'bg-primary' : 'bg-slate-700'}`}>
+                  {/* Decorative circles — top (mirror of bottom of top part) */}
+                  <div className="absolute -left-3 top-0 h-6 w-6 -translate-y-1/2 rounded-full bg-surface" />
+                  <div className="absolute -right-3 top-0 h-6 w-6 -translate-y-1/2 rounded-full bg-surface" />
+
+                  <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                    <div>
+                      <dt className="text-white/50">{t('tickets.participant')}</dt>
+                      <dd className="font-bold text-white">{tk.participant.firstName} {tk.participant.lastName}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-white/50">{t('tickets.category')}</dt>
+                      <dd className="font-bold text-white">{tk.category.name}</dd>
+                    </div>
+                    <div className="col-span-2">
+                      <dt className="text-white/50">{t('tickets.number')}</dt>
+                      <dd className="font-mono text-[10px] text-white/80 break-all">{tk.ticketNumber}</dd>
+                    </div>
+                  </dl>
+
+                  {/* Torn effect for cancelled */}
+                  {isCancelled && (
+                    <div className="absolute inset-0 flex items-center justify-center rounded-b-3xl bg-black/40">
+                      <span className="rotate-[-15deg] rounded border-4 border-red-500 px-4 py-1 text-xl font-black uppercase text-red-500">
+                        Аннулирован
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
+
+              {/* Torn paper effect for cancelled — SVG tear */}
+              {isCancelled && (
+                <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
+                  <svg className="absolute inset-0 h-full w-full" preserveAspectRatio="none">
+                    <line x1="0" y1="50%" x2="100%" y2="50%" stroke="white" strokeWidth="3" strokeDasharray="4 4" opacity="0.3" />
+                  </svg>
+                </div>
+              )}
             </li>
+
           )
         })}
       </ul>
