@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
   // но в БД хранится реальная цена билета — сравнение суммы пропускаем.
   const testMode = process.env.FINIK_TEST_MODE === 'true'
 
-  if (receivedAmount === null || fieldsAmount === null || receivedAmount !== fieldsAmount) {
+  if (receivedAmount === null || fieldsAmount === null || (!testMode && receivedAmount !== fieldsAmount)) {
     console.error('[Finik Webhook] Amount mismatch:', { receivedAmount, fieldsAmount, testMode })
     return jsonError('INVALID_PAYMENT_DETAILS', 'Webhook payment details do not match', 400)
   }
