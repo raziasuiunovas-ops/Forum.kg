@@ -3,6 +3,7 @@ import { isAppLocale } from '@/i18n/routing'
 import { getSiteSettings } from '@/lib/site/settings'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
+import { InstallBanner } from '@/components/pwa/InstallBanner'
 
 /** Public site shell: floating header + footer around every public page. */
 export default async function SiteLayout({
@@ -21,6 +22,7 @@ export default async function SiteLayout({
       <Header locale={locale} settings={settings} />
       <main>{children}</main>
       <Footer locale={locale} settings={settings} />
+      <InstallBanner />
     </>
   )
 }
