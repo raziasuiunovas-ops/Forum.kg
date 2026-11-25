@@ -8,6 +8,7 @@ import { api, resetCsrf } from '@/lib/client/api'
 import { NAV } from '@/lib/admin/nav'
 import type { StaffRole } from '@/lib/admin/types'
 import { LogoMark } from '@/components/layout/Logo'
+import { fetchAdminData } from '@/lib/admin/store'
 
 export interface AdminUser {
   id: string
@@ -42,8 +43,12 @@ export function AdminShell({ locale, children }: { locale: string; children: Rea
     api<{ user: AdminUser }>('/api/v1/users/me').then((res) => {
       if (!alive) return
       const u = res.data?.user
-      if (res.ok && u && STAFF_ROLES.includes(u.role)) setUser(u)
-      else router.replace(`/${locale}/admin/login`)
+      if (res.ok && u && STAFF_ROLES.includes(u.role)) {
+        setUser(u)
+        void fetchAdminData()
+      } else {
+        router.replace(`/${locale}/admin/login`)
+      }
     })
     return () => {
       alive = false

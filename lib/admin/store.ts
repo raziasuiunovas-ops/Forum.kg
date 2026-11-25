@@ -1,9 +1,10 @@
 'use client'
 
 /**
- * Demo store for the admin panel. Until the backend exposes /api/v1/admin/* endpoints
- * (they are described in docs/openapi.yaml), data lives in the browser (localStorage).
- * Replace the functions in `actions` with fetch() calls - the UI does not need to change.
+ * Admin panel store.
+ * On first load, fetches real data from /api/v1/admin/data.
+ * Actions that modify data (cancellations, staff, etc.) still run locally
+ * until dedicated write endpoints are implemented.
  */
 import { useSyncExternalStore } from 'react'
 import type {
@@ -15,34 +16,87 @@ import { INITIAL_STATE } from './mock'
 const KEY = 'forumkg_admin_demo_v1'
 let state: AdminState = INITIAL_STATE
 let loaded = false
+let fetched = false
 const listeners = new Set<() => void>()
+
+function notify() {
+  listeners.forEach((l) => l())
+}
 
 function load() {
   if (loaded || typeof window === 'undefined') return
   loaded = true
   try {
     const raw = localStorage.getItem(KEY)
-    if (raw) state = { ...INITIAL_STATE, ...JSON.parse(raw) }
+    if (raw) {
+      const saved = JSON.parse(raw)
+      // Only restore non-data fields (staff, settings, audit, offline, notifications)
+      state = {
+        ...INITIAL_STATE,
+        staff: saved.staff ?? INITIAL_STATE.staff,
+        settings: saved.settings ?? INITIAL_STATE.settings,
+        audit: saved.audit ?? INITIAL_STATE.audit,
+        offline: saved.offline ?? INITIAL_STATE.offline,
+        notifications: saved.notifications ?? INITIAL_STATE.notifications,
+      }
+    }
   } catch {
-    /* storage unavailable: keep in-memory demo data */
+    /* storage unavailable */
   }
 }
 
 function set(next: AdminState) {
   state = next
   try {
-    localStorage.setItem(KEY, JSON.stringify(state))
+    // Only persist non-db fields to localStorage
+    localStorage.setItem(KEY, JSON.stringify({
+      staff: state.staff,
+      settings: state.settings,
+      audit: state.audit,
+      offline: state.offline,
+      notifications: state.notifications,
+    }))
   } catch {
     /* ignore */
   }
-  listeners.forEach((l) => l())
+  notify()
+}
+
+/** Fetch real data from the backend and merge into state */
+export async function fetchAdminData() {
+  if (fetched) return
+  fetched = true
+  try {
+    const res = await fetch('/api/v1/admin/data', { credentials: 'include' })
+    if (!res.ok) {
+      console.warn('[Admin Store] Failed to load real data, status:', res.status)
+      fetched = false
+      return
+    }
+    const data = await res.json()
+    state = {
+      ...state,
+      forums: data.forums ?? state.forums,
+      orders: data.orders ?? state.orders,
+      payments: data.payments ?? state.payments,
+      tickets: data.tickets ?? state.tickets,
+      users: data.users ?? state.users,
+      cancellations: data.cancellations ?? state.cancellations,
+    }
+    notify()
+  } catch (err) {
+    console.warn('[Admin Store] Error loading real data:', err)
+    fetched = false
+  }
+}
+
+export function resetDemoData() {
+  fetched = false
+  set(INITIAL_STATE)
+  void fetchAdminData()
 }
 
 const uid = (p: string) => `${p}-${Math.random().toString(36).slice(2, 9)}`
-
-export function resetDemoData() {
-  set(INITIAL_STATE)
-}
 
 export const actions = {
   audit(actor: string, action: string, targetType: string, target: string) {

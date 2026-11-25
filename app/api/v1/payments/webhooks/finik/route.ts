@@ -153,8 +153,12 @@ export async function POST(request: NextRequest) {
 
   console.log('[Finik Webhook] Amount check:', { receivedAmount, fieldsAmount, receivedCurrency })
 
+  // В тестовом режиме (FINIK_TEST_MODE=true) мы отправляем Finik 1 сом,
+  // но в БД хранится реальная цена билета — сравнение суммы пропускаем.
+  const testMode = process.env.FINIK_TEST_MODE === 'true'
+
   if (receivedAmount === null || fieldsAmount === null || receivedAmount !== fieldsAmount) {
-    console.error('[Finik Webhook] Amount mismatch:', { receivedAmount, fieldsAmount })
+    console.error('[Finik Webhook] Amount mismatch:', { receivedAmount, fieldsAmount, testMode })
     return jsonError('INVALID_PAYMENT_DETAILS', 'Webhook payment details do not match', 400)
   }
 
@@ -215,13 +219,16 @@ export async function POST(request: NextRequest) {
         dbCurrency: payment.currency,
         receivedCurrency,
         isValidOrderNumber,
+        testMode,
       })
+
+      // В тестовом режиме суммы не совпадут (1 сом vs реальная цена) — пропускаем проверку суммы
+      const amountOk = testMode ? true : (payment.amountMinor === receivedAmount && payment.amountMinor === fieldsAmount)
       
       if (
         payment.providerPaymentId !== paymentId ||
         payment.orderId !== order.id ||
-        payment.amountMinor !== receivedAmount ||
-        payment.amountMinor !== fieldsAmount ||
+        !amountOk ||
         payment.currency !== receivedCurrency ||
         !isValidOrderNumber
       ) {
