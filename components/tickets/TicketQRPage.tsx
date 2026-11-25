@@ -43,15 +43,13 @@ export function TicketQRPage({ locale, ticketId }: { locale: string; ticketId: s
     if (!ticket) return
     setDownloading(true)
     try {
-      // Fetch QR SVG
-      const response = await fetch(`/api/v1/tickets/${ticketId}/qr?size=400`)
+      const response = await fetch(`/api/v1/tickets/${ticketId}/qr?size=500`)
       const svgText = await response.text()
       const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgText)}`
 
-      const W = 600
-      const H = 880
+      const W = 800
+      const H = 1100
 
-      // Load QR image
       const qrImg = new Image()
       qrImg.crossOrigin = 'anonymous'
       await new Promise<void>((resolve) => {
@@ -65,54 +63,29 @@ export function TicketQRPage({ locale, ticketId }: { locale: string; ticketId: s
       canvas.height = H
       const ctx = canvas.getContext('2d')!
 
-      // Dark gradient background
-      const grad = ctx.createLinearGradient(0, 0, 0, H)
-      grad.addColorStop(0, '#0f172a')
-      grad.addColorStop(1, '#1e3a8a')
-      ctx.fillStyle = grad
-      ctx.beginPath()
-      ctx.roundRect(0, 0, W, H, 28)
-      ctx.fill()
-
-      // Top accent bar
-      ctx.fillStyle = '#3b82f6'
-      ctx.fillRect(0, 0, W, 8)
-
-      // FORUM.KG label
-      ctx.fillStyle = 'rgba(255,255,255,0.4)'
-      ctx.font = 'bold 13px Arial, sans-serif'
-      ctx.textAlign = 'center'
-      ctx.fillText('FORUM.KG', W / 2, 36)
-
-      // White QR card — centered
-      const cardSize = 340
-      const cardX = (W - cardSize) / 2
-      const cardY = 55
+      // ── White background with rounded corners ──
       ctx.fillStyle = '#ffffff'
       ctx.beginPath()
-      ctx.roundRect(cardX, cardY, cardSize, cardSize, 16)
+      ctx.roundRect(0, 0, W, H, 40)
       ctx.fill()
 
-      // Draw QR inside white card
-      const pad = 16
-      ctx.drawImage(qrImg, cardX + pad, cardY + pad, cardSize - pad * 2, cardSize - pad * 2)
-
-      // Dashed divider
-      let dashY = cardY + cardSize + 36
-      ctx.strokeStyle = 'rgba(255,255,255,0.2)'
-      ctx.lineWidth = 1.5
-      ctx.setLineDash([6, 5])
+      // ── Top color band ──
+      ctx.fillStyle = '#1e3a8a'
       ctx.beginPath()
-      ctx.moveTo(40, dashY)
-      ctx.lineTo(W - 40, dashY)
-      ctx.stroke()
-      ctx.setLineDash([])
+      ctx.roundRect(0, 0, W, 220, [40, 40, 0, 0])
+      ctx.fill()
 
-      // Forum title (word wrap)
-      ctx.fillStyle = '#ffffff'
-      ctx.font = 'bold 22px Arial, sans-serif'
+      // FORUM.KG
+      ctx.fillStyle = 'rgba(255,255,255,0.5)'
+      ctx.font = '600 20px Arial, sans-serif'
       ctx.textAlign = 'center'
-      let titleY = dashY + 40
+      ctx.fillText('FORUM.KG', W / 2, 52)
+
+      // Forum title on blue
+      ctx.fillStyle = '#ffffff'
+      ctx.font = 'bold 36px Arial, sans-serif'
+      ctx.textAlign = 'center'
+      let titleY = 110
       const words = ticket.forum.title.split(' ')
       let line = ''
       for (const word of words) {
@@ -120,57 +93,98 @@ export function TicketQRPage({ locale, ticketId }: { locale: string; ticketId: s
         if (ctx.measureText(test).width > W - 80 && line) {
           ctx.fillText(line, W / 2, titleY)
           line = word
-          titleY += 30
-        } else {
-          line = test
-        }
+          titleY += 44
+        } else { line = test }
       }
       ctx.fillText(line, W / 2, titleY)
-      titleY += 10
 
-      // Date
-      ctx.font = '15px Arial, sans-serif'
-      ctx.fillStyle = 'rgba(255,255,255,0.65)'
+      // ── QR code — white square centered ──
+      const qrSize = 460
+      const qrX = (W - qrSize) / 2
+      const qrY = 240
+      ctx.fillStyle = '#ffffff'
+      ctx.beginPath()
+      ctx.roundRect(qrX - 20, qrY - 20, qrSize + 40, qrSize + 40, 24)
+      ctx.fill()
+      // drop shadow
+      ctx.shadowColor = 'rgba(0,0,0,0.08)'
+      ctx.shadowBlur = 20
+      ctx.fillStyle = '#ffffff'
+      ctx.beginPath()
+      ctx.roundRect(qrX - 20, qrY - 20, qrSize + 40, qrSize + 40, 24)
+      ctx.fill()
+      ctx.shadowBlur = 0
+
+      ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize)
+
+      // ── Scan hint ──
+      ctx.fillStyle = '#94a3b8'
+      ctx.font = '17px Arial, sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText('Покажите QR-код при входе', W / 2, qrY + qrSize + 50)
+
+      // ── Divider ──
+      const divY = qrY + qrSize + 80
+      ctx.strokeStyle = '#e2e8f0'
+      ctx.lineWidth = 2
+      ctx.setLineDash([8, 6])
+      ctx.beginPath()
+      ctx.moveTo(50, divY)
+      ctx.lineTo(W - 50, divY)
+      ctx.stroke()
+      ctx.setLineDash([])
+
+      // ── Info rows ──
+      const col1 = 60
+      const col2 = W / 2 + 20
+      let iy = divY + 55
+
+      const drawField = (label: string, value: string, x: number, y: number) => {
+        ctx.textAlign = 'left'
+        ctx.font = '16px Arial, sans-serif'
+        ctx.fillStyle = '#94a3b8'
+        ctx.fillText(label.toUpperCase(), x, y)
+        ctx.font = 'bold 22px Arial, sans-serif'
+        ctx.fillStyle = '#0f172a'
+        ctx.fillText(value, x, y + 30)
+      }
+
+      drawField('Участник', `${ticket.participant.firstName} ${ticket.participant.lastName}`, col1, iy)
+      drawField('Категория', ticket.category.name, col2, iy)
+      iy += 90
+
       const dateStr = new Date(ticket.forum.startsAt).toLocaleDateString(locale, {
         day: 'numeric', month: 'long', year: 'numeric',
         hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bishkek',
       })
-      ctx.fillText(dateStr, W / 2, titleY + 28)
-
+      drawField('Дата', dateStr, col1, iy)
       if (ticket.forum.venueName) {
-        ctx.fillText(ticket.forum.venueName, W / 2, titleY + 50)
-        titleY += 22
+        drawField('Место', ticket.forum.venueName, col2, iy)
       }
+      iy += 90
 
-      // Info rows
-      const infoY = titleY + 72
-      const drawRow = (label: string, value: string, x: number, y: number) => {
-        ctx.textAlign = 'left'
-        ctx.font = '12px Arial, sans-serif'
-        ctx.fillStyle = 'rgba(255,255,255,0.5)'
-        ctx.fillText(label, x, y)
-        ctx.font = 'bold 15px Arial, sans-serif'
-        ctx.fillStyle = '#ffffff'
-        ctx.fillText(value, x, y + 20)
-      }
+      // Status badge
+      ctx.textAlign = 'left'
+      ctx.font = '16px Arial, sans-serif'
+      ctx.fillStyle = '#94a3b8'
+      ctx.fillText('СТАТУС', col1, iy)
+      ctx.fillStyle = ticket.status === 'ACTIVE' ? '#059669' : '#dc2626'
+      ctx.font = 'bold 22px Arial, sans-serif'
+      ctx.fillText(ticket.status === 'ACTIVE' ? '✓  Действителен' : '✗  Недействителен', col1, iy + 30)
 
-      drawRow('Участник', `${ticket.participant.firstName} ${ticket.participant.lastName}`, 48, infoY)
-      drawRow('Категория', ticket.category.name, W / 2 + 20, infoY)
-      drawRow('Статус', ticket.status === 'ACTIVE' ? '✓ Действителен' : ticket.status, 48, infoY + 55)
-
-      // Ticket number at bottom
+      // ── Ticket number at bottom ──
       ctx.textAlign = 'center'
-      ctx.font = '10px monospace'
-      ctx.fillStyle = 'rgba(255,255,255,0.3)'
-      ctx.fillText(ticket.ticketNumber, W / 2, H - 20)
+      ctx.font = '13px monospace'
+      ctx.fillStyle = '#cbd5e1'
+      ctx.fillText(ticket.ticketNumber, W / 2, H - 32)
 
-      // Download PNG
+      // Download
       canvas.toBlob((blob) => {
         if (!blob) return
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
-        a.download = `forum-ticket-${ticket!.ticketNumber}.png`
+        a.download = `ticket-${ticket!.ticketNumber}.png`
         document.body.appendChild(a)
         a.click()
         URL.revokeObjectURL(url)
