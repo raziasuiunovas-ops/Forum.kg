@@ -147,9 +147,14 @@ export async function POST(request: NextRequest) {
 
   const receivedAmount = toMinorUnits(payload.amount)
   const fieldsAmount = toMinorUnits(fields.amount)
-  const receivedCurrency = typeof fields.currency === 'string' ? fields.currency.toUpperCase() : null
+  // Finik не всегда присылает currency в fields — по умолчанию KGS
+  const receivedCurrency = typeof fields.currency === 'string' ? fields.currency.toUpperCase() : 'KGS'
   const receivedOrderNumber = typeof fields.orderNumber === 'string' ? fields.orderNumber : null
-  if (receivedAmount === null || fieldsAmount === null || receivedAmount !== fieldsAmount || !receivedCurrency) {
+
+  console.log('[Finik Webhook] Amount check:', { receivedAmount, fieldsAmount, receivedCurrency })
+
+  if (receivedAmount === null || fieldsAmount === null || receivedAmount !== fieldsAmount) {
+    console.error('[Finik Webhook] Amount mismatch:', { receivedAmount, fieldsAmount })
     return jsonError('INVALID_PAYMENT_DETAILS', 'Webhook payment details do not match', 400)
   }
 
@@ -199,6 +204,19 @@ export async function POST(request: NextRequest) {
       })
 
       const isValidOrderNumber = !receivedOrderNumber || receivedOrderNumber === order.orderNumber
+      
+      console.log('[Finik Webhook] Payment validation:', {
+        providerPaymentIdMatch: payment.providerPaymentId === paymentId,
+        orderIdMatch: payment.orderId === order.id,
+        amountMatch: payment.amountMinor === receivedAmount,
+        dbAmount: payment.amountMinor,
+        receivedAmount,
+        currencyMatch: payment.currency === receivedCurrency,
+        dbCurrency: payment.currency,
+        receivedCurrency,
+        isValidOrderNumber,
+      })
+      
       if (
         payment.providerPaymentId !== paymentId ||
         payment.orderId !== order.id ||
