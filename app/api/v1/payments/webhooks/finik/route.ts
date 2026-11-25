@@ -59,6 +59,11 @@ function hashQRToken(token: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  console.log('[Finik Webhook] ===== WEBHOOK RECEIVED =====')
+  console.log('[Finik Webhook] URL:', request.url)
+  console.log('[Finik Webhook] Method:', request.method)
+  console.log('[Finik Webhook] Headers:', Object.fromEntries(request.headers.entries()))
+  
   let rawBody: string
   try {
     const contentLength = Number(request.headers.get('content-length'))
@@ -68,23 +73,40 @@ export async function POST(request: NextRequest) {
     const text = await readLimitedRequestText(request, FINIK_MAX_WEBHOOK_BYTES)
     if (text === null) return jsonError('PAYLOAD_TOO_LARGE', 'Webhook payload is too large', 413)
     rawBody = text
-  } catch {
+    console.log('[Finik Webhook] Raw body:', rawBody)
+  } catch (error) {
+    console.error('[Finik Webhook] Error reading body:', error)
     return jsonError('INVALID_PAYLOAD', 'Invalid webhook payload', 400)
   }
 
   let payload: FinikWebhookPayload
   try {
     const parsed: unknown = JSON.parse(rawBody)
-    if (!isRecord(parsed)) return jsonError('INVALID_PAYLOAD', 'Invalid webhook payload', 400)
+    if (!isRecord(parsed)) {
+      console.error('[Finik Webhook] Payload is not a record')
+      return jsonError('INVALID_PAYLOAD', 'Invalid webhook payload', 400)
+    }
     payload = parsed
-  } catch {
+    console.log('[Finik Webhook] Parsed payload:', JSON.stringify(payload, null, 2))
+  } catch (error) {
+    console.error('[Finik Webhook] JSON parse error:', error)
     return jsonError('INVALID_PAYLOAD', 'Invalid webhook payload', 400)
   }
 
   const fields = isRecord(payload.fields) ? payload.fields as FinikFields : null
   const paymentId = eventId(fields?.paymentId)
   const transactionId = eventId(payload.transactionId) ?? eventId(payload.id)
+  
+  console.log('[Finik Webhook] Extracted fields:', {
+    hasFields: !!fields,
+    paymentId,
+    transactionId,
+    status: payload.status,
+    statusType: typeof payload.status
+  })
+  
   if (!fields || !paymentId || !transactionId || typeof payload.status !== 'string') {
+    console.error('[Finik Webhook] Missing required fields')
     return jsonError('INVALID_PAYLOAD', 'Invalid webhook payload', 400)
   }
 
