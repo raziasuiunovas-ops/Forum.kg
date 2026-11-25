@@ -165,7 +165,10 @@ export async function POST(request: NextRequest) {
   try {
     const result = await prisma.$transaction(async (tx) => {
       const priorEvent = await tx.paymentWebhookEvent.findUnique({ where: { dedupeKey: `finik:${transactionId}` } })
-      if (priorEvent) return { outcome: 'duplicate' as const }
+      // If previous event was IGNORED (e.g. payment not found), try again
+      if (priorEvent && priorEvent.status !== WebhookEventStatus.IGNORED) {
+        return { outcome: 'duplicate' as const }
+      }
 
       const candidate = await tx.payment.findUnique({
         where: { providerPaymentId: paymentId },
@@ -205,8 +208,9 @@ export async function POST(request: NextRequest) {
 
       if (!resolvedCandidate) {
         console.error('[Finik Webhook] Payment not found by providerPaymentId:', paymentId)
-        await tx.paymentWebhookEvent.create({
-          data: {
+        await tx.paymentWebhookEvent.upsert({
+          where: { dedupeKey: `finik:${transactionId}` },
+          create: {
             provider: 'FINIK',
             dedupeKey: `finik:${transactionId}`,
             providerEventId: transactionId,
@@ -214,6 +218,7 @@ export async function POST(request: NextRequest) {
             eventType: normalizedStatus,
             status: WebhookEventStatus.IGNORED,
           },
+          update: { payloadDigest: digest, status: WebhookEventStatus.IGNORED },
         })
         return { outcome: 'unknown-payment' as const }
       }
@@ -230,14 +235,20 @@ export async function POST(request: NextRequest) {
       })
       if (!payment || !order) return { outcome: 'unknown-payment' as const }
 
-      const webhookEvent = await tx.paymentWebhookEvent.create({
-        data: {
+      const webhookEvent = await tx.paymentWebhookEvent.upsert({
+        where: { dedupeKey: `finik:${transactionId}` },
+        create: {
           provider: 'FINIK',
           dedupeKey: `finik:${transactionId}`,
           providerEventId: transactionId,
           paymentId: payment.id,
           payloadDigest: digest,
           eventType: normalizedStatus,
+          status: WebhookEventStatus.RECEIVED,
+        },
+        update: {
+          paymentId: payment.id,
+          payloadDigest: digest,
           status: WebhookEventStatus.RECEIVED,
         },
       })
