@@ -301,7 +301,16 @@ export async function POST(request: NextRequest) {
         data: { status: PaymentStatus.SUCCEEDED, paidAt },
       })
 
-      if (capacityUnavailable || order.status !== OrderStatus.PENDING_PAYMENT) {
+      // If order is EXPIRED but payment came in — still fulfill it (money was received)
+      // Update order back to PENDING_PAYMENT so it can be fulfilled
+      if (order.status === OrderStatus.EXPIRED || order.status === OrderStatus.PENDING_PAYMENT) {
+        if (order.status === OrderStatus.EXPIRED) {
+          await tx.order.update({ where: { id: order.id }, data: { status: OrderStatus.PENDING_PAYMENT } })
+          console.log('[Finik Webhook] Order was EXPIRED, restoring to PENDING_PAYMENT for fulfillment')
+        }
+      }
+
+      if (capacityUnavailable || (order.status !== OrderStatus.PENDING_PAYMENT && order.status !== OrderStatus.EXPIRED)) {
         await tx.order.update({ where: { id: order.id }, data: { status: OrderStatus.CANCELLED } })
         await tx.refund.create({
           data: {

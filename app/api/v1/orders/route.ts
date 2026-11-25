@@ -26,8 +26,8 @@ const createOrderSchema = z.object({
     .max(20), // Reasonable limit per order
 })
 
-// Order reservation timeout (10 minutes)
-const RESERVATION_TIMEOUT_MS = 10 * 60 * 1000
+// Order reservation timeout (30 minutes — enough time to pay and receive webhook)
+const RESERVATION_TIMEOUT_MS = 30 * 60 * 1000
 const MAX_ORDER_TRANSACTION_ATTEMPTS = 3
 const IDEMPOTENCY_KEY_PATTERN = /^[\x21-\x7E]{1,255}$/
 const FINIK_REQUEST_LEASE_MS = 30_000
