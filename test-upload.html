@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Тест загрузки</title>
+    <style>
+        body { font-family: system-ui; max-width: 600px; margin: 50px auto; padding: 20px; }
+        .error { color: red; padding: 10px; background: #fee; border-radius: 5px; margin: 10px 0; }
+        .success { color: green; padding: 10px; background: #efe; border-radius: 5px; margin: 10px 0; }
+        button { padding: 10px 20px; background: #0070f3; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:disabled { background: #ccc; }
+    </style>
+</head>
+<body>
+    <h1>Тест загрузки изображения</h1>
+    <input type="file" id="file" accept="image/*">
+    <button onclick="upload()">Загрузить</button>
+    <div id="result"></div>
+
+    <script>
+        async function upload() {
+            const file = document.getElementById('file').files[0];
+            if (!file) {
+                alert('Выберите файл');
+                return;
+            }
+
+            const result = document.getElementById('result');
+            result.innerHTML = 'Загрузка...';
+
+            try {
+                // Get CSRF token
+                const csrfRes = await fetch('http://localhost:3001/api/v1/auth/csrf-token', {
+                    credentials: 'include'
+                });
+                const { csrfToken } = await csrfRes.json();
+
+                // Upload file
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await fetch('http://localhost:3001/api/v1/uploads', {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'include',
+                    headers: {
+                        'X-CSRF-Token': csrfToken
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    result.innerHTML = `<div class="success">
+                        <strong>Успешно загружено!</strong><br>
+                        URL: ${data.url}<br>
+                        Размер: ${(data.size / 1024).toFixed(2)} KB
+                    </div>`;
+                } else {
+                    result.innerHTML = `<div class="error">
+                        <strong>Ошибка:</strong> ${data.error?.message || 'Неизвестная ошибка'}
+                    </div>`;
+                }
+            } catch (error) {
+                result.innerHTML = `<div class="error">
+                    <strong>Ошибка:</strong> ${error.message}
+                </div>`;
+            }
+        }
+    </script>
+</body>
+</html>
