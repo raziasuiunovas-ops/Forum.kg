@@ -71,11 +71,11 @@ export function TicketQRPage({ locale, ticketId }: { locale: string; ticketId: s
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-950 text-white">
-      {/* Navbar */}
-      <div className="flex items-center justify-between px-5 py-4">
+      {/* Top bar — fixed height, always visible */}
+      <div className="flex items-center justify-between px-5 py-4 pt-6">
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-2 text-sm text-slate-400 transition hover:text-white"
+          className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold transition hover:bg-white/20"
         >
           <ArrowLeft className="h-4 w-4" /> Назад
         </button>
@@ -89,35 +89,36 @@ export function TicketQRPage({ locale, ticketId }: { locale: string; ticketId: s
         </button>
       </div>
 
-      {/* QR Code — большой и по центру */}
-      <div className="flex flex-1 flex-col items-center justify-center px-6 py-8">
-        <div className="rounded-3xl bg-white p-6 shadow-2xl">
+      {/* Content */}
+      <div className="flex flex-1 flex-col items-center justify-center px-6 py-6">
+        {/* QR Code */}
+        <div className="rounded-3xl bg-white p-5 shadow-2xl">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={`/api/v1/tickets/${ticketId}/qr?size=600`}
             alt={`QR билета ${ticket.ticketNumber}`}
-            className="h-72 w-72 sm:h-80 sm:w-80"
+            className="h-64 w-64 sm:h-72 sm:w-72"
           />
         </div>
 
-        {/* Инфо о билете */}
-        <div className="mt-8 w-full max-w-sm space-y-3 text-center">
-          <h1 className="text-xl font-bold text-white">{ticket.forum.title}</h1>
+        {/* Info */}
+        <div className="mt-6 w-full max-w-sm space-y-2 text-center">
+          <h1 className="text-xl font-bold">{ticket.forum.title}</h1>
           <p className="text-sm text-slate-400">{formatDate(ticket.forum.startsAt)}</p>
           {ticket.forum.venueName && (
             <p className="text-sm text-slate-400">{ticket.forum.venueName}</p>
           )}
 
-          <div className="mt-4 rounded-2xl bg-white/10 p-4">
-            <div className="flex justify-between text-sm">
+          <div className="mt-4 rounded-2xl bg-white/10 p-4 text-left">
+            <div className="flex justify-between py-1 text-sm">
               <span className="text-slate-400">Участник</span>
               <span className="font-semibold">{ticket.participant.firstName} {ticket.participant.lastName}</span>
             </div>
-            <div className="mt-2 flex justify-between text-sm">
+            <div className="flex justify-between py-1 text-sm">
               <span className="text-slate-400">Категория</span>
               <span className="font-semibold">{ticket.category.name}</span>
             </div>
-            <div className="mt-2 flex justify-between text-sm">
+            <div className="flex justify-between py-1 text-sm">
               <span className="text-slate-400">Статус</span>
               <span className={`font-bold ${ticket.status === 'ACTIVE' ? 'text-emerald-400' : 'text-red-400'}`}>
                 {ticket.status === 'ACTIVE' ? '✓ Действителен' : ticket.status}
@@ -125,7 +126,7 @@ export function TicketQRPage({ locale, ticketId }: { locale: string; ticketId: s
             </div>
           </div>
 
-          <p className="text-xs font-mono text-slate-500">{ticket.ticketNumber}</p>
+          <p className="text-xs font-mono text-slate-500 break-all">{ticket.ticketNumber}</p>
           <p className="text-xs text-slate-500">Покажите этот QR-код при входе на мероприятие</p>
         </div>
       </div>
