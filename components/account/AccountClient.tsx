@@ -387,8 +387,10 @@ function TicketsTab({ locale, t }: { locale: string; t: ReturnType<typeof makeT>
                 </div>
                 {state === 'active' && (
                   <div className="w-28 shrink-0">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={`/api/v1/tickets/${tk.id}/qr?size=240`} alt={`QR ${tk.ticketNumber}`} className="aspect-square w-full rounded-xl bg-white p-1.5 ring-1 ring-slate-200" />
+                    <a href={`/${locale}/tickets/${tk.id}/qr`} className="block">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={`/api/v1/tickets/${tk.id}/qr?size=240`} alt={`QR ${tk.ticketNumber}`} className="aspect-square w-full rounded-xl bg-white p-1.5 ring-1 ring-slate-200 transition hover:ring-primary" />
+                    </a>
                     <p className="mt-1.5 text-center text-[10px] text-slate-400">{t('tickets.qrNote')}</p>
                   </div>
                 )}
