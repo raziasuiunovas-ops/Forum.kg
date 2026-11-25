@@ -47,8 +47,8 @@ export function TicketQRPage({ locale, ticketId }: { locale: string; ticketId: s
       const svgText = await response.text()
       const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgText)}`
 
-      const W = 800
-      const H = 1100
+      const W = 900
+      const H = 1200
 
       const qrImg = new Image()
       qrImg.crossOrigin = 'anonymous'
@@ -63,122 +63,125 @@ export function TicketQRPage({ locale, ticketId }: { locale: string; ticketId: s
       canvas.height = H
       const ctx = canvas.getContext('2d')!
 
-      // ── White background with rounded corners ──
+      // ── Pure white background ──
       ctx.fillStyle = '#ffffff'
       ctx.beginPath()
-      ctx.roundRect(0, 0, W, H, 40)
+      ctx.roundRect(0, 0, W, H, 48)
       ctx.fill()
 
-      // ── Top color band ──
-      ctx.fillStyle = '#1e3a8a'
+      // ── Dark navy header block ──
+      const headerH = 280
+      ctx.fillStyle = '#0f172a'
       ctx.beginPath()
-      ctx.roundRect(0, 0, W, 220, [40, 40, 0, 0])
+      ctx.roundRect(0, 0, W, headerH, [48, 48, 0, 0])
       ctx.fill()
 
-      // FORUM.KG
-      ctx.fillStyle = 'rgba(255,255,255,0.5)'
-      ctx.font = '600 20px Arial, sans-serif'
-      ctx.textAlign = 'center'
-      ctx.fillText('FORUM.KG', W / 2, 52)
+      // FORUM.KG small label
+      ctx.fillStyle = 'rgba(255,255,255,0.4)'
+      ctx.font = '500 24px Georgia, serif'
+      ctx.textAlign = 'left'
+      ctx.fillText('FORUM.KG', 60, 68)
 
-      // Forum title on blue
+      // Forum title — big, white
       ctx.fillStyle = '#ffffff'
-      ctx.font = 'bold 36px Arial, sans-serif'
-      ctx.textAlign = 'center'
-      let titleY = 110
+      ctx.font = 'bold 52px Georgia, serif'
+      ctx.textAlign = 'left'
+      let titleY = 148
       const words = ticket.forum.title.split(' ')
       let line = ''
       for (const word of words) {
         const test = line ? `${line} ${word}` : word
-        if (ctx.measureText(test).width > W - 80 && line) {
-          ctx.fillText(line, W / 2, titleY)
+        if (ctx.measureText(test).width > W - 120 && line) {
+          ctx.fillText(line, 60, titleY)
           line = word
-          titleY += 44
+          titleY += 62
         } else { line = test }
       }
-      ctx.fillText(line, W / 2, titleY)
+      ctx.fillText(line, 60, titleY)
 
-      // ── QR code — white square centered ──
-      const qrSize = 460
-      const qrX = (W - qrSize) / 2
-      const qrY = 240
-      ctx.fillStyle = '#ffffff'
-      ctx.beginPath()
-      ctx.roundRect(qrX - 20, qrY - 20, qrSize + 40, qrSize + 40, 24)
-      ctx.fill()
-      // drop shadow
-      ctx.shadowColor = 'rgba(0,0,0,0.08)'
-      ctx.shadowBlur = 20
-      ctx.fillStyle = '#ffffff'
-      ctx.beginPath()
-      ctx.roundRect(qrX - 20, qrY - 20, qrSize + 40, qrSize + 40, 24)
-      ctx.fill()
-      ctx.shadowBlur = 0
-
-      ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize)
-
-      // ── Scan hint ──
-      ctx.fillStyle = '#94a3b8'
-      ctx.font = '17px Arial, sans-serif'
-      ctx.textAlign = 'center'
-      ctx.fillText('Покажите QR-код при входе', W / 2, qrY + qrSize + 50)
-
-      // ── Divider ──
-      const divY = qrY + qrSize + 80
-      ctx.strokeStyle = '#e2e8f0'
-      ctx.lineWidth = 2
-      ctx.setLineDash([8, 6])
-      ctx.beginPath()
-      ctx.moveTo(50, divY)
-      ctx.lineTo(W - 50, divY)
-      ctx.stroke()
-      ctx.setLineDash([])
-
-      // ── Info rows ──
-      const col1 = 60
-      const col2 = W / 2 + 20
-      let iy = divY + 55
-
-      const drawField = (label: string, value: string, x: number, y: number) => {
-        ctx.textAlign = 'left'
-        ctx.font = '16px Arial, sans-serif'
-        ctx.fillStyle = '#94a3b8'
-        ctx.fillText(label.toUpperCase(), x, y)
-        ctx.font = 'bold 22px Arial, sans-serif'
-        ctx.fillStyle = '#0f172a'
-        ctx.fillText(value, x, y + 30)
-      }
-
-      drawField('Участник', `${ticket.participant.firstName} ${ticket.participant.lastName}`, col1, iy)
-      drawField('Категория', ticket.category.name, col2, iy)
-      iy += 90
-
+      // Date under title
+      ctx.font = '26px Georgia, serif'
+      ctx.fillStyle = 'rgba(255,255,255,0.6)'
       const dateStr = new Date(ticket.forum.startsAt).toLocaleDateString(locale, {
         day: 'numeric', month: 'long', year: 'numeric',
         hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bishkek',
       })
-      drawField('Дата', dateStr, col1, iy)
-      if (ticket.forum.venueName) {
-        drawField('Место', ticket.forum.venueName, col2, iy)
-      }
-      iy += 90
+      ctx.fillText(dateStr, 60, titleY + 48)
 
-      // Status badge
-      ctx.textAlign = 'left'
-      ctx.font = '16px Arial, sans-serif'
+      // ── QR code — perfectly centered ──
+      const qrSize = 480
+      const qrX = (W - qrSize) / 2
+      const qrY = headerH + 60
+      // shadow
+      ctx.shadowColor = 'rgba(0,0,0,0.12)'
+      ctx.shadowBlur = 32
+      ctx.fillStyle = '#f8fafc'
+      ctx.beginPath()
+      ctx.roundRect(qrX - 24, qrY - 24, qrSize + 48, qrSize + 48, 28)
+      ctx.fill()
+      ctx.shadowBlur = 0
+      ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize)
+
+      // Scan hint
       ctx.fillStyle = '#94a3b8'
-      ctx.fillText('СТАТУС', col1, iy)
-      ctx.fillStyle = ticket.status === 'ACTIVE' ? '#059669' : '#dc2626'
-      ctx.font = 'bold 22px Arial, sans-serif'
-      ctx.fillText(ticket.status === 'ACTIVE' ? '✓  Действителен' : '✗  Недействителен', col1, iy + 30)
-
-      // ── Ticket number at bottom ──
+      ctx.font = '22px Georgia, serif'
       ctx.textAlign = 'center'
-      ctx.font = '13px monospace'
-      ctx.fillStyle = '#cbd5e1'
-      ctx.fillText(ticket.ticketNumber, W / 2, H - 32)
+      ctx.fillText('Предъявите при входе', W / 2, qrY + qrSize + 56)
 
-      // Download
+      // ── Horizontal rule ──
+      const hrY = qrY + qrSize + 90
+      ctx.strokeStyle = '#e2e8f0'
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.moveTo(60, hrY)
+      ctx.lineTo(W - 60, hrY)
+      ctx.stroke()
+
+      // ── Info grid ──
+      const col1x = 60
+      const col2x = W / 2 + 20
+      let iy = hrY + 64
+
+      const field = (label: string, value: string, x: number, y: number) => {
+        ctx.textAlign = 'left'
+        ctx.font = '20px Arial, sans-serif'
+        ctx.fillStyle = '#94a3b8'
+        ctx.fillText(label, x, y)
+        ctx.font = 'bold 28px Arial, sans-serif'
+        ctx.fillStyle = '#0f172a'
+        // truncate long values
+        const maxW = W / 2 - 80
+        let val = value
+        while (ctx.measureText(val).width > maxW && val.length > 3) val = val.slice(0, -1)
+        if (val !== value) val += '…'
+        ctx.fillText(val, x, y + 36)
+      }
+
+      field('УЧАСТНИК', `${ticket.participant.firstName} ${ticket.participant.lastName}`, col1x, iy)
+      field('КАТЕГОРИЯ', ticket.category.name, col2x, iy)
+      iy += 100
+
+      if (ticket.forum.venueName) {
+        field('МЕСТО', ticket.forum.venueName, col1x, iy)
+        iy += 100
+      }
+
+      // Status
+      ctx.textAlign = 'left'
+      ctx.font = '20px Arial, sans-serif'
+      ctx.fillStyle = '#94a3b8'
+      ctx.fillText('СТАТУС', col1x, iy)
+      ctx.font = 'bold 28px Arial, sans-serif'
+      ctx.fillStyle = ticket.status === 'ACTIVE' ? '#059669' : '#dc2626'
+      ctx.fillText(ticket.status === 'ACTIVE' ? '✓  Действителен' : '✗  Недействителен', col1x, iy + 36)
+
+      // ── Ticket number ──
+      ctx.textAlign = 'center'
+      ctx.font = '18px monospace'
+      ctx.fillStyle = '#cbd5e1'
+      ctx.fillText(ticket.ticketNumber, W / 2, H - 40)
+
+      // ── Download ──
       canvas.toBlob((blob) => {
         if (!blob) return
         const url = URL.createObjectURL(blob)
