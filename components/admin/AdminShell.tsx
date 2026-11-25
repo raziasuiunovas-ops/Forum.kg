@@ -117,18 +117,18 @@ export function AdminShell({ locale, children }: { locale: string; children: Rea
 
         <div className="flex items-center justify-between bg-footer px-4 py-3 text-white lg:hidden">
           <div className="flex items-center gap-2">
+            <button type="button" onClick={() => setOpen(true)} aria-label="Меню" className="rounded-lg p-2 hover:bg-white/10 transition-colors mr-2">
+              <Menu className="h-5 w-5" />
+            </button>
             <LogoMark className="h-5 w-5 text-primary" />
             <span className="font-extrabold">FORUM<span className="text-primary">.KG</span> admin</span>
           </div>
-          <button type="button" onClick={() => setOpen(true)} aria-label="Меню" className="rounded-lg p-2 hover:bg-white/10 transition-colors">
-            <Menu className="h-5 w-5" />
-          </button>
         </div>
         {open && (
           <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
             <div className="absolute inset-0 bg-ink/60" onClick={() => setOpen(false)} />
-            <div className="absolute inset-y-0 right-0 w-64 bg-footer shadow-2xl animate-slide-in-right">
-              <button type="button" onClick={() => setOpen(false)} aria-label="Закрыть" className="absolute left-3 top-4 rounded-lg p-1.5 text-white/70 hover:text-white transition-colors">
+            <div className="absolute inset-y-0 left-0 w-64 bg-footer shadow-2xl animate-slide-in-left">
+              <button type="button" onClick={() => setOpen(false)} aria-label="Закрыть" className="absolute right-3 top-4 rounded-lg p-1.5 text-white/70 hover:text-white transition-colors">
                 <X className="h-5 w-5" />
               </button>
               {sidebar}

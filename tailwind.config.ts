@@ -71,6 +71,7 @@ const config: Config = {
         glow: { '0%,100%': { opacity: '.55' }, '50%': { opacity: '.95' } },
         draw: { from: { strokeDashoffset: '1' }, to: { strokeDashoffset: '0' } },
         'slide-in-right': { from: { transform: 'translateX(100%)' }, to: { transform: 'translateX(0)' } },
+        'slide-in-left': { from: { transform: 'translateX(-100%)' }, to: { transform: 'translateX(0)' } },
         'accordion-down': {
           from: { height: '0' },
           to: { height: 'var(--radix-accordion-content-height)' },
@@ -90,6 +91,7 @@ const config: Config = {
         glow: 'glow 5s ease-in-out infinite',
         draw: 'draw 2.4s ease-out .4s both',
         'slide-in-right': 'slide-in-right 0.3s ease-out',
+        'slide-in-left': 'slide-in-left 0.3s ease-out',
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
       },
