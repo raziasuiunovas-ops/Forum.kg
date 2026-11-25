@@ -171,15 +171,40 @@ export async function POST(request: NextRequest) {
         where: { providerPaymentId: paymentId },
         include: { order: { select: { id: true, forumId: true } } },
       })
-      if (!candidate) {
+
+      // If not found by providerPaymentId, try to find by orderNumber from webhook fields
+      let resolvedCandidate = candidate
+      if (!resolvedCandidate) {
+        const orderNumberFromName = typeof fields.name === 'string'
+          ? fields.name.replace('FORUM.KG ', '').trim()
+          : null
+        const orderNumFromField = typeof fields.orderNumber === 'string' ? fields.orderNumber : null
+        const orderNum = orderNumFromField ?? orderNumberFromName
+
+        console.log('[Finik Webhook] Trying to find by orderNumber:', orderNum)
+
+        if (orderNum) {
+          const orderRecord = await tx.order.findFirst({
+            where: { orderNumber: orderNum },
+            include: { payments: { select: { id: true, providerPaymentId: true } } },
+          })
+          console.log('[Finik Webhook] Found order:', orderRecord?.id, 'payments:', orderRecord?.payments)
+          if (orderRecord?.payments[0]) {
+            // Update providerPaymentId to Finik's actual ID so future lookups work
+            await tx.payment.update({
+              where: { id: orderRecord.payments[0].id },
+              data: { providerPaymentId: paymentId },
+            })
+            resolvedCandidate = await tx.payment.findUnique({
+              where: { id: orderRecord.payments[0].id },
+              include: { order: { select: { id: true, forumId: true } } },
+            })
+          }
+        }
+      }
+
+      if (!resolvedCandidate) {
         console.error('[Finik Webhook] Payment not found by providerPaymentId:', paymentId)
-        // Try to find by searching all payments to debug
-        const allPayments = await tx.payment.findMany({
-          select: { id: true, providerPaymentId: true, status: true },
-          orderBy: { createdAt: 'desc' },
-          take: 5,
-        })
-        console.error('[Finik Webhook] Recent payments:', JSON.stringify(allPayments))
         await tx.paymentWebhookEvent.create({
           data: {
             provider: 'FINIK',
@@ -193,12 +218,14 @@ export async function POST(request: NextRequest) {
         return { outcome: 'unknown-payment' as const }
       }
 
+      const candidate2 = resolvedCandidate
+
       // Match the lock used by RSVP and order reservation before touching the order,
       // payment, tickets, or capacity counts.
-      await lockEventRow(tx, candidate.order.forumId)
-      const payment = await tx.payment.findUnique({ where: { id: candidate.id } })
+      await lockEventRow(tx, candidate2.order.forumId)
+      const payment = await tx.payment.findUnique({ where: { id: candidate2.id } })
       const order = await tx.order.findUnique({
-        where: { id: candidate.order.id },
+        where: { id: candidate2.order.id },
         include: { items: true, forum: { select: { capacity: true, qrExpiresAt: true } } },
       })
       if (!payment || !order) return { outcome: 'unknown-payment' as const }
