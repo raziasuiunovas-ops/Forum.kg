@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { isAppLocale } from '@/i18n/routing'
@@ -40,7 +41,9 @@ export default async function ResetPasswordPage({ params }: { params: Promise<{ 
             <div className="mb-6 flex justify-center">
               <Logo locale={locale} name={settings.displayName} logoUrl={settings.logoUrl} />
             </div>
-            <ResetPasswordForm locale={locale} messages={all.auth as Messages} />
+            <Suspense fallback={null}>
+              <ResetPasswordForm locale={locale} messages={all.auth as Messages} />
+            </Suspense>
           </div>
         </div>
       </section>
