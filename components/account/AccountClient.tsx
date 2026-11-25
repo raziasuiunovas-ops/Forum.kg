@@ -144,7 +144,11 @@ export function AccountClient({ locale, messages }: { locale: string; messages: 
             </div>
           )}
 
-          {(tab === 'orders' || tab === 'payments' || tab === 'notifications') && (
+          {(tab === 'orders' || tab === 'payments') && (
+            <OrdersTab tab={tab} locale={locale} t={t} />
+          )}
+
+          {tab === 'notifications' && (
             <EmptyState
               Icon={TABS.find((x) => x.id === tab)!.Icon}
               title={t(`empty.${tab}`)}
@@ -451,6 +455,126 @@ function TicketsTab({ locale, t }: { locale: string; t: ReturnType<typeof makeT>
               )}
             </li>
 
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
+interface UserOrder {
+  id: string
+  orderNumber: string
+  status: string
+  totalMinor: number
+  currency: string
+  createdAt: string
+  forum: { title: string; startsAt: string }
+  items: { participant: string; category: string; priceMinor: number }[]
+  payment: { status: string; amountMinor: number; paidAt: string | null } | null
+}
+
+function OrdersTab({ tab, locale, t }: { tab: 'orders' | 'payments'; locale: string; t: ReturnType<typeof makeT> }) {
+  const [orders, setOrders] = useState<UserOrder[] | null>(null)
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    let alive = true
+    api<{ orders: UserOrder[] }>('/api/v1/orders').then((res) => {
+      if (!alive) return
+      if (res.ok && res.data) setOrders(res.data.orders)
+      else setFailed(true)
+    })
+    return () => { alive = false }
+  }, [])
+
+  if (failed) return <p className="text-sm text-slate-500">{t('tickets.loadError')}</p>
+  if (!orders) return (
+    <div className="flex items-center gap-3 py-10 text-sm text-slate-500" role="status">
+      <Loader2 className="h-5 w-5 animate-spin" /> {t('loading')}
+    </div>
+  )
+  if (orders.length === 0) return (
+    <EmptyState
+      Icon={tab === 'orders' ? Receipt : CreditCard}
+      title={tab === 'orders' ? 'Нет заказов' : 'Нет платежей'}
+      text={tab === 'orders' ? 'Когда вы оформите билет, заказ появится здесь' : 'История платежей появится после оплаты'}
+      cta={t('empty.browse')}
+      href={`/${locale}/forums`}
+    />
+  )
+
+  const dateFmt = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : locale === 'ky' ? 'ky-KG' : 'ru-RU', {
+    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+    timeZone: 'Asia/Bishkek',
+  })
+
+  const statusLabel: Record<string, string> = {
+    PENDING_PAYMENT: 'Ожидает оплаты',
+    PAID: 'Оплачен',
+    CANCELLED: 'Отменён',
+    EXPIRED: 'Истёк',
+    PAYMENT_FAILED: 'Ошибка оплаты',
+  }
+  const statusColor: Record<string, string> = {
+    PENDING_PAYMENT: 'text-amber-600 bg-amber-50',
+    PAID: 'text-emerald-700 bg-emerald-50',
+    CANCELLED: 'text-red-600 bg-red-50',
+    EXPIRED: 'text-slate-500 bg-slate-100',
+    PAYMENT_FAILED: 'text-red-600 bg-red-50',
+  }
+  const payStatusLabel: Record<string, string> = {
+    SUCCEEDED: 'Оплачен',
+    PENDING: 'В обработке',
+    FAILED: 'Ошибка',
+    REFUND_PENDING: 'Возврат',
+    REFUNDED: 'Возвращён',
+  }
+
+  return (
+    <div>
+      <h2 className="text-2xl font-black tracking-tight text-ink">
+        {tab === 'orders' ? 'Мои заказы' : 'История платежей'}
+      </h2>
+      <ul className="mt-6 space-y-4">
+        {orders.map((order) => {
+          if (tab === 'payments' && !order.payment) return null
+          return (
+            <li key={order.id} className="rounded-2xl bg-surface p-5 ring-1 ring-slate-200/70">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono text-xs text-slate-400">{order.orderNumber}</span>
+                    {tab === 'orders' && (
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${statusColor[order.status] ?? 'text-slate-500 bg-slate-100'}`}>
+                        {statusLabel[order.status] ?? order.status}
+                      </span>
+                    )}
+                    {tab === 'payments' && order.payment && (
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${order.payment.status === 'SUCCEEDED' ? 'text-emerald-700 bg-emerald-50' : 'text-amber-600 bg-amber-50'}`}>
+                        {payStatusLabel[order.payment.status] ?? order.payment.status}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="mt-1.5 text-base font-bold text-ink leading-snug">{order.forum.title}</h3>
+                  <p className="mt-0.5 text-xs text-slate-500">{dateFmt.format(new Date(order.createdAt))}</p>
+                  <p className="mt-2 text-xs text-slate-500">
+                    {order.items.map((i) => `${i.participant} (${i.category})`).join(' · ')}
+                  </p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="text-lg font-black text-ink">
+                    {tab === 'payments' && order.payment
+                      ? `${(order.payment.amountMinor / 100).toLocaleString('ru-RU')} сом`
+                      : `${(order.totalMinor / 100).toLocaleString('ru-RU')} сом`
+                    }
+                  </p>
+                  {tab === 'payments' && order.payment?.paidAt && (
+                    <p className="text-[10px] text-slate-400">{dateFmt.format(new Date(order.payment.paidAt))}</p>
+                  )}
+                </div>
+              </div>
+            </li>
           )
         })}
       </ul>

@@ -636,3 +636,58 @@ export async function POST(request: NextRequest) {
   }
 }
 
+
+/**
+ * GET /api/v1/orders
+ * List current user's orders with payments
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const authResult = await requireAuth(request)
+    if ('headers' in authResult) return authResult
+    const { userId } = authResult.user
+
+    const orders = await prisma.order.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      include: {
+        forum: { include: { translations: { where: { locale: 'RU' } } } },
+        items: {
+          include: {
+            ticketCategory: { include: { translations: { where: { locale: 'RU' } } } },
+          },
+        },
+        payments: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: { id: true, status: true, amountMinor: true, paidAt: true, provider: true },
+        },
+      },
+    })
+
+    return NextResponse.json({
+      orders: orders.map((o) => ({
+        id: o.id,
+        orderNumber: o.orderNumber,
+        status: o.status,
+        totalMinor: o.totalMinor,
+        currency: o.currency,
+        createdAt: o.createdAt.toISOString(),
+        reservedUntil: o.reservedUntil?.toISOString() ?? null,
+        forum: {
+          title: o.forum.translations[0]?.title ?? o.forum.slug,
+          startsAt: o.forum.startsAt.toISOString(),
+        },
+        items: o.items.map((i) => ({
+          participant: `${i.participantFirstName} ${i.participantLastName}`,
+          category: i.ticketCategory.translations[0]?.name ?? i.ticketCategory.code,
+          priceMinor: i.unitPriceMinor,
+        })),
+        payment: o.payments[0] ?? null,
+      })),
+    })
+  } catch {
+    return NextResponse.json({ error: { code: 'INTERNAL_ERROR' } }, { status: 500 })
+  }
+}
