@@ -97,7 +97,7 @@ export function AdminShell({ locale, children }: { locale: string; children: Rea
     <nav className="flex h-full flex-col" aria-label="Админ-панель">
       <div className="flex items-center gap-2 px-5 py-5 text-white">
         <LogoMark className="h-6 w-6 text-primary" />
-        <span className="text-lg font-extrabold tracking-tight">FORUM<span className="text-primary">.KG</span></span>
+        <span className="text-lg font-extrabold tracking-tight">FORUM<span className="text-white">.KG</span></span>
         <span className="ml-1 rounded bg-white/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white/70">admin</span>
       </div>
       <ul className="flex-1 space-y-0.5 overflow-y-auto px-3 pb-4">
@@ -137,7 +137,7 @@ export function AdminShell({ locale, children }: { locale: string; children: Rea
               <Menu className="h-5 w-5" />
             </button>
             <LogoMark className="h-5 w-5 text-primary" />
-            <span className="font-extrabold">FORUM<span className="text-primary">.KG</span> admin</span>
+            <span className="font-extrabold">FORUM<span className="text-white">.KG</span> admin</span>
           </div>
         </div>
         {open && (

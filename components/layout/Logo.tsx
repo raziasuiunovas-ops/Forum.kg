@@ -32,7 +32,7 @@ export function Logo({
       )}
       <span className={`text-lg font-extrabold tracking-tight ${dark ? 'text-white' : 'text-ink'}`}>
         {main}
-        {ext !== undefined && <span className="text-primary">.{ext}</span>}
+        {ext !== undefined && <span className={dark ? 'text-white' : 'text-ink'}>.{ext}</span>}
       </span>
     </Link>
   )
