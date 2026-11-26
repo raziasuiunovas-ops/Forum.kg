@@ -11,6 +11,7 @@ import {
   verifyFinikWebhookSignature,
 } from '@/lib/payments/finik'
 import { sendPushToUser } from '@/lib/push/send'
+import { sendTicketPurchaseNotification } from '@/lib/integrations/telegram'
 
 type FinikWebhookPayload = {
   id?: unknown
@@ -373,15 +374,47 @@ export async function POST(request: NextRequest) {
     if (result.outcome === 'processed') {
       const order = await prisma.order.findUnique({
         where: { id: result.orderId },
-        include: { forum: { include: { translations: { where: { locale: 'RU' } } } } },
+        include: { 
+          forum: { include: { translations: { where: { locale: 'RU' } } } },
+          user: { include: { telegramConnection: true } }
+        },
       }).catch(() => null)
+      
       if (order) {
         const title = order.forum.translations[0]?.title ?? 'Форум'
+        
+        // Send Web Push notification
         void sendPushToUser(order.userId, {
           title: '🎫 Билет оплачен!',
           body: `Ваш билет на «${title}» готов. Откройте приложение чтобы увидеть QR-код.`,
           url: '/ru/account',
         })
+
+        // Send Telegram notification if user has connected Telegram
+        if (order.user.telegramConnection?.chatId) {
+          const forumDate = order.forum.startsAt 
+            ? new Intl.DateTimeFormat('ru-RU', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                timeZone: order.forum.timeZone || 'Asia/Bishkek'
+              }).format(new Date(order.forum.startsAt))
+            : 'Уточняется'
+          
+          const totalAmount = `${(order.totalMinor / 100).toFixed(2)} ${order.currency}`
+
+          void sendTicketPurchaseNotification(order.user.telegramConnection.chatId, {
+            forumTitle: title,
+            forumDate,
+            ticketCount: result.ticketsIssued,
+            totalAmount,
+            orderNumber: order.orderNumber,
+          }).catch((error) => {
+            console.error('[Telegram] Failed to send ticket notification:', error.message)
+          })
+        }
       }
     }
 

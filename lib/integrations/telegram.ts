@@ -153,6 +153,50 @@ export async function sendAdmin2FACode(
 }
 
 /**
+ * Send ticket purchase notification to user via Telegram
+ * 
+ * @param chatId - User's Telegram chat ID
+ * @param ticketInfo - Ticket information
+ */
+export async function sendTicketPurchaseNotification(
+  chatId: string,
+  ticketInfo: {
+    forumTitle: string
+    forumDate: string
+    ticketCount: number
+    totalAmount: string
+    orderNumber: string
+  }
+): Promise<void> {
+  const { forumTitle, forumDate, ticketCount, totalAmount, orderNumber } = ticketInfo
+
+  const ticketWord = ticketCount === 1 ? 'билет' : ticketCount < 5 ? 'билета' : 'билетов'
+  
+  const text = `🎉 <b>Оплата прошла успешно!</b>
+
+📋 <b>Информация о заказе:</b>
+• Заказ: <code>${orderNumber}</code>
+• Форум: ${forumTitle}
+• Дата: ${forumDate}
+• Билетов: ${ticketCount} ${ticketWord}
+• Сумма: ${totalAmount}
+
+✅ Ваши билеты готовы! QR-коды доступны в личном кабинете на сайте FORUM.KG
+
+📱 Не забудьте показать QR-код на входе!
+
+Спасибо за покупку! До встречи на форуме! 🚀`
+
+  await sendTelegramMessage({
+    chatId,
+    text,
+    parseMode: 'HTML',
+    disableWebPagePreview: true,
+    disableNotification: false,
+  })
+}
+
+/**
  * Get bot information (for testing/debugging)
  */
 export async function getBotInfo(): Promise<any> {

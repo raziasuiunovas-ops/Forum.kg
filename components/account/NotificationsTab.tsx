@@ -221,6 +221,26 @@ export function NotificationsTab({ locale }: { locale: string }) {
           ))}
         </ul>
       </div>
+
+      {/* Telegram notifications info */}
+      <div className="mt-6 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100/50 p-6 ring-1 ring-blue-200/70 max-w-full overflow-x-hidden">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-500">
+            <svg className="h-5 w-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295-.002 0-.003 0-.005 0l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.64-.203-.658-.64.135-.954l11.566-4.458c.538-.196 1.006.128.832.941z"/>
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-bold text-blue-900 break-words">Уведомления в Telegram</h3>
+            <p className="mt-2 text-sm text-blue-800 break-words">
+              Подключите Telegram бот <span className="font-mono font-semibold">@Forum_kg_bot</span> для получения уведомлений о покупке билетов прямо в мессенджере!
+            </p>
+            <p className="mt-3 text-xs text-blue-700/80 break-words">
+              💡 После подключения вы будете получать детальную информацию о заказе, дате форума и QR-кодах билетов.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

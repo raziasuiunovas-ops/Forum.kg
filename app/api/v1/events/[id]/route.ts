@@ -13,6 +13,7 @@ import {
   publicEventSelect,
   toEventDto,
 } from '@/lib/api/events'
+import { revalidatePublicForums } from '@/lib/forums/revalidate'
 
 type EventRouteContext = { params: Promise<{ id: string }> }
 
@@ -150,6 +151,9 @@ export const PATCH = withErrorHandler(async (request: NextRequest, context: Even
 
     if (event instanceof NextResponse) return event
     if (!event) return notFound('Событие', 'EVENT_NOT_FOUND')
+    
+    revalidatePublicForums()
+    
     writeSecurityAuditEvent({
       eventType: 'EVENT_UPDATED',
       result: 'success',
@@ -190,6 +194,8 @@ export const DELETE = withErrorHandler(async (request: NextRequest, context: Eve
     const exists = await prisma.forum.findUnique({ where: { id }, select: { id: true } })
     if (!exists) return notFound('Событие', 'EVENT_NOT_FOUND')
   }
+
+  revalidatePublicForums()
 
   writeSecurityAuditEvent({
     eventType: 'EVENT_CANCELLED',

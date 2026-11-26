@@ -37,6 +37,7 @@ export function Analytics() {
             { value: 'all', label: 'Все форумы' },
             ...s.forums.map((f) => ({ value: f.id, label: f.title.ru }))
           ]}
+          className="w-full sm:w-auto sm:min-w-[240px]"
         />
       </PageHeader>
       <DemoBanner forceShow={!isServerData} />

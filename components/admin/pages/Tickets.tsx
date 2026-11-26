@@ -37,6 +37,7 @@ export function Tickets() {
                   ...s.forums.map((f) => ({ value: f.id, label: f.title.ru }))
                 ]}
                 aria-label="Форум"
+                className="w-full sm:w-auto sm:min-w-[200px]"
               />
               <Select
                 value={status}
@@ -46,6 +47,7 @@ export function Tickets() {
                   ...Object.entries(TICKET_LABEL).map(([k, v]) => ({ value: k, label: v }))
                 ]}
                 aria-label="Статус"
+                className="w-full sm:w-auto sm:min-w-[200px]"
               />
             </>
           }

@@ -329,7 +329,7 @@
       "saving": "Saving...",
       "saved": "Changes saved",
       "telegram": "Telegram",
-      "telegramText": "Connecting Telegram to receive tickets is coming soon."
+      "telegramText": "Connect @Forum_kg_bot in Telegram to receive notifications about orders and tickets."
     },
     "logout": "Log out",
     "logoutTitle": "Log out",

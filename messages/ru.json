@@ -329,7 +329,7 @@
       "saving": "Сохраняем...",
       "saved": "Изменения сохранены",
       "telegram": "Telegram",
-      "telegramText": "Подключение Telegram для получения билетов появится скоро."
+      "telegramText": "Подключите бот @Forum_kg_bot в Telegram чтобы получать уведомления о заказах и билетах."
     },
     "logout": "Выйти",
     "logoutTitle": "Выход из аккаунта",

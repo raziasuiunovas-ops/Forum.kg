@@ -34,7 +34,7 @@ export function Dashboard({ locale }: { locale: string }) {
     <div>
       <PageHeader title="Панель управления" text="Ключевые показатели по всем форумам или по одному." />
       
-      <div className="mb-6 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-end">
+      <div className="mb-6 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Select
           aria-label="Форум"
           value={forumId}
@@ -43,7 +43,7 @@ export function Dashboard({ locale }: { locale: string }) {
             { value: 'all', label: 'Все форумы' },
             ...allForums.map((f) => ({ value: f.id, label: f.title.ru }))
           ]}
-          className="w-full sm:w-auto sm:min-w-[200px]"
+          className="w-full sm:flex-1 sm:max-w-md"
         />
         <button type="button" className={btn.soft} onClick={() => void reload()}><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Обновить</button>
       </div>

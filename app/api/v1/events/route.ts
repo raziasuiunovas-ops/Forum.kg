@@ -13,6 +13,7 @@ import { createEventSchema, eventFiltersSchema, type EventFilters } from '@/lib/
 import { requireManager } from '@/lib/auth/middleware'
 import { writeSecurityAuditEvent } from '@/lib/security/audit-logger'
 import { categoryCreateData, publicEventSelect, toEventDto, translationRows } from '@/lib/api/events'
+import { revalidatePublicForums } from '@/lib/forums/revalidate'
 
 export const GET = withErrorHandler(async (request: NextRequest) => {
   const { searchParams } = new URL(request.url)
@@ -129,6 +130,9 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       },
       select: publicEventSelect,
     }))
+    
+    revalidatePublicForums()
+    
     writeSecurityAuditEvent({
       eventType: 'EVENT_CREATED',
       result: 'success',
