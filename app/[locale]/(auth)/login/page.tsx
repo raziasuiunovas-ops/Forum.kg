@@ -35,7 +35,7 @@ export default async function LoginPage({ params }: { params: Promise<{ locale: 
         <div>
           <h2 className="text-[clamp(3rem,6vw,5.5rem)] font-black uppercase leading-[0.9] tracking-tighter">
             <span className="block animate-fade-up">{t('heroLine1')}</span>
-            <span className="text-outline block animate-fade-up !tracking-[-0.01em]" style={{ animationDelay: '120ms' }}>
+            <span className="text-outline block animate-fade-up !tracking-[-0.005em]" style={{ animationDelay: '120ms' }}>
               {t('heroLine2')}
             </span>
           </h2>
@@ -53,7 +53,7 @@ export default async function LoginPage({ params }: { params: Promise<{ locale: 
             ))}
           </ul>
         </div>
-        <div className="animate-float-rot self-start">
+        <div className="mb-20 animate-float-rot self-start">
           <TicketCard label="YOUR ACCESS PASS" title="Bishkek Digital Forum 2026" />
         </div>
       </section>
@@ -68,7 +68,7 @@ export default async function LoginPage({ params }: { params: Promise<{ locale: 
         </div>
 
         <div className="flex flex-1 items-center justify-center py-10">
-          <div className="w-full max-w-md animate-fade-up rounded-[2rem] bg-white p-7 text-ink shadow-[0_40px_90px_-30px_rgba(0,0,0,.8)] sm:p-9">
+          <div className="w-full max-w-lg animate-fade-up rounded-[2rem] bg-white p-7 text-ink shadow-[0_40px_90px_-30px_rgba(0,0,0,.8)] sm:p-9">
             <Suspense fallback={null}>
               <LoginForm locale={locale} messages={all.auth as Messages} />
             </Suspense>
