@@ -94,7 +94,6 @@ async function cancelExpiredTickets(): Promise<number> {
     },
     data: {
       status: 'CANCELLED',
-      updatedAt: now,
     },
   })
 
@@ -109,8 +108,7 @@ async function cancelExpiredTickets(): Promise<number> {
           count: result.count,
           ticketIds: expiredTickets.map((t) => t.id),
         },
-        actorType: 'SYSTEM',
-        actorId: null,
+        actorId: null, // System action, no user actor
       },
     })
   }
