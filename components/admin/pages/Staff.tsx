@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
-import { actions, useAdminState } from '@/lib/admin/store'
+import { actions, useAdminState, useIsServerDataLoaded } from '@/lib/admin/store'
 import type { StaffRole } from '@/lib/admin/types'
 import { useAdminUser } from '../AdminShell'
 import { Badge, Card, DataTable, DemoBanner, Field, Modal, PageHeader, btn, field } from '../ui'
@@ -11,6 +11,7 @@ import { ROLE_LABEL } from './labels'
 
 export function Staff() {
   const s = useAdminState()
+  const isServerData = useIsServerDataLoaded()
   const { actor } = useAdminUser()
   const [adding, setAdding] = useState(false)
   const [m, setM] = useState<{ name: string; contact: string; role: StaffRole; forumIds: string[] }>({ name: '', contact: '', role: 'SCANNER', forumIds: [] })
@@ -20,7 +21,7 @@ export function Staff() {
       <PageHeader title="Сотрудники и роли" text="Главный администратор: всё. Менеджер: форумы, заказы, отмены, отчёты. Оператор входа: только сканирование на назначенном форуме.">
         <button className={btn.primary} onClick={() => setAdding(true)}><Plus className="h-4 w-4" /> Добавить сотрудника</button>
       </PageHeader>
-      <DemoBanner note="Права проверяются и на сервере: интерфейс лишь скрывает недоступные разделы. Список сотрудников пока хранится в браузере." />
+      <DemoBanner forceShow={!isServerData} note="Права проверяются и на сервере: интерфейс лишь скрывает недоступные разделы. Список сотрудников пока хранится в браузере." />
       <Card>
         <DataTable
           rows={s.staff}

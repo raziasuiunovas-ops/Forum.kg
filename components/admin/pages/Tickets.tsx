@@ -62,10 +62,10 @@ export function Tickets() {
       {target && (
         <Modal title="Аннулировать билет" onClose={() => setTarget(null)}>
           <p className="mb-4 text-sm text-slate-600">Билет <b>{target.number}</b> ({target.participant}) перестанет проходить на входе. Купленную категорию изменить нельзя.</p>
-          <Field label="Причина (обязательно)"><textarea className={`${field} h-24 py-2`} value={reason} onChange={(e) => setReason(e.target.value)} /></Field>
+          <Field label="Причина (необязательно)"><textarea className={`${field} h-24 py-2`} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Опишите причину аннулирования (можно пропустить)" /></Field>
           <div className="mt-5 flex justify-end gap-2">
             <button className={btn.soft} onClick={() => setTarget(null)}>Отмена</button>
-            <button className={btn.primary} disabled={!reason.trim()} onClick={() => { actions.setTicketStatus(target.id, 'CANCELLED', reason.trim(), actor); setTarget(null) }}>Аннулировать</button>
+            <button className={btn.primary} onClick={() => { actions.setTicketStatus(target.id, 'CANCELLED', reason.trim() || 'Без указания причины', actor); setTarget(null) }}>Аннулировать</button>
           </div>
         </Modal>
       )}

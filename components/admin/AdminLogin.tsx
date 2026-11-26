@@ -108,20 +108,20 @@ export function AdminLogin({ locale }: { locale: string }) {
     }
   }
 
-  const input = 'mt-1.5 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-ink outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30'
-  const submit = 'mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-60'
+  const input = 'mt-1.5 h-11 sm:h-12 w-full rounded-xl border border-slate-200 bg-white px-3 sm:px-4 text-sm font-semibold text-ink outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30'
+  const submit = 'mt-4 sm:mt-5 inline-flex h-11 sm:h-12 w-full items-center justify-center gap-2 rounded-full bg-primary text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-60'
 
   return (
-    <div className="relative isolate flex min-h-screen items-center justify-center overflow-hidden bg-footer px-5 py-10">
+    <div className="relative isolate flex min-h-screen items-center justify-center overflow-hidden bg-footer px-4 py-8 sm:px-5 sm:py-10">
       <div className="bg-grid absolute inset-0 -z-10" aria-hidden />
       <div className="absolute left-1/2 top-1/4 -z-10 h-96 w-96 -translate-x-1/2 animate-glow rounded-full bg-primary/30 blur-[120px]" aria-hidden />
       <div className="w-full max-w-md">
-        <Link href={`/${locale}`} className="mb-6 inline-flex items-center gap-2 text-xs font-bold text-white/70 hover:text-white">
+        <Link href={`/${locale}`} className="mb-4 sm:mb-6 inline-flex items-center gap-2 text-xs font-bold text-white/70 hover:text-white">
           <ArrowLeft className="h-4 w-4" /> На сайт
         </Link>
-        <div className="rounded-[2rem] bg-white p-8 shadow-[0_40px_90px_-30px_rgba(0,0,0,.8)]">
+        <div className="rounded-2xl sm:rounded-[2rem] bg-white p-6 sm:p-8 shadow-[0_40px_90px_-30px_rgba(0,0,0,.8)]">
           <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary"><ShieldCheck className="h-6 w-6" /></span>
-          <h1 className="mt-4 text-3xl font-black tracking-tight text-ink">Вход в админ-панель</h1>
+          <h1 className="mt-4 text-2xl sm:text-3xl font-black tracking-tight text-ink">Вход в админ-панель</h1>
 
           {step === 'credentials' ? (
             <form onSubmit={submitCredentials} noValidate>

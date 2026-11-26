@@ -352,6 +352,16 @@
       "number": "Ticket number",
       "qrNote": "Show the QR code at the entrance.",
       "loadError": "Could not load tickets."
+    },
+    "orders": {
+      "title": "My orders",
+      "emptyTitle": "No orders",
+      "emptyText": "When you get a ticket, the order will appear here"
+    },
+    "payments": {
+      "title": "Payment history",
+      "emptyTitle": "No payments",
+      "emptyText": "Payment history appears after your first payment"
     }
   },
   "notFound": {

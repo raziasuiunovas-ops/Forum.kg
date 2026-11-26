@@ -6,7 +6,7 @@ import { RefreshCw } from 'lucide-react'
 import { getDashboardStats, listForums, type DashboardStats } from '@/lib/admin/api'
 import type { AdminForum } from '@/lib/admin/types'
 import { money } from '@/lib/admin/format'
-import { Card, PageHeader, Stat, btn, field, select } from '../ui'
+import { Card, PageHeader, Stat, Select, btn, field } from '../ui'
 
 export function Dashboard({ locale }: { locale: string }) {
   const [stats, setStats] = useState<DashboardStats | null>(null)
@@ -35,10 +35,16 @@ export function Dashboard({ locale }: { locale: string }) {
       <PageHeader title="Панель управления" text="Ключевые показатели по всем форумам или по одному." />
       
       <div className="mb-6 flex items-center justify-end gap-3">
-        <select aria-label="Форум" value={forumId} onChange={(e) => setForumId(e.target.value)} className={`${select} w-auto max-w-xs`}>
-          <option value="all">Все форумы</option>
-          {allForums.map((f) => <option key={f.id} value={f.id}>{f.title.ru}</option>)}
-        </select>
+        <Select
+          aria-label="Форум"
+          value={forumId}
+          onChange={(value) => setForumId(value)}
+          options={[
+            { value: 'all', label: 'Все форумы' },
+            ...allForums.map((f) => ({ value: f.id, label: f.title.ru }))
+          ]}
+          className="w-auto max-w-xs"
+        />
         <button type="button" className={btn.soft} onClick={() => void reload()}><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Обновить</button>
       </div>
       

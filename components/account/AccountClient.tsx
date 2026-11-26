@@ -492,8 +492,8 @@ function OrdersTab({ tab, locale, t }: { tab: 'orders' | 'payments'; locale: str
   if (orders.length === 0) return (
     <EmptyState
       Icon={tab === 'orders' ? Receipt : CreditCard}
-      title={tab === 'orders' ? 'Нет заказов' : 'Нет платежей'}
-      text={tab === 'orders' ? 'Когда вы оформите билет, заказ появится здесь' : 'История платежей появится после оплаты'}
+      title={tab === 'orders' ? t('orders.emptyTitle') : t('payments.emptyTitle')}
+      text={tab === 'orders' ? t('orders.emptyText') : t('payments.emptyText')}
       cta={t('empty.browse')}
       href={`/${locale}/forums`}
     />
@@ -529,7 +529,7 @@ function OrdersTab({ tab, locale, t }: { tab: 'orders' | 'payments'; locale: str
   return (
     <div>
       <h2 className="text-2xl font-black tracking-tight text-ink">
-        {tab === 'orders' ? 'Мои заказы' : 'История платежей'}
+        {tab === 'orders' ? t('orders.title') : t('payments.title')}
       </h2>
       <ul className="mt-6 space-y-4">
         {orders.map((order) => {

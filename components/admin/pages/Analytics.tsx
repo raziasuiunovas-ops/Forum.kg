@@ -2,13 +2,14 @@
 
 import { useState } from 'react'
 import { Download } from 'lucide-react'
-import { useAdminState } from '@/lib/admin/store'
+import { useAdminState, useIsServerDataLoaded } from '@/lib/admin/store'
 import { SALES_SERIES } from '@/lib/admin/mock'
 import { dateTime, downloadCsv, money } from '@/lib/admin/format'
 import { AreaChart, Card, DemoBanner, PageHeader, Stat, btn, field, select } from '../ui'
 
 export function Analytics() {
   const s = useAdminState()
+  const isServerData = useIsServerDataLoaded()
   const [forumId, setForumId] = useState('all')
   const forums = forumId === 'all' ? s.forums : s.forums.filter((f) => f.id === forumId)
   const ids = new Set(forums.map((f) => f.id))
@@ -30,7 +31,7 @@ export function Analytics() {
       <PageHeader title="Аналитика и экспорт" text="Продажи, категории билетов и выгрузка данных в CSV.">
         <select aria-label="Форум" className={select} value={forumId} onChange={(e) => setForumId(e.target.value)}><option value="all">Все форумы</option>{s.forums.map((f) => <option key={f.id} value={f.id}>{f.title.ru}</option>)}</select>
       </PageHeader>
-      <DemoBanner />
+      <DemoBanner forceShow={!isServerData} />
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat label="Выручка (подтверждённая)" value={money(revenue)} />
         <Stat label="Выдано билетов" value={tickets.length} />

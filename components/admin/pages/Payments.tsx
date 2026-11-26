@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useAdminState } from '@/lib/admin/store'
+import { useAdminState, useIsServerDataLoaded } from '@/lib/admin/store'
 import { bishkekDay, dateTime, money } from '@/lib/admin/format'
 import { Badge, Card, DataTable, DemoBanner, PageHeader, Stat, btn, DateInput, getTodayDate } from '../ui'
 import { PAY_LABEL, PAY_TONE } from './labels'
@@ -9,6 +9,7 @@ import { PAY_LABEL, PAY_TONE } from './labels'
 /** Spec 8.4: who paid, for what, amount, status, EXACT date and time, reference. Filter by calendar date only. */
 export function Payments() {
   const s = useAdminState()
+  const isServerData = useIsServerDataLoaded()
   const [day, setDay] = useState(getTodayDate())
   const forumName = (id: string) => s.forums.find((f) => f.id === id)?.title.ru ?? '—'
   const rows = s.payments.filter((p) => !day || bishkekDay(p.paidAt) === day)
@@ -17,7 +18,7 @@ export function Payments() {
   return (
     <div>
       <PageHeader title="Платежи" text="Кто и за что заплатил, сумма, статус, точные дата и время, номер транзакции." />
-      <DemoBanner />
+      <DemoBanner forceShow={!isServerData} />
       <div className="mb-5 grid gap-4 sm:grid-cols-3">
         <Stat label="Платежей в выборке" value={rows.length} />
         <Stat label="Подтверждено на сумму" value={money(total)} />

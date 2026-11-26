@@ -86,32 +86,39 @@ export function Scanner() {
     }
   }, [forumId, loadStats])
 
-  // Camera scanning through the browser's BarcodeDetector (Chrome/Android/Edge). Manual input works everywhere.
+  // Camera scanning using jsQR (works in all browsers). Manual input works everywhere.
   useEffect(() => {
     if (!cam) return
     let stream: MediaStream | undefined
     let timer: ReturnType<typeof setInterval> | undefined
     let stopped = false
     ;(async () => {
-      const BD = (window as any).BarcodeDetector
-      if (!BD) { setCamError('Этот браузер не умеет читать QR с камеры. Введите код вручную или откройте страницу в Chrome.'); setCam(false); return }
       try {
+        const jsQR = (await import('jsqr')).default
         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
         if (stopped) return stream.getTracks().forEach((t) => t.stop())
         if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play() }
-        const detector = new BD({ formats: ['qr_code'] })
-        timer = setInterval(async () => {
-          if (!videoRef.current || busyRef.current) return
-          try {
-            const codes = await detector.detect(videoRef.current)
-            const v = codes[0]?.rawValue as string | undefined
-            if (v && (v !== last.current.v || Date.now() - last.current.t > 4000)) {
-              last.current = { v, t: Date.now() }
-              void validate(v)
-            }
-          } catch { /* frame not ready */ }
+        
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d', { willReadFrequently: true })
+        
+        timer = setInterval(() => {
+          if (!videoRef.current || !ctx || busyRef.current || videoRef.current.readyState !== videoRef.current.HAVE_ENOUGH_DATA) return
+          
+          canvas.width = videoRef.current.videoWidth
+          canvas.height = videoRef.current.videoHeight
+          ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height)
+          
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+          const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' })
+          
+          if (code?.data && (code.data !== last.current.v || Date.now() - last.current.t > 4000)) {
+            last.current = { v: code.data, t: Date.now() }
+            void validate(code.data)
+          }
         }, 300)
-      } catch {
+      } catch (err) {
+        console.error('Camera error:', err)
         setCamError('Нет доступа к камере. Разрешите камеру в настройках браузера.')
         setCam(false)
       }

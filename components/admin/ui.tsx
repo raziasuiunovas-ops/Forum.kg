@@ -70,7 +70,10 @@ export function Badge({ tone = 'slate', children }: { tone?: keyof typeof TONES;
   return <span className={`inline-block whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-bold ${TONES[tone]}`}>{children}</span>
 }
 
-export function DemoBanner({ note }: { note?: string }) {
+export function DemoBanner({ note, forceShow = false }: { note?: string; forceShow?: boolean }) {
+  // Don't show if explicitly not forced (will be controlled by parent)
+  if (!forceShow) return null
+  
   return (
     <p className="mb-5 rounded-xl bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-800">
       <b>Демо-режим.</b> {note ?? 'Данные хранятся в вашем браузере: серверные эндпоинты /api/v1/admin/* ещё не реализованы. После подключения интерфейс заработает с реальной базой без изменений.'}

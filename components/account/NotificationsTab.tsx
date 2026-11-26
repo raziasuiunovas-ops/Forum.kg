@@ -109,11 +109,32 @@ export function NotificationsTab({ locale }: { locale: string }) {
   }
 
   if (permission === 'unsupported') {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    const isHTTPS = window.location.protocol === 'https:'
+    
     return (
-      <div className="rounded-2xl bg-amber-50 p-6 text-center">
+      <div className="rounded-2xl bg-amber-50 p-6">
         <BellOff className="mx-auto h-10 w-10 text-amber-400" />
-        <h3 className="mt-3 font-bold text-amber-800">Уведомления недоступны</h3>
-        <p className="mt-1 text-sm text-amber-700">Ваш браузер не поддерживает push-уведомления. Попробуйте Chrome или Safari.</p>
+        <h3 className="mt-3 text-center font-bold text-amber-800">Уведомления недоступны</h3>
+        <p className="mt-2 text-center text-sm text-amber-700">
+          {!isHTTPS && 'Уведомления работают только через HTTPS. '}
+          {isIOS && 'На iOS уведомления работают только в Safari 16.4+ и выше. '}
+          {!isIOS && !isHTTPS && 'Попробуйте открыть сайт через HTTPS или используйте Chrome/Safari.'}
+        </p>
+        
+        {/* Debug info - remove in production */}
+        <details className="mt-4 text-xs text-amber-600">
+          <summary className="cursor-pointer">Техническая информация</summary>
+          <pre className="mt-2 overflow-auto rounded bg-amber-100 p-2 text-left">
+            {JSON.stringify({
+              hasNotifications: 'Notification' in window,
+              hasServiceWorker: 'serviceWorker' in navigator,
+              hasPushManager: 'serviceWorker' in navigator && 'pushManager' in ServiceWorkerRegistration.prototype,
+              protocol: window.location.protocol,
+              userAgent: navigator.userAgent.substring(0, 100)
+            }, null, 2)}
+          </pre>
+        </details>
       </div>
     )
   }

@@ -17,6 +17,7 @@ const KEY = 'forumkg_admin_demo_v1'
 let state: AdminState = INITIAL_STATE
 let loaded = false
 let fetched = false
+let dataLoadedFromServer = false
 const listeners = new Set<() => void>()
 
 function notify() {
@@ -74,6 +75,7 @@ export async function fetchAdminData() {
       return
     }
     const data = await res.json()
+    dataLoadedFromServer = true
     state = {
       ...state,
       forums: data.forums ?? state.forums,
@@ -92,6 +94,7 @@ export async function fetchAdminData() {
 
 export function resetDemoData() {
   fetched = false
+  dataLoadedFromServer = false
   set(INITIAL_STATE)
   void fetchAdminData()
 }
@@ -198,4 +201,9 @@ function subscribe(cb: () => void) {
 export function useAdminState(): AdminState {
   load()
   return useSyncExternalStore(subscribe, () => state, () => INITIAL_STATE)
+}
+
+/** Returns true if data was successfully loaded from the server (not demo mode) */
+export function useIsServerDataLoaded(): boolean {
+  return useSyncExternalStore(subscribe, () => dataLoadedFromServer, () => false)
 }
