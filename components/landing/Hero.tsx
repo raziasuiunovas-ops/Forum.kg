@@ -127,10 +127,6 @@ export async function Hero({ locale, settings }: { locale: AppLocale; settings: 
           </div>
         </div>
       </div>
-
-      <p className="absolute bottom-6 right-8 hidden text-[10px] font-bold tracking-[0.3em] text-white/35 lg:block">
-        {t('discover')} / <span className="text-base text-white">01</span>
-      </p>
     </section>
   )
 }
