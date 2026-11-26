@@ -68,7 +68,7 @@ export default async function LoginPage({ params }: { params: Promise<{ locale: 
         </div>
 
         <div className="flex flex-1 items-center justify-center py-10">
-          <div className="w-full max-w-lg animate-fade-up rounded-[2rem] bg-white p-7 text-ink shadow-[0_40px_90px_-30px_rgba(0,0,0,.8)] sm:p-9">
+          <div className="w-full max-w-xl animate-fade-up rounded-[2rem] bg-white p-7 text-ink shadow-[0_40px_90px_-30px_rgba(0,0,0,.8)] sm:p-9">
             <Suspense fallback={null}>
               <LoginForm locale={locale} messages={all.auth as Messages} />
             </Suspense>
