@@ -150,7 +150,7 @@ export function AccountClient({ locale, messages }: { locale: string; messages: 
           )}
 
           {tab === 'notifications' && (
-            <NotificationsTab locale={locale} />
+            <NotificationsTab locale={locale} userId={me.id} />
           )}
 
           {tab === 'tickets' && <TicketsTab locale={locale} t={t} />}

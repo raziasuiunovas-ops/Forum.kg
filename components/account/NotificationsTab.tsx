@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Bell, BellOff, Loader2, CheckCircle2 } from 'lucide-react'
 
-export function NotificationsTab({ locale }: { locale: string }) {
+export function NotificationsTab({ locale, userId }: { locale: string; userId?: string }) {
   const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>('default')
   const [subscribed, setSubscribed] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -233,11 +233,33 @@ export function NotificationsTab({ locale }: { locale: string }) {
           <div className="flex-1 min-w-0">
             <h3 className="font-bold text-blue-900 break-words">Уведомления в Telegram</h3>
             <p className="mt-2 text-sm text-blue-800 break-words">
-              Подключите Telegram бот <span className="font-mono font-semibold">@Forum_kg_bot</span> для получения уведомлений о покупке билетов прямо в мессенджере!
+              Подключите Telegram бот для получения уведомлений прямо в мессенджере!
             </p>
-            <p className="mt-3 text-xs text-blue-700/80 break-words">
-              💡 После подключения вы будете получать детальную информацию о заказе, дате форума и QR-кодах билетов.
-            </p>
+            <ul className="mt-3 space-y-1.5 text-xs text-blue-700/90">
+              <li className="flex items-center gap-2">
+                <span className="shrink-0">✅</span>
+                <span className="break-words">Подтверждения покупки билетов с QR-кодами</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="shrink-0">⏰</span>
+                <span className="break-words">Напоминания о форумах за день до события</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="shrink-0">📢</span>
+                <span className="break-words">Уведомления о новых форумах и анонсах</span>
+              </li>
+            </ul>
+            <a
+              href={`https://t.me/Forum_kg_bot?start=user_${userId || 'connect'}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 inline-flex items-center gap-2 rounded-full bg-blue-500 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-blue-600 shadow-sm"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295-.002 0-.003 0-.005 0l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.64-.203-.658-.64.135-.954l11.566-4.458c.538-.196 1.006.128.832.941z"/>
+              </svg>
+              Подключить @Forum_kg_bot
+            </a>
           </div>
         </div>
       </div>

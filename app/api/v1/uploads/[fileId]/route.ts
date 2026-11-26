@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/db'
+import { ForumStatus } from '@prisma/client'
 import { requireAuth } from '@/lib/auth/middleware'
 import { writeSecurityAuditEvent } from '@/lib/security/audit-logger'
 import { getPrivateUploadStore } from '@/lib/storage/private-upload-store'
@@ -8,17 +10,67 @@ export const runtime = 'nodejs'
 
 const FILE_ID_PATTERN = /^([0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})\.(png|jpg|jpeg|webp)$/i
 
-/** GET /api/v1/uploads/[fileId] — only the authenticated file owner can read. */
+/**
+ * GET /api/v1/uploads/[fileId] — serves uploaded images.
+ * - If the file is used as bannerUrl in a published event: publicly accessible
+ * - Otherwise: only accessible by the file owner (authenticated)
+ */
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ fileId: string }> }
 ): Promise<NextResponse> {
-  const authResult = await requireAuth(request)
-  if (authResult instanceof NextResponse) return authResult
-
   const { fileId } = await context.params
   const match = FILE_ID_PATTERN.exec(fileId)
   if (!match) return notFoundResponse()
+
+  const fileUrl = `/api/v1/uploads/${fileId}`
+  
+  // Check if this file is used in any published event (public access)
+  const publishedEvent = await prisma.forum.findFirst({
+    where: {
+      bannerUrl: fileUrl,
+      status: ForumStatus.PUBLISHED,
+    },
+    select: { id: true, createdById: true },
+  })
+
+  if (publishedEvent) {
+    // Public access for published event banners
+    const key = `private/${publishedEvent.createdById}/${fileId}`
+    let bytes: Uint8Array | null
+    try {
+      bytes = await getPrivateUploadStore().get(key)
+    } catch {
+      return NextResponse.json(
+        { error: { code: 'UPLOAD_STORAGE_UNAVAILABLE', message: 'Файл временно недоступен' } },
+        { status: 503, headers: { 'Cache-Control': 'no-store' } }
+      )
+    }
+
+    if (!bytes) return notFoundResponse()
+
+    const validation = validateUpload(fileId, mimeTypeForExtension(match[2]), bytes)
+    if (!validation.ok || validation.format.extension.toLowerCase() !== match[2].toLowerCase()) {
+      return notFoundResponse()
+    }
+
+    const responseBody = Uint8Array.from(bytes).buffer
+    return new NextResponse(responseBody, {
+      status: 200,
+      headers: {
+        'Content-Type': validation.format.contentType,
+        'Content-Length': String(bytes.byteLength),
+        'Content-Disposition': `inline; filename="${match[1]}.${validation.format.extension}"`,
+        // Public cache for 1 hour (event banner)
+        'Cache-Control': 'public, max-age=3600',
+        'X-Content-Type-Options': 'nosniff',
+      },
+    })
+  }
+
+  // Private access - require authentication
+  const authResult = await requireAuth(request)
+  if (authResult instanceof NextResponse) return authResult
 
   const key = `private/${authResult.user.userId}/${fileId}`
   let bytes: Uint8Array | null
@@ -60,9 +112,8 @@ export async function GET(
     headers: {
       'Content-Type': validation.format.contentType,
       'Content-Length': String(bytes.byteLength),
-      // inline — браузер показывает картинку, а не скачивает
       'Content-Disposition': `inline; filename="${match[1]}.${validation.format.extension}"`,
-      // Кешируем на 1 час — картинка не меняется после загрузки
+      // Private cache for 1 hour
       'Cache-Control': 'private, max-age=3600',
       'X-Content-Type-Options': 'nosniff',
       'Cross-Origin-Resource-Policy': 'same-origin',

@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/send-reminders?days=1&secret=$CRON_SECRET",
+      "schedule": "0 3 * * *"
+    }
+  ]
+}

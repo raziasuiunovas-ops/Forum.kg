@@ -1,0 +1,18 @@
+{
+  "name": "forum-kg-telegram-bot",
+  "version": "1.0.0",
+  "description": "Telegram bot for FORUM.KG notifications",
+  "type": "module",
+  "main": "bot.mjs",
+  "scripts": {
+    "start": "node bot.mjs",
+    "dev": "nodemon bot.mjs"
+  },
+  "dependencies": {
+    "node-telegram-bot-api": "^0.66.0",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.7"
+  }
+}
