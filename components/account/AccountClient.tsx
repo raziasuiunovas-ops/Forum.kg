@@ -228,8 +228,17 @@ function ProfileForm({
   const [first, setFirst] = useState(me.firstName ?? '')
   const [last, setLast] = useState(me.lastName ?? '')
   const [lang, setLang] = useState<Me['preferredLocale']>(me.preferredLocale)
+  const [showLangDropdown, setShowLangDropdown] = useState(false)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  const languages = [
+    { value: 'RU' as const, label: 'Русский' },
+    { value: 'KY' as const, label: 'Кыргызча' },
+    { value: 'EN' as const, label: 'English' },
+  ]
+
+  const selectedLang = languages.find(l => l.value === lang)
 
   async function save(e: React.FormEvent) {
     e.preventDefault()
@@ -253,9 +262,6 @@ function ProfileForm({
   const field =
     'mt-2 h-12 w-full rounded-xl border-2 border-slate-200 bg-white px-4 text-sm font-semibold text-ink outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/20'
 
-  const selectField =
-    'mt-2 h-12 w-full appearance-none rounded-xl border-2 border-slate-200 bg-white px-4 text-sm font-semibold text-ink outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/20 cursor-pointer'
-
   return (
     <form onSubmit={save} noValidate>
       <h2 className="text-2xl font-black tracking-tight text-ink">{t('profile.title')}</h2>
@@ -276,18 +282,52 @@ function ProfileForm({
       </label>
       <input id="pl" value={last} onChange={(e) => setLast(e.target.value)} className={field} autoComplete="family-name" />
 
-      <label htmlFor="plang" className="mt-4 block text-xs font-bold text-ink">
+      <label className="mt-4 block text-xs font-bold text-ink">
         {t('profile.language')}
       </label>
-      <div className="relative">
-        <select id="plang" value={lang} onChange={(e) => setLang(e.target.value as Me['preferredLocale'])} className={selectField}>
-          <option value="RU">Русский</option>
-          <option value="KY">Кыргызча</option>
-          <option value="EN">English</option>
-        </select>
-        <svg className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-        </svg>
+      <div className="relative mt-2">
+        <button
+          type="button"
+          onClick={() => setShowLangDropdown(!showLangDropdown)}
+          className="flex h-12 w-full items-center justify-between rounded-xl border-2 border-slate-200 bg-white px-4 text-sm font-semibold text-ink outline-none transition hover:border-primary/50 focus:border-primary focus:ring-4 focus:ring-primary/20"
+        >
+          <span>{selectedLang?.label}</span>
+          <svg 
+            className={`h-5 w-5 text-primary transition-transform ${showLangDropdown ? 'rotate-180' : ''}`} 
+            viewBox="0 0 20 20" 
+            fill="currentColor"
+          >
+            <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+          </svg>
+        </button>
+        
+        {showLangDropdown && (
+          <>
+            <div 
+              className="fixed inset-0 z-10" 
+              onClick={() => setShowLangDropdown(false)}
+            />
+            <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-xl border-2 border-slate-200 bg-white shadow-xl">
+              {languages.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  onClick={() => {
+                    setLang(item.value)
+                    setShowLangDropdown(false)
+                  }}
+                  className={`flex w-full items-center px-4 py-3 text-sm font-semibold transition ${
+                    lang === item.value
+                      ? 'bg-primary text-white'
+                      : 'text-ink hover:bg-slate-50'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {msg && (
