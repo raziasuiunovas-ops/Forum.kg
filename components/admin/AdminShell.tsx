@@ -57,6 +57,18 @@ export function AdminShell({ locale, children }: { locale: string; children: Rea
 
   useEffect(() => setOpen(false), [pathname])
 
+  // Блокировка прокрутки body когда меню открыто
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [open])
+
   if (!user) {
     return (
       <div className="flex min-h-screen items-center justify-center gap-3 bg-surface text-sm text-slate-500" role="status">
@@ -129,10 +141,10 @@ export function AdminShell({ locale, children }: { locale: string; children: Rea
           </div>
         </div>
         {open && (
-          <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
+          <div className="fixed inset-0 z-50 lg:hidden overflow-hidden" role="dialog" aria-modal="true">
             <div className="absolute inset-0 bg-ink/60" onClick={() => setOpen(false)} />
-            <div className="absolute inset-y-0 left-0 w-64 bg-footer shadow-2xl animate-slide-in-left">
-              <button type="button" onClick={() => setOpen(false)} aria-label="Закрыть" className="absolute right-3 top-4 rounded-lg p-1.5 text-white/70 hover:text-white transition-colors">
+            <div className="absolute inset-y-0 left-0 w-64 bg-footer shadow-2xl animate-slide-in-left overflow-y-auto">
+              <button type="button" onClick={() => setOpen(false)} aria-label="Закрыть" className="absolute right-3 top-4 rounded-lg p-1.5 text-white/70 hover:text-white transition-colors z-10">
                 <X className="h-5 w-5" />
               </button>
               {sidebar}

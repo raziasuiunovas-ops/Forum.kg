@@ -16,7 +16,7 @@ export function Payments() {
   const total = rows.filter((p) => p.status === 'PAID').reduce((a, p) => a + p.amountMinor, 0)
 
   return (
-    <div>
+    <div className="max-w-full overflow-hidden">
       <PageHeader title="Платежи" text="Кто и за что заплатил, сумма, статус, точные дата и время, номер транзакции." />
       <DemoBanner forceShow={!isServerData} />
       <div className="mb-5 grid gap-4 sm:grid-cols-3">
@@ -24,7 +24,7 @@ export function Payments() {
         <Stat label="Подтверждено на сумму" value={money(total)} />
         <Stat label="Ожидают возврата" value={rows.filter((p) => p.status === 'REFUND_PENDING').length} />
       </div>
-      <Card>
+      <Card className="overflow-hidden">
         <DataTable
           rows={rows}
           searchText={(p) => `${p.userName} ${p.orderNumber} ${p.providerRef} ${forumName(p.forumId)}`}
@@ -32,12 +32,12 @@ export function Payments() {
             <DateInput value={day} onChange={(e) => setDay(e.target.value)} className="w-full sm:w-48" />
           }
           columns={[
-            { key: 'u', header: 'Плательщик', sortValue: (p) => p.userName, cell: (p) => <b>{p.userName}</b> },
-            { key: 'f', header: 'Форум / заказ', cell: (p) => (<div>{forumName(p.forumId)}<p className="text-xs text-slate-400">{p.orderNumber}</p></div>) },
-            { key: 'a', header: 'Сумма', sortValue: (p) => p.amountMinor, cell: (p) => money(p.amountMinor) },
+            { key: 'u', header: 'Плательщик', sortValue: (p) => p.userName, cell: (p) => <b className="text-sm break-words">{p.userName}</b> },
+            { key: 'f', header: 'Форум / заказ', cell: (p) => (<div className="min-w-[140px]"><div className="text-sm break-words">{forumName(p.forumId)}</div><p className="text-xs text-slate-400 break-all">{p.orderNumber}</p></div>) },
+            { key: 'a', header: 'Сумма', sortValue: (p) => p.amountMinor, cell: (p) => <span className="whitespace-nowrap text-sm font-semibold">{money(p.amountMinor)}</span> },
             { key: 's', header: 'Статус', cell: (p) => <Badge tone={PAY_TONE[p.status]}>{PAY_LABEL[p.status]}</Badge> },
-            { key: 'd', header: 'Дата и время', sortValue: (p) => p.paidAt, cell: (p) => dateTime(p.paidAt, true) },
-            { key: 'r', header: 'Транзакция', cell: (p) => <code className="text-xs text-slate-500">{p.providerRef}</code> },
+            { key: 'd', header: 'Дата и время', sortValue: (p) => p.paidAt, cell: (p) => <div className="text-xs whitespace-nowrap">{dateTime(p.paidAt, true)}</div> },
+            { key: 'r', header: 'Транзакция', cell: (p) => <code className="text-[10px] text-slate-500 break-all block max-w-[100px]">{p.providerRef}</code> },
           ]}
         />
       </Card>
