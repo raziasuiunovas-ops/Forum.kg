@@ -105,7 +105,10 @@ export async function sendPasswordResetEmail(
   // Try SendGrid first
   if (process.env.SENDGRID_API_KEY && process.env.SENDGRID_FROM_EMAIL) {
     try {
-      console.log('[Email] Attempting to send via SendGrid to:', email)
+      console.log('[Email] Attempting to send via SendGrid')
+      console.log('[Email] To:', email)
+      console.log('[Email] From:', process.env.SENDGRID_FROM_EMAIL)
+      console.log('[Email] Subject:', t.subject)
       
       const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
         method: 'POST',
@@ -135,12 +138,19 @@ export async function sendPasswordResetEmail(
       }
 
       const errorText = await response.text()
-      console.error('[SendGrid] ❌ Failed to send email:', response.status, errorText)
+      console.error('[SendGrid] ❌ Failed to send email:', response.status)
+      console.error('[SendGrid] Response body:', errorText)
+      
+      // Try to parse error details
+      try {
+        const errorData = JSON.parse(errorText)
+        console.error('[SendGrid] Error details:', JSON.stringify(errorData, null, 2))
+      } catch {}
       
       // Don't fall through to Resend if SendGrid is configured - return the error
       return { 
         success: false, 
-        error: `SendGrid error: ${response.status}` 
+        error: `SendGrid error: ${response.status} - ${errorText.substring(0, 100)}` 
       }
     } catch (error) {
       console.error('[SendGrid] ❌ Exception:', error)
