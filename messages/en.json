@@ -24,7 +24,6 @@
     "ctaSecondary": "Create a forum",
     "communityTitle": "Meetings that unite",
     "communityText": "Kyrgyzstan · knowledge · community",
-    "discover": "DISCOVER",
     "ticketLabel": "YOUR ACCESS PASS",
     "badgeTitle": "Your seat is ready!",
     "badgeText": "QR ticket in Telegram"
@@ -36,7 +35,7 @@
     "4": "The future starts here"
   },
   "events": {
-    "eyebrow": "01 / EVENT CALENDAR",
+    "eyebrow": "EVENT CALENDAR",
     "title": "Worth seeing in person",
     "subtitle": "Forums where new ideas, connections and opportunities are born. Choose your event.",
     "all": "All events",
