@@ -19,7 +19,7 @@ export default async function AccountPage({ params }: { params: Promise<{ locale
 
   return (
     <div className="min-h-screen bg-surface pb-24 pt-32 sm:pt-36">
-      <div className="mx-auto max-w-6xl px-5 sm:px-8">
+      <div className="mx-auto max-w-7xl px-5 sm:px-8">
         <AccountClient locale={locale} messages={messages} />
       </div>
     </div>

@@ -254,7 +254,7 @@ function ProfileForm({
     'mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-ink outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30'
 
   return (
-    <form onSubmit={save} className="max-w-md" noValidate>
+    <form onSubmit={save} className="max-w-xl" noValidate>
       <h2 className="text-2xl font-black tracking-tight text-ink">{t('profile.title')}</h2>
 
       <p className="mt-6 text-xs font-bold text-ink">{me.phone ? t('profile.phone') : 'Email'}</p>
