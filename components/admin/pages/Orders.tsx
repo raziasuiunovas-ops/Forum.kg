@@ -5,7 +5,7 @@ import { actions, useAdminState } from '@/lib/admin/store'
 import { dateTime, money } from '@/lib/admin/format'
 import type { CancellationRequest } from '@/lib/admin/types'
 import { useAdminUser } from '../AdminShell'
-import { Badge, Card, DataTable, DemoBanner, Field, Modal, PageHeader, Select, btn, field, select } from '../ui'
+import { Badge, Card, DataTable, DemoBanner, Field, Modal, PageHeader, Select, btn, field } from '../ui'
 import { CANCEL_LABEL, CANCEL_TONE, ORDER_LABEL, ORDER_TONE, REFUND_LABEL } from './labels'
 
 export function Orders() {
@@ -79,9 +79,15 @@ export function Orders() {
                     </>)}
                     {c.status === 'APPROVED' && !c.ticketsInvalidated && <button className={btn.danger} onClick={() => confirm('Аннулировать билеты? Они больше не будут проходить на входе.') && actions.invalidateCancellationTickets(c.id, actor)}>Аннулировать билеты</button>}
                     {c.ticketsInvalidated && c.refund !== 'SUCCEEDED' && (
-                      <select aria-label="Статус возврата" value={c.refund} onChange={(e) => actions.setRefund(c.id, e.target.value as CancellationRequest['refund'], actor)} className={`${select} !h-9 !text-xs`}>
-                        {Object.entries(REFUND_LABEL).map(([k, v]) => <option key={k} value={k}>Возврат: {v}</option>)}
-                      </select>
+                      <div className="min-w-[200px]">
+                        <Select
+                          aria-label="Статус возврата"
+                          value={c.refund}
+                          onChange={(value) => actions.setRefund(c.id, value as CancellationRequest['refund'], actor)}
+                          options={Object.entries(REFUND_LABEL).map(([k, v]) => ({ value: k, label: `Возврат: ${v}` }))}
+                          className="w-full"
+                        />
+                      </div>
                     )}
                   </div>
                 ),

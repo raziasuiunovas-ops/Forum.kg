@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { api } from '@/lib/client/api'
+import { useIsServerDataLoaded } from '@/lib/admin/store'
 import { dateTime } from '@/lib/admin/format'
 import { Badge, Card, DemoBanner, PageHeader, btn } from '../ui'
 
@@ -27,6 +28,7 @@ const INITIAL: Row[] = [
 
 /** Spec 8.6: real state, last check, error and a human-readable fix. Secrets are never shown. */
 export function Integrations() {
+  const isServerData = useIsServerDataLoaded()
   const [rows, setRows] = useState<Row[]>(INITIAL)
   const [busy, setBusy] = useState(false)
 
@@ -41,7 +43,7 @@ export function Integrations() {
   return (
     <div>
       <PageHeader title="Интеграции и состояние" text="Реальное состояние сервисов, время последней проверки, ошибка и что сделать. Ключи и секреты здесь никогда не показываются." />
-      <DemoBanner note="Реально проверяется только API и база. Остальные интеграции показывают «Не настроено», пока у сервера нет проверки их конфигурации (/api/v1/integrations/health описан в OpenAPI)." />
+      <DemoBanner forceShow={!isServerData} note="Реально проверяется только API и база. Остальные интеграции показывают «Не настроено», пока у сервера нет проверки их конфигурации (/api/v1/integrations/health описан в OpenAPI)." />
       <div className="grid gap-4 md:grid-cols-2">
         {rows.map((r) => (
           <Card key={r.id}>

@@ -5,7 +5,7 @@ import { Download } from 'lucide-react'
 import { useAdminState, useIsServerDataLoaded } from '@/lib/admin/store'
 import { SALES_SERIES } from '@/lib/admin/mock'
 import { dateTime, downloadCsv, money } from '@/lib/admin/format'
-import { AreaChart, Card, DemoBanner, PageHeader, Stat, btn, field, select } from '../ui'
+import { AreaChart, Card, DemoBanner, PageHeader, Select, Stat, btn, field } from '../ui'
 
 export function Analytics() {
   const s = useAdminState()
@@ -29,7 +29,15 @@ export function Analytics() {
   return (
     <div>
       <PageHeader title="Аналитика и экспорт" text="Продажи, категории билетов и выгрузка данных в CSV.">
-        <select aria-label="Форум" className={select} value={forumId} onChange={(e) => setForumId(e.target.value)}><option value="all">Все форумы</option>{s.forums.map((f) => <option key={f.id} value={f.id}>{f.title.ru}</option>)}</select>
+        <Select
+          aria-label="Форум"
+          value={forumId}
+          onChange={(value) => setForumId(value)}
+          options={[
+            { value: 'all', label: 'Все форумы' },
+            ...s.forums.map((f) => ({ value: f.id, label: f.title.ru }))
+          ]}
+        />
       </PageHeader>
       <DemoBanner forceShow={!isServerData} />
       <div className="grid gap-4 sm:grid-cols-3">

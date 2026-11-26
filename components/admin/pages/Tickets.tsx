@@ -5,7 +5,7 @@ import { actions, useAdminState } from '@/lib/admin/store'
 import { dateTime } from '@/lib/admin/format'
 import type { AdminTicket } from '@/lib/admin/types'
 import { useAdminUser } from '../AdminShell'
-import { Badge, Card, DataTable, DemoBanner, Field, Modal, PageHeader, Select, btn, field, select } from '../ui'
+import { Badge, Card, DataTable, DemoBanner, Field, Modal, PageHeader, Select, btn, field } from '../ui'
 import { TICKET_LABEL, TICKET_TONE } from './labels'
 
 export function Tickets() {

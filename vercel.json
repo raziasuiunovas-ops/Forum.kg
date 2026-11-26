@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/cleanup-2fa",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/expire-tickets",
+      "schedule": "0 2 * * *"
+    }
+  ]
+}

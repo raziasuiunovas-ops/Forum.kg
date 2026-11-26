@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Download } from 'lucide-react'
 import { useAdminState } from '@/lib/admin/store'
 import { bishkekDay, dateTime, downloadCsv } from '@/lib/admin/format'
-import { Badge, Card, DataTable, DemoBanner, PageHeader, btn, field, DateInput, getTodayDate } from '../ui'
+import { Badge, Card, DataTable, DemoBanner, PageHeader, Select, btn, DateInput, getTodayDate } from '../ui'
 
 export function Audit() {
   const { audit } = useAdminState()
@@ -27,10 +27,16 @@ export function Audit() {
           toolbar={
             <div className="flex flex-wrap gap-2 sm:justify-end">
               <DateInput aria-label="Дата" className="w-full sm:w-44" value={day} onChange={(e) => setDay(e.target.value)} />
-              <select aria-label="Сотрудник" className={`${field} w-full sm:w-52`} value={actor} onChange={(e) => setActor(e.target.value)}>
-                <option value="all">Все сотрудники</option>
-                {actors.map((a) => <option key={a}>{a}</option>)}
-              </select>
+              <Select
+                aria-label="Сотрудник"
+                value={actor}
+                onChange={(value) => setActor(value)}
+                options={[
+                  { value: 'all', label: 'Все сотрудники' },
+                  ...actors.map((a) => ({ value: a, label: a }))
+                ]}
+                className="w-full sm:w-52"
+              />
             </div>
           }
           columns={[

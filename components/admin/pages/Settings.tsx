@@ -5,7 +5,7 @@ import { Plus, Trash2 } from 'lucide-react'
 import { actions, useAdminState } from '@/lib/admin/store'
 import type { Loc, SiteSettingsData } from '@/lib/admin/types'
 import { useAdminUser } from '../AdminShell'
-import { Card, Field, PageHeader, btn, field, select } from '../ui'
+import { Card, Field, PageHeader, Select, btn, field } from '../ui'
 import { ImageUpload } from '../ImageUpload'
 
 const HEX = /^#[0-9a-fA-F]{6}$/
@@ -140,8 +140,13 @@ export function Settings() {
             </div>
             <div className="mt-4 space-y-2">
               {s.socialLinks.map((l, i) => (
-                <div key={i} className="grid grid-cols-[9rem_1fr_auto] gap-2">
-                  <select aria-label="Соцсеть" className={select} value={l.platform} onChange={(e) => set('socialLinks', s.socialLinks.map((x, idx) => idx === i ? { ...x, platform: e.target.value } : x))}>{['instagram', 'telegram', 'facebook', 'whatsapp', 'linkedin'].map((p) => <option key={p}>{p}</option>)}</select>
+                <div key={i} className="grid grid-cols-[9rem_1fr_auto] gap-2 items-center">
+                  <Select
+                    aria-label="Соцсеть"
+                    value={l.platform}
+                    onChange={(value) => set('socialLinks', s.socialLinks.map((x, idx) => idx === i ? { ...x, platform: value } : x))}
+                    options={['instagram', 'telegram', 'facebook', 'whatsapp', 'linkedin'].map((p) => ({ value: p, label: p }))}
+                  />
                   <input aria-label="Ссылка" className={field} value={l.url} onChange={(e) => set('socialLinks', s.socialLinks.map((x, idx) => idx === i ? { ...x, url: e.target.value } : x))} placeholder="https://..." />
                   <button type="button" aria-label="Удалить" className={`${btn.danger} !h-10`} onClick={() => set('socialLinks', s.socialLinks.filter((_, idx) => idx !== i))}><Trash2 className="h-4 w-4" /></button>
                 </div>
