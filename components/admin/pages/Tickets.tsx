@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { actions, useAdminState } from '@/lib/admin/store'
+import { actions, useAdminState, useIsServerDataLoaded } from '@/lib/admin/store'
 import { dateTime } from '@/lib/admin/format'
 import type { AdminTicket } from '@/lib/admin/types'
 import { useAdminUser } from '../AdminShell'
@@ -10,6 +10,7 @@ import { TICKET_LABEL, TICKET_TONE } from './labels'
 
 export function Tickets() {
   const s = useAdminState()
+  const isServerData = useIsServerDataLoaded()
   const { actor } = useAdminUser()
   const [forum, setForum] = useState('all')
   const [status, setStatus] = useState('all')

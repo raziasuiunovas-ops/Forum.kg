@@ -6,8 +6,7 @@ import { api } from '@/lib/client/api'
 import { actions, useAdminState } from '@/lib/admin/store'
 import { dateTime } from '@/lib/admin/format'
 import { useAdminUser } from '../AdminShell'
-import { Card, DataTable, Field, PageHeader, btn, field } from '../ui'
-import { Select } from '../Select'
+import { Card, DataTable, Field, PageHeader, Select, btn, field } from '../ui'
 
 interface RealForum { id: string; title: string }
 interface Result {

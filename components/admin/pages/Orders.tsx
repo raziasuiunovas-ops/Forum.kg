@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { actions, useAdminState } from '@/lib/admin/store'
+import { actions, useAdminState, useIsServerDataLoaded } from '@/lib/admin/store'
 import { dateTime, money } from '@/lib/admin/format'
 import type { CancellationRequest } from '@/lib/admin/types'
 import { useAdminUser } from '../AdminShell'
@@ -10,6 +10,7 @@ import { CANCEL_LABEL, CANCEL_TONE, ORDER_LABEL, ORDER_TONE, REFUND_LABEL } from
 
 export function Orders() {
   const s = useAdminState()
+  const isServerData = useIsServerDataLoaded()
   const { actor } = useAdminUser()
   const [tab, setTab] = useState<'orders' | 'cancellations'>('orders')
   const [status, setStatus] = useState('all')
@@ -21,7 +22,7 @@ export function Orders() {
   return (
     <div>
       <PageHeader title="Заказы и отмены" text="Заказы пользователей и заявки на отмену. Одобрение отмены, аннулирование билетов и возврат денег — три отдельные операции." />
-      <DemoBanner />
+      <DemoBanner forceShow={!isServerData} />
       <div role="tablist" className="mb-5 inline-flex rounded-lg bg-white p-1 text-sm font-bold shadow-sm ring-1 ring-slate-200/70">
         <button role="tab" aria-selected={tab === 'orders'} onClick={() => setTab('orders')} className={`rounded-md px-4 py-2 ${tab === 'orders' ? 'bg-ink text-white' : 'text-slate-500'}`}>Заказы</button>
         <button role="tab" aria-selected={tab === 'cancellations'} onClick={() => setTab('cancellations')} className={`rounded-md px-4 py-2 ${tab === 'cancellations' ? 'bg-ink text-white' : 'text-slate-500'}`}>

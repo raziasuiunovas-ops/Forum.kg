@@ -5,8 +5,7 @@ import { Send } from 'lucide-react'
 import { actions, useAdminState } from '@/lib/admin/store'
 import { dateTime } from '@/lib/admin/format'
 import { useAdminUser } from '../AdminShell'
-import { Card, DataTable, DemoBanner, Field, PageHeader, btn, field } from '../ui'
-import { Select } from '../Select'
+import { Card, DataTable, DemoBanner, Field, PageHeader, Select, btn, field } from '../ui'
 
 const TYPES: Record<string, string> = { FORUM_PUBLISHED: 'Новый форум', FORUM_UPDATED: 'Изменение форума', FORUM_CANCELLED: 'Отмена форума', EVENT_REMINDER: 'Напоминание о событии' }
 
