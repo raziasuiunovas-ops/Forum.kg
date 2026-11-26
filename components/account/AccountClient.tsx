@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Bell, CreditCard, Loader2, LogOut, Receipt, Send, Ticket, User, LayoutDashboard, ArrowUpRight } from 'lucide-react'
+import { Bell, CreditCard, Loader2, LogOut, Receipt, Ticket, User, LayoutDashboard, ArrowUpRight } from 'lucide-react'
 import { api, resetCsrf } from '@/lib/client/api'
 import { makeT, type Messages } from '@/lib/i18n/client'
 import { NotificationsTab } from './NotificationsTab'
@@ -339,14 +339,6 @@ function ProfileForm({
       <button type="submit" disabled={busy} className="mt-5 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-8 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-60">
         {busy ? t('profile.saving') : t('profile.save')}
       </button>
-
-      <div className="mt-8 flex items-start gap-3 rounded-2xl bg-surface p-4">
-        <Send className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-        <div>
-          <p className="text-sm font-bold text-ink">{t('profile.telegram')}</p>
-          <p className="text-xs leading-relaxed text-slate-500">{t('profile.telegramText')}</p>
-        </div>
-      </div>
     </form>
   )
 }

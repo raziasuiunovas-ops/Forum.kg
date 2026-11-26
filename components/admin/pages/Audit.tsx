@@ -26,8 +26,8 @@ export function Audit() {
           pageSize={12}
           searchText={(a) => `${a.action} ${a.target} ${a.actor}`}
           toolbar={
-            <div className="flex flex-wrap gap-2 sm:justify-end">
-              <DateInput aria-label="Дата" className="w-full sm:w-44" value={day} onChange={(e) => setDay(e.target.value)} />
+            <div className="flex flex-wrap gap-2">
+              <DateInput aria-label="Дата" className="w-full sm:flex-1 sm:max-w-xs" value={day} onChange={(e) => setDay(e.target.value)} />
               <Select
                 aria-label="Сотрудник"
                 value={actor}
@@ -36,7 +36,7 @@ export function Audit() {
                   { value: 'all', label: 'Все сотрудники' },
                   ...actors.map((a) => ({ value: a, label: a }))
                 ]}
-                className="w-full sm:w-52"
+                className="w-full sm:flex-1 sm:max-w-xs"
               />
             </div>
           }

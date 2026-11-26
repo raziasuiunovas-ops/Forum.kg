@@ -327,9 +327,7 @@
       "language": "Preferred language",
       "save": "Save",
       "saving": "Saving...",
-      "saved": "Changes saved",
-      "telegram": "Telegram",
-      "telegramText": "Connect @Forum_kg_bot in Telegram to receive notifications about orders and tickets."
+      "saved": "Changes saved"
     },
     "logout": "Log out",
     "logoutTitle": "Log out",

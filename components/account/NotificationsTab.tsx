@@ -210,56 +210,43 @@ export function NotificationsTab({ locale, userId }: { locale: string; userId?: 
         <h3 className="font-bold text-ink">Какие уведомления вы получите</h3>
         <ul className="mt-4 space-y-3">
           {[
-            { text: 'Билет оплачен — сразу после успешной оплаты' },
-            { text: 'Напоминание о форуме — за день до начала' },
-            { text: 'Новые форумы — когда открывается регистрация' },
+            { icon: '🎫', text: 'Билет оплачен — сразу после успешной оплаты' },
+            { icon: '⏰', text: 'Напоминание о форуме — за день до начала' },
+            { icon: '🆕', text: 'Новые форумы — когда открывается регистрация' },
           ].map((item, i) => (
             <li key={i} className="flex items-start gap-3 text-sm text-slate-600 max-w-full">
-              <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
+              <span className="mt-0.5 shrink-0 text-lg">{item.icon}</span>
               <span className="break-words flex-1">{item.text}</span>
             </li>
           ))}
         </ul>
       </div>
 
-      {/* Telegram notifications info */}
-      <div className="mt-6 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100/50 p-6 ring-1 ring-blue-200/70 max-w-full overflow-x-hidden">
+      {/* How it works */}
+      <div className="mt-6 rounded-2xl bg-gradient-to-br from-primary/5 to-primary/10 p-6 ring-1 ring-primary/20 max-w-full overflow-x-hidden">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-500">
-            <svg className="h-5 w-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295-.002 0-.003 0-.005 0l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.64-.203-.658-.64.135-.954l11.566-4.458c.538-.196 1.006.128.832.941z"/>
-            </svg>
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary">
+            <Bell className="h-5 w-5 text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-blue-900 break-words">Уведомления в Telegram</h3>
-            <p className="mt-2 text-sm text-blue-800 break-words">
-              Подключите Telegram бот для получения уведомлений прямо в мессенджере!
+            <h3 className="font-bold text-ink break-words">Уведомления прямо на телефон</h3>
+            <p className="mt-2 text-sm text-slate-600 break-words">
+              Уведомления приходят через браузер прямо на экран вашего телефона, даже когда браузер закрыт!
             </p>
-            <ul className="mt-3 space-y-1.5 text-xs text-blue-700/90">
+            <ul className="mt-3 space-y-1.5 text-xs text-slate-600">
               <li className="flex items-center gap-2">
-                <span className="shrink-0">✅</span>
-                <span className="break-words">Подтверждения покупки билетов с QR-кодами</span>
+                <span className="shrink-0">📱</span>
+                <span className="break-words">Работает на Android и iPhone iOS 16.4+</span>
               </li>
               <li className="flex items-center gap-2">
-                <span className="shrink-0">⏰</span>
-                <span className="break-words">Напоминания о форумах за день до события</span>
+                <span className="shrink-0">🔒</span>
+                <span className="break-words">Безопасно — стандартная технология браузеров</span>
               </li>
               <li className="flex items-center gap-2">
-                <span className="shrink-0">📢</span>
-                <span className="break-words">Уведомления о новых форумах и анонсах</span>
+                <span className="shrink-0">⚡</span>
+                <span className="break-words">Мгновенная доставка без задержек</span>
               </li>
             </ul>
-            <a
-              href={`https://t.me/Forum_kg_bot?start=user_${userId || 'connect'}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-4 inline-flex items-center gap-2 rounded-full bg-blue-500 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-blue-600 shadow-sm"
-            >
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295-.002 0-.003 0-.005 0l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.64-.203-.658-.64.135-.954l11.566-4.458c.538-.196 1.006.128.832.941z"/>
-              </svg>
-              Подключить @Forum_kg_bot
-            </a>
           </div>
         </div>
       </div>

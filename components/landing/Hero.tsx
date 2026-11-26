@@ -45,9 +45,9 @@ export async function Hero({ locale, settings }: { locale: AppLocale; settings: 
             <span className={`${lineClass} text-white`} style={{ animationDelay: '180ms' }}>
               {t('line2')}.
             </span>
-            <span className={`${lineClass} text-outline !tracking-[-0.01em]`} style={{ animationDelay: '280ms' }}>
+            <span className={`${lineClass} text-primary font-extrabold tracking-tight`} style={{ animationDelay: '280ms' }}>
               {t('line3')}
-              <span className="text-primary [-webkit-text-stroke:0]">.</span>
+              <span className="text-primary">.</span>
             </span>
           </h1>
 
