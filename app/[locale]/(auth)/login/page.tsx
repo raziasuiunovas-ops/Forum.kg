@@ -33,9 +33,9 @@ export default async function LoginPage({ params }: { params: Promise<{ locale: 
       <section className="relative hidden flex-col justify-between p-12 lg:flex">
         <Logo locale={locale} name={settings.displayName} logoUrl={settings.logoUrl} />
         <div>
-          <h2 className="text-[clamp(3rem,6vw,5.5rem)] font-black uppercase leading-[0.9] tracking-tighter">
+          <h2 className="text-[clamp(3rem,6vw,5.5rem)] font-black uppercase leading-[0.9] tracking-tight">
             <span className="block animate-fade-up">{t('heroLine1')}</span>
-            <span className="text-outline block animate-fade-up !tracking-[-0.005em]" style={{ animationDelay: '120ms' }}>
+            <span className="block animate-fade-up text-primary font-extrabold tracking-tight" style={{ animationDelay: '120ms' }}>
               {t('heroLine2')}
             </span>
           </h2>
