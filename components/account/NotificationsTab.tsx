@@ -53,12 +53,15 @@ export function NotificationsTab({ locale }: { locale: string }) {
       const reg = await navigator.serviceWorker.register('/sw.js')
       await navigator.serviceWorker.ready
 
-      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-      if (!vapidKey) {
+      // Get VAPID key from server
+      const vapidRes = await fetch('/api/v1/push/vapid')
+      if (!vapidRes.ok) {
         setStatus('error')
         setMsg('Уведомления пока не настроены на сервере.')
         return
       }
+      const { publicKey: vapidKey } = await vapidRes.json()
+      
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidKey) as unknown as ArrayBuffer,
