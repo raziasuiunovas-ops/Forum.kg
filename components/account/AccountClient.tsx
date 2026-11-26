@@ -121,7 +121,7 @@ export function AccountClient({ locale, messages }: { locale: string; messages: 
           ))}
         </nav>
 
-        <section className="min-h-[22rem] rounded-[1.75rem] bg-white p-6 shadow-sm ring-1 ring-slate-200/70 sm:p-8">
+        <section className="min-h-[22rem] rounded-[1.75rem] bg-white p-6 shadow-sm ring-1 ring-slate-200/70 sm:p-8 overflow-x-hidden max-w-full">
           {tab === 'overview' && (
             <div className="grid gap-5 sm:grid-cols-2">
               <div className="rounded-2xl bg-gradient-to-br from-primary to-[#7c5cff] p-6 text-white">

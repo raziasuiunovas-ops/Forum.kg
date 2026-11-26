@@ -93,11 +93,11 @@ export function EventsCalendar({ events, labels }: { events: EventView[]; labels
           {labels.empty}
         </p>
       ) : (
-        <div className="mt-8 grid gap-5 lg:grid-cols-[1.25fr_1fr]">
+        <div className="mt-8 grid gap-5 lg:grid-cols-[1.25fr_1fr] xl:grid-cols-[1.3fr_1fr]">
           {/* Featured */}
           <Link
             href={featured.href}
-            className="group relative isolate flex min-h-[460px] flex-col justify-between overflow-hidden rounded-[2rem] p-6 text-white shadow-xl sm:p-8 lg:min-h-[540px]"
+            className="group relative isolate flex min-h-[460px] flex-col justify-between overflow-hidden rounded-[2rem] p-6 text-white shadow-xl sm:min-h-[500px] sm:p-8 lg:min-h-[540px]"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -155,13 +155,30 @@ export function EventsCalendar({ events, labels }: { events: EventView[]; labels
               <Link
                 key={e.id}
                 href={e.href}
-                className="group flex min-h-[220px] flex-1 overflow-hidden rounded-[1.75rem] bg-white p-2 shadow-sm ring-1 ring-slate-200/70 transition duration-300 hover:-translate-y-1 hover:shadow-xl"
+                className="group flex min-h-[220px] flex-1 flex-col overflow-hidden rounded-[1.75rem] bg-white shadow-sm ring-1 ring-slate-200/70 transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:flex-row"
               >
+                {/* Mobile: Image on top */}
+                <div className="relative block h-48 w-full shrink-0 overflow-hidden rounded-t-[1.75rem] sm:hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={e.bannerUrl}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    style={{ objectPosition: e.bannerPosition }}
+                    className="h-full w-full object-cover transition duration-700 group-hover:scale-110"
+                  />
+                  <span className="absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-white text-ink shadow transition group-hover:rotate-45 group-hover:bg-primary group-hover:text-white">
+                    <ArrowUpRight className="h-4 w-4" />
+                  </span>
+                </div>
+
+                {/* Content */}
                 <div className="flex flex-1 flex-col p-4 sm:p-5">
                   <p className="text-[10px] font-extrabold uppercase tracking-[0.15em] text-primary">
                     {e.tag ? `${e.tag} / ` : ''}{e.dayMonth}
                   </p>
-                  <h3 className="mt-2 text-xl font-black leading-tight tracking-tight text-ink">{e.title}</h3>
+                  <h3 className="mt-2 text-xl font-black leading-tight tracking-tight text-ink sm:text-lg">{e.title}</h3>
                   <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-slate-500">{e.description}</p>
                   <div className="mt-auto flex items-end justify-between gap-3 pt-4">
                     <p className="text-[11px] leading-snug text-slate-500">
@@ -177,7 +194,9 @@ export function EventsCalendar({ events, labels }: { events: EventView[]; labels
                     </div>
                   </div>
                 </div>
-                <div className="relative w-[38%] shrink-0 overflow-hidden rounded-[1.3rem]">
+
+                {/* Desktop: Image on right */}
+                <div className="relative hidden w-[38%] shrink-0 overflow-hidden rounded-r-[1.75rem] sm:block">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={e.bannerUrl}

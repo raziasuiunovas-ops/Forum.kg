@@ -4,7 +4,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { requireAuth } from '@/lib/auth/middleware'
+import { requireManager } from '@/lib/auth/middleware'
 import { revalidateTag } from 'next/cache'
 
 const SITE_ID = 'main'
@@ -69,7 +69,7 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
-  const authResult = await requireAuth(request)
+  const authResult = await requireManager(request)
   if ('headers' in authResult) return authResult
 
   try {

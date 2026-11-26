@@ -103,7 +103,13 @@ function homeImage(locale: AppLocale) {
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', columnGap: 24, rowGap: 6, maxWidth: 1056, fontSize: 84, fontWeight: 800, letterSpacing: -3, lineHeight: 1.05 }}>
           {words.map((w, i) => (
-            <span key={w} style={{ color: i === words.length - 1 ? '#7D93FF' : '#FFFFFF' }}>
+            <span 
+              key={w} 
+              style={{ 
+                color: i === words.length - 1 ? 'transparent' : '#FFFFFF',
+                WebkitTextStroke: i === words.length - 1 ? '2.5px #7D93FF' : undefined,
+              }}
+            >
               {w}
             </span>
           ))}

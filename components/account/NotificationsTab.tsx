@@ -113,10 +113,10 @@ export function NotificationsTab({ locale }: { locale: string }) {
     const isHTTPS = window.location.protocol === 'https:'
     
     return (
-      <div className="rounded-2xl bg-amber-50 p-6">
+      <div className="rounded-2xl bg-amber-50 p-6 max-w-full overflow-x-hidden">
         <BellOff className="mx-auto h-10 w-10 text-amber-400" />
-        <h3 className="mt-3 text-center font-bold text-amber-800">Уведомления недоступны</h3>
-        <p className="mt-2 text-center text-sm text-amber-700">
+        <h3 className="mt-3 text-center font-bold text-amber-800 break-words">Уведомления недоступны</h3>
+        <p className="mt-2 text-center text-sm text-amber-700 break-words">
           {!isHTTPS && 'Уведомления работают только через HTTPS. '}
           {isIOS && 'На iOS уведомления работают только в Safari 16.4+ и выше. '}
           {!isIOS && !isHTTPS && 'Попробуйте открыть сайт через HTTPS или используйте Chrome/Safari.'}
@@ -125,7 +125,7 @@ export function NotificationsTab({ locale }: { locale: string }) {
         {/* Debug info - remove in production */}
         <details className="mt-4 text-xs text-amber-600">
           <summary className="cursor-pointer">Техническая информация</summary>
-          <pre className="mt-2 overflow-auto rounded bg-amber-100 p-2 text-left">
+          <pre className="mt-2 overflow-auto max-w-full rounded bg-amber-100 p-2 text-left text-[10px] break-all whitespace-pre-wrap">
             {JSON.stringify({
               hasNotifications: 'Notification' in window,
               hasServiceWorker: 'serviceWorker' in navigator,
@@ -140,22 +140,22 @@ export function NotificationsTab({ locale }: { locale: string }) {
   }
 
   return (
-    <div>
+    <div className="max-w-full overflow-x-hidden">
       <h2 className="text-2xl font-black tracking-tight text-ink">Уведомления</h2>
       <p className="mt-2 text-sm text-slate-500">Получайте уведомления о своих билетах, форумах и новостях прямо в браузере.</p>
 
       {/* Main card */}
-      <div className="mt-6 rounded-2xl bg-surface p-6 ring-1 ring-slate-200/70">
-        <div className="flex items-center gap-4">
-          <div className={`flex h-14 w-14 items-center justify-center rounded-full ${subscribed ? 'bg-emerald-100' : 'bg-slate-100'}`}>
+      <div className="mt-6 rounded-2xl bg-surface p-6 ring-1 ring-slate-200/70 max-w-full">
+        <div className="flex items-center gap-4 max-w-full">
+          <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-full ${subscribed ? 'bg-emerald-100' : 'bg-slate-100'}`}>
             {subscribed
               ? <Bell className="h-7 w-7 text-emerald-600" />
               : <BellOff className="h-7 w-7 text-slate-400" />
             }
           </div>
-          <div className="flex-1">
-            <p className="font-bold text-ink">{subscribed ? 'Уведомления включены' : 'Уведомления отключены'}</p>
-            <p className="text-sm text-slate-500">
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-ink break-words">{subscribed ? 'Уведомления включены' : 'Уведомления отключены'}</p>
+            <p className="text-sm text-slate-500 break-words">
               {subscribed
                 ? 'Вы будете получать важные уведомления'
                 : 'Включите чтобы не пропустить ничего важного'
@@ -167,7 +167,7 @@ export function NotificationsTab({ locale }: { locale: string }) {
               <button
                 onClick={unsubscribe}
                 disabled={loading}
-                className="rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-200 disabled:opacity-50"
+                className="shrink-0 rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-200 disabled:opacity-50"
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Отключить'}
               </button>
@@ -176,7 +176,7 @@ export function NotificationsTab({ locale }: { locale: string }) {
               <button
                 onClick={subscribe}
                 disabled={loading || permission === 'denied'}
-                className="rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-50"
+                className="shrink-0 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-50"
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Включить'}
               </button>
@@ -185,25 +185,25 @@ export function NotificationsTab({ locale }: { locale: string }) {
         </div>
 
         {permission === 'denied' && (
-          <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-xs text-red-600">
+          <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-xs text-red-600 break-words overflow-wrap-anywhere">
             Уведомления заблокированы в браузере. Нажмите на замок рядом с адресом сайта и разрешите уведомления.
           </p>
         )}
 
         {status === 'success' && (
-          <div className="mt-4 flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          <div className="mt-4 flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700 break-words overflow-wrap-anywhere">
             <CheckCircle2 className="h-4 w-4 shrink-0" />
-            {msg}
+            <span className="break-words">{msg}</span>
           </div>
         )}
 
         {status === 'error' && (
-          <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-xs text-red-600">{msg}</p>
+          <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-xs text-red-600 break-words overflow-wrap-anywhere">{msg}</p>
         )}
       </div>
 
       {/* What you'll receive */}
-      <div className="mt-6 rounded-2xl bg-surface p-6 ring-1 ring-slate-200/70">
+      <div className="mt-6 rounded-2xl bg-surface p-6 ring-1 ring-slate-200/70 max-w-full overflow-x-hidden">
         <h3 className="font-bold text-ink">Какие уведомления вы получите</h3>
         <ul className="mt-4 space-y-3">
           {[
@@ -211,9 +211,9 @@ export function NotificationsTab({ locale }: { locale: string }) {
             { text: 'Напоминание о форуме — за день до начала' },
             { text: 'Новые форумы — когда открывается регистрация' },
           ].map((item, i) => (
-            <li key={i} className="flex items-start gap-3 text-sm text-slate-600">
+            <li key={i} className="flex items-start gap-3 text-sm text-slate-600 max-w-full">
               <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
-              {item.text}
+              <span className="break-words flex-1">{item.text}</span>
             </li>
           ))}
         </ul>
