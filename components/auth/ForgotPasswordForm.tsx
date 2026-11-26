@@ -51,7 +51,7 @@ export function ForgotPasswordForm({ locale, messages }: { locale: string; messa
           </div>
         </div>
         <h1 className="text-3xl font-black tracking-tight text-ink">{t('resetLinkSent')}</h1>
-        <p className="mt-3 text-sm leading-relaxed text-slate-500">{t('resetLinkSentText')}</p>
+        <p className="mt-3 text-sm leading-relaxed text-slate-700">{t('resetLinkSentText')}</p>
         <div className="mt-6 rounded-xl bg-blue-50 p-4">
           <div className="flex items-start gap-3">
             <Mail className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600" />
@@ -68,7 +68,7 @@ export function ForgotPasswordForm({ locale, messages }: { locale: string; messa
   return (
     <form onSubmit={submit} noValidate>
       <h1 className="text-3xl font-black tracking-tight text-ink">{t('forgotPasswordTitle')}</h1>
-      <p className="mt-2 text-sm leading-relaxed text-slate-500">{t('forgotPasswordSubtitle')}</p>
+      <p className="mt-2 text-sm leading-relaxed text-slate-700">{t('forgotPasswordSubtitle')}</p>
 
       <label htmlFor="email" className="mt-6 block text-xs font-bold text-ink">
         {t('emailLabel')}

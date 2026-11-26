@@ -75,7 +75,7 @@ export function ResetPasswordForm({ locale, messages }: { locale: string; messag
           </div>
         </div>
         <h1 className="text-3xl font-black tracking-tight text-ink">{t('invalidResetLink')}</h1>
-        <p className="mt-3 text-sm leading-relaxed text-slate-500">{t('invalidResetLinkText')}</p>
+        <p className="mt-3 text-sm leading-relaxed text-slate-700">{t('invalidResetLinkText')}</p>
         <Link
           href={`/${locale}/forgot-password`}
           className="mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary text-sm font-bold text-white shadow-[0_14px_32px_-10px_hsl(var(--primary))] transition hover:-translate-y-0.5 hover:brightness-110"
@@ -95,7 +95,7 @@ export function ResetPasswordForm({ locale, messages }: { locale: string; messag
           </div>
         </div>
         <h1 className="text-3xl font-black tracking-tight text-ink">{t('passwordChanged')}</h1>
-        <p className="mt-3 text-sm leading-relaxed text-slate-500">{t('passwordChangedText')}</p>
+        <p className="mt-3 text-sm leading-relaxed text-slate-700">{t('passwordChangedText')}</p>
         <div className="mt-6 flex items-center justify-center gap-2 text-xs text-slate-400">
           <Loader2 className="h-3 w-3 animate-spin" />
           Перенаправление на страницу входа...
@@ -107,7 +107,7 @@ export function ResetPasswordForm({ locale, messages }: { locale: string; messag
   return (
     <form onSubmit={submit} noValidate>
       <h1 className="text-3xl font-black tracking-tight text-ink">{t('resetPasswordTitle')}</h1>
-      <p className="mt-2 text-sm leading-relaxed text-slate-500">{t('resetPasswordSubtitle')}</p>
+      <p className="mt-2 text-sm leading-relaxed text-slate-700">{t('resetPasswordSubtitle')}</p>
 
       <label htmlFor="password" className="mt-6 block text-xs font-bold text-ink">
         {t('newPassword')}
