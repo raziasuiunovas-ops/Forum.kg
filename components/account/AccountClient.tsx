@@ -251,10 +251,13 @@ function ProfileForm({
   }
 
   const field =
-    'mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-ink outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30'
+    'mt-2 h-12 w-full rounded-xl border-2 border-slate-200 bg-white px-4 text-sm font-semibold text-ink outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/20'
+
+  const selectField =
+    'mt-2 h-12 w-full appearance-none rounded-xl border-2 border-slate-200 bg-white px-4 text-sm font-semibold text-ink outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/20 cursor-pointer'
 
   return (
-    <form onSubmit={save} className="max-w-xl" noValidate>
+    <form onSubmit={save} noValidate>
       <h2 className="text-2xl font-black tracking-tight text-ink">{t('profile.title')}</h2>
 
       <p className="mt-6 text-xs font-bold text-ink">{me.phone ? t('profile.phone') : 'Email'}</p>
@@ -276,11 +279,16 @@ function ProfileForm({
       <label htmlFor="plang" className="mt-4 block text-xs font-bold text-ink">
         {t('profile.language')}
       </label>
-      <select id="plang" value={lang} onChange={(e) => setLang(e.target.value as Me['preferredLocale'])} className={field}>
-        <option value="RU">Русский</option>
-        <option value="KY">Кыргызча</option>
-        <option value="EN">English</option>
-      </select>
+      <div className="relative">
+        <select id="plang" value={lang} onChange={(e) => setLang(e.target.value as Me['preferredLocale'])} className={selectField}>
+          <option value="RU">Русский</option>
+          <option value="KY">Кыргызча</option>
+          <option value="EN">English</option>
+        </select>
+        <svg className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+        </svg>
+      </div>
 
       {msg && (
         <p role="status" className={`mt-4 rounded-xl px-4 py-3 text-xs font-semibold ${msg.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>
