@@ -2,11 +2,12 @@
 
 import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
-import { actions, useAdminState } from '@/lib/admin/store'
+import { actions, useAdminState, useIsServerDataLoaded } from '@/lib/admin/store'
 import type { Loc, SiteSettingsData } from '@/lib/admin/types'
 import { useAdminUser } from '../AdminShell'
-import { Card, Field, PageHeader, Select, btn, field } from '../ui'
+import { Card, DemoBanner, Field, PageHeader, Select, btn, field } from '../ui'
 import { ImageUpload } from '../ImageUpload'
+import { api } from '@/lib/client/api'
 
 const HEX = /^#[0-9a-fA-F]{6}$/
 
@@ -32,6 +33,7 @@ function Color({ label, value, onChange }: { label: string; value: string; onCha
 /** Spec 8.5: display name, logo, colours, hero images, slogan, organizer info, contacts, social links. */
 export function Settings() {
   const stored = useAdminState().settings
+  const isServerData = useIsServerDataLoaded()
   const { actor } = useAdminUser()
   const [s, setS] = useState<SiteSettingsData>(stored)
   const [loc, setLoc] = useState<Loc>('ru')
@@ -56,12 +58,11 @@ export function Settings() {
 
     setSaving(true)
     try {
-      // Save to real DB via API
-      const res = await fetch('/api/v1/admin/settings', {
+      // Save to real DB via API with CSRF token
+      const res = await api('/api/v1/admin/settings', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
+        csrf: true,
+        body: {
           displayName: s.displayName,
           logoUrl: s.logoUrl || null,
           heroImageUrl: s.heroImageUrl || null,
@@ -77,7 +78,7 @@ export function Settings() {
             heroSubtitle: null,
             aboutText: s.organizerInfo[l] || null,
           })),
-        }),
+        },
       })
       if (!res.ok) throw new Error('API error')
 
@@ -94,6 +95,7 @@ export function Settings() {
   return (
     <div>
       <PageHeader title="Настройки сайта" text="Название, логотип, цвета, фото, слоган и контакты меняются без участия разработчика." />
+      <DemoBanner forceShow={!isServerData} note="Пока сохраняется только в браузере. После появления /api/v1/admin/settings изменения сразу будут применяться на публичном сайте." />
       <form onSubmit={save} noValidate className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
         <div className="space-y-6">
           <Card title="Основное">

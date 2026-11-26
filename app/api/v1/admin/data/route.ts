@@ -11,6 +11,17 @@ import { requireAuth } from '@/lib/auth/middleware'
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth(request)
   if ('headers' in authResult) return authResult
+  
+  const { user } = authResult
+  
+  // Check if user has admin/staff role
+  const ADMIN_ROLES = ['SUPER_ADMIN', 'MANAGER', 'SCANNER']
+  if (!ADMIN_ROLES.includes(user.role)) {
+    return NextResponse.json(
+      { error: { code: 'FORBIDDEN', message: 'Доступ запрещен' } },
+      { status: 403 }
+    )
+  }
 
   try {
     const [

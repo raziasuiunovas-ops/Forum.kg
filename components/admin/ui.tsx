@@ -3,8 +3,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react'
 import { Select as CustomSelect } from './Select'
+import { DateInput as CustomDateInput } from './DateInput'
+import { DateTimeInput as CustomDateTimeInput } from './DateTimeInput'
 
 export { CustomSelect as Select }
+export { CustomDateInput as DateInput }
+export { CustomDateTimeInput as DateTimeInput }
 
 export const field =
   'h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-ink outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/25 disabled:bg-slate-50'
@@ -123,42 +127,6 @@ export function getTodayDate(): string {
   const month = String(now.getMonth() + 1).padStart(2, '0')
   const day = String(now.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
-}
-
-/** DateInput component with styled calendar picker */
-export function DateInput({ 
-  value, 
-  onChange, 
-  className = '', 
-  ...props 
-}: Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> & { value?: string; onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void }) {
-  return (
-    <input
-      type="date"
-      value={value}
-      onChange={onChange}
-      className={`${dateField} ${className}`}
-      {...props}
-    />
-  )
-}
-
-/** DateTimeInput component with styled calendar picker */
-export function DateTimeInput({ 
-  value, 
-  onChange, 
-  className = '', 
-  ...props 
-}: Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> & { value?: string; onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void }) {
-  return (
-    <input
-      type="datetime-local"
-      value={value}
-      onChange={onChange}
-      className={`${dateField} ${className}`}
-      {...props}
-    />
-  )
 }
 
 export interface Column<T> {

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Send } from 'lucide-react'
-import { actions, useAdminState } from '@/lib/admin/store'
+import { actions, useAdminState, useIsServerDataLoaded } from '@/lib/admin/store'
 import { dateTime } from '@/lib/admin/format'
 import { useAdminUser } from '../AdminShell'
 import { Card, DataTable, DemoBanner, Field, PageHeader, Select, btn, field } from '../ui'
@@ -11,6 +11,7 @@ const TYPES: Record<string, string> = { FORUM_PUBLISHED: 'Новый форум'
 
 export function Notifications() {
   const s = useAdminState()
+  const isServerData = useIsServerDataLoaded()
   const { actor } = useAdminUser()
   const [type, setType] = useState('FORUM_PUBLISHED')
   const [audience, setAudience] = useState('Все пользователи')
@@ -21,8 +22,8 @@ export function Notifications() {
   return (
     <div>
       <PageHeader title="Уведомления" text="Рассылки ставятся в очередь и уходят в приложение, Telegram и Web Push. Ошибка доставки не отменяет билеты и оплаты." />
-      <DemoBanner note="Очередь рассылок (BullMQ) и каналы доставки ещё не подключены, поэтому отправка только записывается в журнал." />
-      <div className="grid gap-6 lg:grid-cols-1 xl:grid-cols-[1fr_1.4fr]">
+      <DemoBanner forceShow={!isServerData} note="Очередь рассылок (BullMQ) и каналы доставки ещё не подключены, поэтому отправка только записывается в журнал." />
+      <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[1fr_1.4fr]">
         <Card title="Новая рассылка">
           <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); if (!title.trim()) return; actions.addNotification({ title: title.trim(), audience, type }, actor); setTitle(''); setBody(''); setDone(true); setTimeout(() => setDone(false), 2500) }}>
             <Field label="Тип"><Select value={type} onChange={setType} options={Object.entries(TYPES).map(([k, v]) => ({ value: k, label: v }))} /></Field>
@@ -38,18 +39,16 @@ export function Notifications() {
           </form>
         </Card>
         <Card title="История рассылок">
-          <div className="overflow-x-auto -mx-6 px-6">
-            <DataTable
-              rows={s.notifications}
-              pageSize={6}
-              columns={[
-                { key: 't', header: 'Рассылка', cell: (n) => (<div className="min-w-[200px]"><b className="block text-sm">{n.title}</b><p className="text-xs text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis max-w-[250px]">{TYPES[n.type] ?? n.type} · {n.audience}</p></div>) },
-                { key: 'd', header: 'Когда', cell: (n) => <span className="whitespace-nowrap text-sm">{dateTime(n.at)}</span> },
-                { key: 's', header: 'Доставлено', cell: (n) => <span className="font-bold text-emerald-600">{n.sent}</span> },
-                { key: 'f', header: 'Ошибки', cell: (n) => <span className={n.failed ? 'font-bold text-red-600' : 'text-slate-400'}>{n.failed}</span> },
-              ]}
-            />
-          </div>
+          <DataTable
+            rows={s.notifications}
+            pageSize={6}
+            columns={[
+              { key: 't', header: 'Рассылка', cell: (n) => (<div><b className="block text-sm">{n.title}</b><p className="text-xs text-slate-400">{TYPES[n.type] ?? n.type} · {n.audience}</p></div>) },
+              { key: 'd', header: 'Когда', cell: (n) => <span className="whitespace-nowrap text-xs">{dateTime(n.at)}</span> },
+              { key: 's', header: '✓', className: 'text-center', cell: (n) => <span className="font-bold text-emerald-600 text-sm">{n.sent}</span> },
+              { key: 'f', header: '✗', className: 'text-center', cell: (n) => <span className={`text-sm font-bold ${n.failed ? 'text-red-600' : 'text-slate-400'}`}>{n.failed}</span> },
+            ]}
+          />
         </Card>
       </div>
     </div>

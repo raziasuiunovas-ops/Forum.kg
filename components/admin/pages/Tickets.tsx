@@ -22,7 +22,7 @@ export function Tickets() {
   return (
     <div>
       <PageHeader title="Билеты" text="Выданные билеты. Ручное аннулирование записывается в журнал аудита." />
-      <DemoBanner />
+      <DemoBanner forceShow={!isServerData} />
       <Card>
         <DataTable
           rows={rows}

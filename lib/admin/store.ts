@@ -75,6 +75,14 @@ export async function fetchAdminData() {
       return
     }
     const data = await res.json()
+    console.log('[Admin Store] Loaded data from server:', {
+      forums: data.forums?.length ?? 0,
+      orders: data.orders?.length ?? 0,
+      payments: data.payments?.length ?? 0,
+      tickets: data.tickets?.length ?? 0,
+      users: data.users?.length ?? 0,
+      cancellations: data.cancellations?.length ?? 0,
+    })
     dataLoadedFromServer = true
     state = {
       ...state,
