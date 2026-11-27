@@ -153,7 +153,7 @@ export async function sendNewForumAnnouncement(forumId: string): Promise<number>
       },
       categories: {
         include: {
-          translation: {
+          translations: {
             where: { locale: 'RU' },
           },
         },
@@ -206,10 +206,18 @@ ${priceText}
   const users = await prisma.user.findMany({
     where: {
       announcementsPushEnabled: true,
-      telegramConnection: {
-        isNot: null,
-        disconnectedAt: null,
-      },
+      AND: [
+        {
+          telegramConnection: {
+            isNot: null,
+          },
+        },
+        {
+          telegramConnection: {
+            disconnectedAt: null,
+          },
+        },
+      ],
     },
     include: {
       telegramConnection: true,
@@ -283,10 +291,18 @@ export async function sendBulkNotification(
     // Send only to users who have active tickets
     users = await prisma.user.findMany({
       where: {
-        telegramConnection: {
-          isNot: null,
-          disconnectedAt: null,
-        },
+        AND: [
+          {
+            telegramConnection: {
+              isNot: null,
+            },
+          },
+          {
+            telegramConnection: {
+              disconnectedAt: null,
+            },
+          },
+        ],
         orders: {
           some: {
             items: {
@@ -308,10 +324,18 @@ export async function sendBulkNotification(
     users = await prisma.user.findMany({
       where: {
         announcementsPushEnabled: true,
-        telegramConnection: {
-          isNot: null,
-          disconnectedAt: null,
-        },
+        AND: [
+          {
+            telegramConnection: {
+              isNot: null,
+            },
+          },
+          {
+            telegramConnection: {
+              disconnectedAt: null,
+            },
+          },
+        ],
       },
       include: {
         telegramConnection: true,
