@@ -40,23 +40,52 @@ export async function GET(
 
   if (publishedEvent) {
     console.log(`[Upload Access] Public access granted for ${fileId} (event: ${publishedEvent.id}, bannerUrl: ${publishedEvent.bannerUrl})`)
-    // Public access for published event banners
-    const key = `private/${publishedEvent.createdById}/${fileId}`
-    console.log(`[Upload Access] Trying to fetch from S3: ${key}`)
-    let bytes: Uint8Array | null
+    
+    // Try to find the file - first by event creator, then by any admin who might have uploaded it
+    const store = getPrivateUploadStore()
+    let bytes: Uint8Array | null = null
+    let foundKey: string | null = null
+    
+    // Try event creator first
+    const creatorKey = `private/${publishedEvent.createdById}/${fileId}`
+    console.log(`[Upload Access] Trying event creator: ${creatorKey}`)
     try {
-      bytes = await getPrivateUploadStore().get(key)
-      console.log(`[Upload Access] S3 fetch successful, size: ${bytes?.byteLength || 0} bytes`)
+      bytes = await store.get(creatorKey)
+      if (bytes) {
+        foundKey = creatorKey
+        console.log(`[Upload Access] Found in event creator's storage, size: ${bytes.byteLength} bytes`)
+      }
     } catch (error) {
-      console.error(`[Upload Access] S3 fetch failed for ${key}:`, error)
-      return NextResponse.json(
-        { error: { code: 'UPLOAD_STORAGE_UNAVAILABLE', message: 'Файл временно недоступен' } },
-        { status: 503, headers: { 'Cache-Control': 'no-store' } }
-      )
+      console.log(`[Upload Access] Not found in event creator's storage`)
+    }
+    
+    // If not found, try all admins (MANAGER and SUPER_ADMIN)
+    if (!bytes) {
+      console.log(`[Upload Access] File not found by event creator, trying admins...`)
+      const admins = await prisma.user.findMany({
+        where: { role: { in: ['MANAGER', 'SUPER_ADMIN'] } },
+        select: { id: true },
+      })
+      console.log(`[Upload Access] Found ${admins.length} admins to try`)
+      
+      for (const admin of admins) {
+        if (admin.id === publishedEvent.createdById) continue // Already tried
+        const adminKey = `private/${admin.id}/${fileId}`
+        try {
+          bytes = await store.get(adminKey)
+          if (bytes) {
+            foundKey = adminKey
+            console.log(`[Upload Access] Found in admin ${admin.id} storage, size: ${bytes.byteLength} bytes`)
+            break
+          }
+        } catch {
+          // Continue to next admin
+        }
+      }
     }
 
-    if (!bytes) {
-      console.error(`[Upload Access] File not found in S3: ${key}`)
+    if (!bytes || !foundKey) {
+      console.error(`[Upload Access] File ${fileId} not found in any admin's storage`)
       return notFoundResponse()
     }
 
