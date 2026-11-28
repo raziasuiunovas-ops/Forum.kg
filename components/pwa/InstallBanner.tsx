@@ -83,37 +83,37 @@ export function InstallBanner() {
     <div
       role="dialog"
       aria-label="Установить приложение"
-      className={`fixed inset-x-0 bottom-0 z-50 transition-transform duration-300 ease-out ${
+      className={`fixed inset-x-0 bottom-0 z-50 p-4 transition-transform duration-300 ease-out ${
         exiting ? 'translate-y-full' : 'translate-y-0'
       }`}
-      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)' }}
     >
       {/* iOS arrow pointing down to Safari share button */}
       {platform === 'ios' && (
-        <div className="flex justify-center pb-1">
-          <div className="rounded-t-xl bg-slate-800 px-4 py-2 text-center text-xs text-white/80 shadow-lg">
-            Нажмите <strong className="text-white">⎙</strong> и выберите <strong className="text-white">«На экран "Домой"»</strong>
+        <div className="mb-2 flex justify-center">
+          <div className="rounded-xl bg-slate-800 px-4 py-2 text-center text-xs text-white/90 shadow-lg">
+            Нажмите <Share className="mx-1 inline h-3.5 w-3.5" /> и выберите <strong className="text-white">«На экран "Домой"»</strong>
           </div>
         </div>
       )}
 
-      <div className="bg-white shadow-[0_-4px_24px_rgba(0,0,0,0.12)]">
-        <div className="mx-auto flex max-w-lg items-center gap-3 px-4 py-3">
+      <div className="mx-auto max-w-lg overflow-hidden rounded-2xl bg-white shadow-[0_8px_32px_rgba(0,0,0,0.16)] ring-1 ring-slate-200/50">
+        <div className="flex items-center gap-3 p-4">
           {/* Icon */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/icons/icon-192.png"
             alt=""
             aria-hidden
-            className="h-12 w-12 shrink-0 rounded-xl shadow"
+            className="h-14 w-14 shrink-0 rounded-2xl shadow-sm ring-1 ring-slate-200/70"
           />
 
           {/* Text */}
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold leading-tight text-slate-900">
+            <p className="text-base font-black leading-tight tracking-tight text-ink">
               Установить FORUM.KG
             </p>
-            <p className="mt-0.5 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-slate-500 leading-relaxed">
               {platform === 'ios'
                 ? 'Добавьте на экран Домой для быстрого доступа'
                 : 'Всегда под рукой — билеты и форумы'}
@@ -124,19 +124,17 @@ export function InstallBanner() {
           {platform !== 'ios' && (
             <button
               onClick={install}
-              className="flex shrink-0 items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white active:scale-95"
+              className="flex shrink-0 items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:brightness-110 active:scale-95"
             >
-              {platform === 'desktop'
-                ? <><Download className="h-4 w-4" /> Установить</>
-                : <><Download className="h-4 w-4" /> Установить</>
-              }
+              <Download className="h-4 w-4" />
+              Установить
             </button>
           )}
 
           {platform === 'ios' && (
-            <div className="shrink-0 rounded-xl bg-slate-100 px-3 py-2 text-center">
-              <Share className="mx-auto h-5 w-5 text-primary" />
-              <p className="mt-0.5 text-[10px] font-semibold text-slate-600">Поделиться</p>
+            <div className="shrink-0 rounded-xl bg-blue-50 px-3 py-2.5 text-center">
+              <Share className="mx-auto h-5 w-5 text-blue-600" />
+              <p className="mt-1 text-[10px] font-bold text-blue-600">Поделиться</p>
             </div>
           )}
 
@@ -144,7 +142,7 @@ export function InstallBanner() {
           <button
             onClick={() => dismiss(true)}
             aria-label="Закрыть"
-            className="-mr-1 shrink-0 rounded-lg p-2 text-slate-400 active:bg-slate-100"
+            className="shrink-0 rounded-full p-2 text-slate-400 transition hover:bg-slate-100 active:scale-95"
           >
             <X className="h-5 w-5" />
           </button>
