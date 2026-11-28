@@ -172,9 +172,31 @@ export function TicketQRPage({ locale, ticketId }: { locale: string; ticketId: s
       ctx.fillStyle = '#cbd5e1'
       ctx.fillText(ticket.ticketNumber, W / 2, H - 40)
 
-      // ── Download ──
-      canvas.toBlob((blob) => {
+      // ── Download/Share ──
+      canvas.toBlob(async (blob) => {
         if (!blob) return
+        
+        // Check if Web Share API is available and supports files
+        if (navigator.share && navigator.canShare) {
+          try {
+            const file = new File([blob], `ticket-${ticket!.ticketNumber}.png`, { type: 'image/png' })
+            const shareData = {
+              title: `Билет на ${ticket!.forum.title}`,
+              text: `Мой билет на ${ticket!.forum.title}`,
+              files: [file]
+            }
+            
+            if (navigator.canShare(shareData)) {
+              await navigator.share(shareData)
+              return
+            }
+          } catch (err) {
+            // If sharing fails, fall back to download
+            console.log('Share failed, downloading instead', err)
+          }
+        }
+        
+        // Fall back to download
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url

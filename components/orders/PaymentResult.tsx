@@ -37,6 +37,10 @@ export function PaymentResult({
   const [tickets, setTickets] = useState<TicketData[]>([])
   const [downloading, setDownloading] = useState<string | null>(null)
 
+  const openQRFullscreen = (ticketId: string) => {
+    window.open(`/${locale}/tickets/${ticketId}/qr`, '_blank')
+  }
+
   const fetchTickets = useCallback(async () => {
     try {
       const res = await api<{ tickets: TicketData[] }>('/api/v1/profile/tickets?limit=5')
@@ -85,17 +89,168 @@ export function PaymentResult({
 
   const downloadQR = async (ticketId: string, ticketNumber: string) => {
     setDownloading(ticketId)
+    const tk = tickets.find(t => t.id === ticketId)
+    if (!tk) return
+
     try {
-      const response = await fetch(`/api/v1/tickets/${ticketId}/qr?size=600`)
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `ticket-${ticketNumber}.png`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
+      const response = await fetch(`/api/v1/tickets/${ticketId}/qr?size=500`)
+      const svgText = await response.text()
+      const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgText)}`
+
+      const W = 900
+      const H = 1300
+
+      const qrImg = new Image()
+      qrImg.crossOrigin = 'anonymous'
+      await new Promise<void>((resolve) => {
+        qrImg.onload = () => resolve()
+        qrImg.onerror = () => resolve()
+        qrImg.src = svgDataUrl
+      })
+
+      const canvas = document.createElement('canvas')
+      canvas.width = W
+      canvas.height = H
+      const ctx = canvas.getContext('2d')!
+
+      // White background
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, W, H)
+
+      // Dark navy header
+      const headerH = 280
+      ctx.fillStyle = '#0f172a'
+      ctx.fillRect(0, 0, W, headerH)
+
+      // FORUM.KG label
+      ctx.fillStyle = 'rgba(255,255,255,0.4)'
+      ctx.font = '500 24px Georgia, serif'
+      ctx.textAlign = 'left'
+      ctx.fillText('FORUM.KG', 60, 68)
+
+      // Forum title
+      ctx.fillStyle = '#ffffff'
+      ctx.font = 'bold 52px Georgia, serif'
+      ctx.textAlign = 'left'
+      let titleY = 148
+      const words = tk.forum.title.split(' ')
+      let line = ''
+      for (const word of words) {
+        const test = line ? `${line} ${word}` : word
+        if (ctx.measureText(test).width > W - 120 && line) {
+          ctx.fillText(line, 60, titleY)
+          line = word
+          titleY += 62
+        } else { line = test }
+      }
+      ctx.fillText(line, 60, titleY)
+
+      // Date
+      ctx.font = '26px Georgia, serif'
+      ctx.fillStyle = 'rgba(255,255,255,0.6)'
+      ctx.fillText(formatDate(tk.forum.startsAt), 60, titleY + 48)
+
+      // QR code centered
+      const qrSize = 480
+      const qrX = (W - qrSize) / 2
+      const qrY = headerH + 60
+      ctx.shadowColor = 'rgba(0,0,0,0.12)'
+      ctx.shadowBlur = 32
+      ctx.fillStyle = '#f8fafc'
+      ctx.beginPath()
+      ctx.roundRect(qrX - 24, qrY - 24, qrSize + 48, qrSize + 48, 28)
+      ctx.fill()
+      ctx.shadowBlur = 0
+      ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize)
+
+      // Scan hint
+      ctx.fillStyle = '#94a3b8'
+      ctx.font = '22px Georgia, serif'
+      ctx.textAlign = 'center'
+      ctx.fillText('Предъявите при входе', W / 2, qrY + qrSize + 56)
+
+      // Horizontal rule
+      const hrY = qrY + qrSize + 90
+      ctx.strokeStyle = '#e2e8f0'
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.moveTo(60, hrY)
+      ctx.lineTo(W - 60, hrY)
+      ctx.stroke()
+
+      // Info fields
+      const col1x = 60
+      const col2x = W / 2 + 20
+      let iy = hrY + 64
+
+      const field = (label: string, value: string, x: number, y: number) => {
+        ctx.textAlign = 'left'
+        ctx.font = '20px Arial, sans-serif'
+        ctx.fillStyle = '#94a3b8'
+        ctx.fillText(label, x, y)
+        ctx.font = 'bold 26px Arial, sans-serif'
+        ctx.fillStyle = '#0f172a'
+        ctx.fillText(value, x, y + 34)
+      }
+
+      field('УЧАСТНИК', `${tk.participant.firstName} ${tk.participant.lastName}`, col1x, iy)
+      field('КАТЕГОРИЯ', tk.category.name, col2x, iy)
+      iy += 100
+
+      if (tk.forum.venueName) {
+        field('МЕСТО', tk.forum.venueName, col1x, iy)
+        iy += 100
+      }
+
+      // Status
+      ctx.textAlign = 'left'
+      ctx.font = '20px Arial, sans-serif'
+      ctx.fillStyle = '#94a3b8'
+      ctx.fillText('СТАТУС', col1x, iy)
+      ctx.font = 'bold 26px Arial, sans-serif'
+      ctx.fillStyle = '#059669'
+      ctx.fillText('Действителен', col1x, iy + 34)
+
+      // Ticket number
+      ctx.textAlign = 'center'
+      ctx.font = '18px monospace'
+      ctx.fillStyle = '#cbd5e1'
+      ctx.fillText(tk.ticketNumber, W / 2, H - 40)
+
+      // Download/Share
+      canvas.toBlob(async (blob) => {
+        if (!blob) return
+        
+        // Check if Web Share API is available and supports files
+        if (navigator.share && navigator.canShare) {
+          try {
+            const file = new File([blob], `ticket-${ticketNumber}.png`, { type: 'image/png' })
+            const shareData = {
+              title: `Билет на ${tk.forum.title}`,
+              text: `Мой билет на ${tk.forum.title}`,
+              files: [file]
+            }
+            
+            if (navigator.canShare(shareData)) {
+              await navigator.share(shareData)
+              return
+            }
+          } catch (err) {
+            // If sharing fails, fall back to download
+            console.log('Share failed, downloading instead', err)
+          }
+        }
+        
+        // Fall back to download
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `ticket-${ticketNumber}.png`
+        document.body.appendChild(a)
+        a.click()
+        URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+      }, 'image/png')
     } catch { /* ignore */ } finally {
       setDownloading(null)
     }
@@ -176,14 +331,17 @@ export function PaymentResult({
                 <div className="flex gap-5">
                   {/* QR код */}
                   <div className="shrink-0">
-                    <div className="rounded-xl bg-white p-2 ring-1 ring-slate-200">
+                    <button 
+                      onClick={() => openQRFullscreen(tk.id)}
+                      className="rounded-xl bg-white p-2 ring-1 ring-slate-200 transition hover:ring-primary hover:shadow-lg cursor-pointer"
+                    >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={`/api/v1/tickets/${tk.id}/qr?size=200`}
                         alt={`QR билета ${tk.ticketNumber}`}
                         className="h-32 w-32"
                       />
-                    </div>
+                    </button>
                   </div>
 
                   {/* Инфо */}
