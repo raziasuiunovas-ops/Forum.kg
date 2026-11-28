@@ -34,13 +34,11 @@ export const DEFAULT_SITE_SETTINGS: SiteSettingsView = {
   accentColorHex: '#7C5CFF',
   footerColorHex: '#070B24',
   contactEmail: 'info@forum.kg',
-  contactPhone: '+996 700 123 456',
+  contactPhone: '+996 507 343 454',
   socialLinks: [
-    { platform: 'instagram', url: '#' },
-    { platform: 'telegram', url: '#' },
-    { platform: 'facebook', url: '#' },
-    { platform: 'whatsapp', url: '#' },
-    { platform: 'linkedin', url: '#' },
+    { platform: 'instagram', url: 'https://www.instagram.com/arunastudy' },
+    { platform: 'whatsapp', url: 'https://wa.me/996507343454' },
+    { platform: 'telegram', url: 'https://t.me/Forum_kg_bot' },
   ],
 }
 

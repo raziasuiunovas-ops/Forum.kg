@@ -38,8 +38,8 @@ export async function Footer({ locale, settings }: { locale: AppLocale; settings
       </p>
 
       <div className="relative mx-auto max-w-7xl px-5 pb-6 pt-10 sm:px-8 sm:pt-16">
-        <div className="grid gap-8 md:grid-cols-[1.4fr_1fr_1fr_1.2fr_1.3fr] md:gap-10">
-          <div>
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-[1.4fr_1fr_1fr_1.2fr_1.3fr] md:gap-10">
+          <div className="sm:col-span-2 md:col-span-1">
             <Logo locale={locale} name={settings.displayName} logoUrl={settings.logoUrl} />
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-white/60 sm:mt-4">{t('tagline')}</p>
             <SocialIcons links={settings.socialLinks} />
@@ -77,7 +77,7 @@ export async function Footer({ locale, settings }: { locale: AppLocale; settings
             </ul>
           </div>
 
-          <div>
+          <div className="sm:col-span-2 md:col-span-1">
             <h3 className="text-sm font-bold">{t('aruna.title')}</h3>
             <p className="mt-3 text-sm text-white/60 sm:mt-4">{t('aruna.tagline')}</p>
             <a 
