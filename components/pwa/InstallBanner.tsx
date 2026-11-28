@@ -80,7 +80,7 @@ export function InstallBanner() {
     }
   }, [])
 
-  const install = async () => {
+  const install = useCallback(async () => {
     if (!deferredPrompt) return
     try {
       await deferredPrompt.prompt()
@@ -92,13 +92,13 @@ export function InstallBanner() {
     } catch (err) {
       console.error('Install prompt failed:', err)
     }
-  }
+  }, [deferredPrompt, dismiss])
 
   const handleInstallClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
     install()
-  }, [deferredPrompt])
+  }, [install])
 
   if (!visible || !platform) return null
 
