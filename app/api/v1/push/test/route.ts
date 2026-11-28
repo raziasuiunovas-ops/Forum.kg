@@ -3,45 +3,34 @@ import { requireAuth } from '@/lib/auth/middleware'
 import { sendPushToUser } from '@/lib/push/send'
 
 /**
- * Test endpoint to send a push notification to the current user
- * POST /api/v1/push/test
- * 
- * Body (optional):
- * {
- *   "title": "Test Title",
- *   "body": "Test message",
- *   "url": "/ru/account"
- * }
+ * Test endpoint to send a push notification to current user
+ * GET /api/v1/push/test
  */
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   const authResult = await requireAuth(request)
   if ('headers' in authResult) return authResult
   const { userId } = authResult.user
 
   try {
-    const body = await request.json().catch(() => ({}))
-    
-    const payload = {
-      title: body.title || 'Тестовое уведомление 🔔',
-      body: body.body || 'Это тестовое push уведомление от FORUM.KG',
-      url: body.url || '/ru/account',
-      icon: '/icons/icon-192.png'
-    }
+    await sendPushToUser(userId, {
+      title: '🧪 Тестовое уведомление',
+      body: 'Если вы видите это уведомление — всё работает! 🎉',
+      url: '/ru/account',
+      icon: '/icon-512.png',
+    })
 
-    await sendPushToUser(userId, payload)
-
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Уведомление отправлено!',
-      payload 
+    return NextResponse.json({
+      success: true,
+      message: 'Тестовое уведомление отправлено!',
+      userId,
     })
   } catch (error) {
-    console.error('[Push Test] Error:', error)
+    console.error('[Push Test] Failed:', error)
     return NextResponse.json(
       { 
-        error: 'Failed to send notification',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      }, 
+        error: 'Failed to send test notification',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     )
   }
