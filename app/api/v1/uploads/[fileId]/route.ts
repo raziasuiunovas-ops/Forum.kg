@@ -27,26 +27,38 @@ export async function GET(
   // bannerUrl can be relative "/api/v1/uploads/xxx" or absolute "https://domain/api/v1/uploads/xxx"
   const publishedEvent = await prisma.forum.findFirst({
     where: {
-      bannerUrl: { endsWith: `uploads/${fileId}` },
+      OR: [
+        { bannerUrl: `/api/v1/uploads/${fileId}` },
+        { bannerUrl: { contains: `/uploads/${fileId}` } },
+      ],
       status: ForumStatus.PUBLISHED,
     },
-    select: { id: true, createdById: true },
+    select: { id: true, createdById: true, bannerUrl: true },
   })
 
+  console.log(`[Upload Access] fileId=${fileId}, foundEvent=${!!publishedEvent}, eventId=${publishedEvent?.id}`)
+
   if (publishedEvent) {
+    console.log(`[Upload Access] Public access granted for ${fileId} (event: ${publishedEvent.id}, bannerUrl: ${publishedEvent.bannerUrl})`)
     // Public access for published event banners
     const key = `private/${publishedEvent.createdById}/${fileId}`
+    console.log(`[Upload Access] Trying to fetch from S3: ${key}`)
     let bytes: Uint8Array | null
     try {
       bytes = await getPrivateUploadStore().get(key)
-    } catch {
+      console.log(`[Upload Access] S3 fetch successful, size: ${bytes?.byteLength || 0} bytes`)
+    } catch (error) {
+      console.error(`[Upload Access] S3 fetch failed for ${key}:`, error)
       return NextResponse.json(
         { error: { code: 'UPLOAD_STORAGE_UNAVAILABLE', message: 'Файл временно недоступен' } },
         { status: 503, headers: { 'Cache-Control': 'no-store' } }
       )
     }
 
-    if (!bytes) return notFoundResponse()
+    if (!bytes) {
+      console.error(`[Upload Access] File not found in S3: ${key}`)
+      return notFoundResponse()
+    }
 
     const validation = validateUpload(fileId, mimeTypeForExtension(match[2]), bytes)
     if (!validation.ok || validation.format.extension.toLowerCase() !== match[2].toLowerCase()) {
