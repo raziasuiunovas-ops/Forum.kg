@@ -36,11 +36,7 @@ export async function GET(
     select: { id: true, createdById: true, bannerUrl: true },
   })
 
-  console.log(`[Upload Access] fileId=${fileId}, foundEvent=${!!publishedEvent}, eventId=${publishedEvent?.id}`)
-
   if (publishedEvent) {
-    console.log(`[Upload Access] Public access granted for ${fileId} (event: ${publishedEvent.id}, bannerUrl: ${publishedEvent.bannerUrl})`)
-    
     // Try to find the file - first by event creator, then by any admin who might have uploaded it
     const store = getPrivateUploadStore()
     let bytes: Uint8Array | null = null
@@ -48,25 +44,19 @@ export async function GET(
     
     // Try event creator first
     const creatorKey = `private/${publishedEvent.createdById}/${fileId}`
-    console.log(`[Upload Access] Trying event creator: ${creatorKey}`)
     try {
       bytes = await store.get(creatorKey)
-      if (bytes) {
-        foundKey = creatorKey
-        console.log(`[Upload Access] Found in event creator's storage, size: ${bytes.byteLength} bytes`)
-      }
-    } catch (error) {
-      console.log(`[Upload Access] Not found in event creator's storage`)
+      if (bytes) foundKey = creatorKey
+    } catch {
+      // Not found in creator's storage
     }
     
     // If not found, try all admins (MANAGER and SUPER_ADMIN)
     if (!bytes) {
-      console.log(`[Upload Access] File not found by event creator, trying admins...`)
       const admins = await prisma.user.findMany({
         where: { role: { in: ['MANAGER', 'SUPER_ADMIN'] } },
         select: { id: true },
       })
-      console.log(`[Upload Access] Found ${admins.length} admins to try`)
       
       for (const admin of admins) {
         if (admin.id === publishedEvent.createdById) continue // Already tried
@@ -75,7 +65,6 @@ export async function GET(
           bytes = await store.get(adminKey)
           if (bytes) {
             foundKey = adminKey
-            console.log(`[Upload Access] Found in admin ${admin.id} storage, size: ${bytes.byteLength} bytes`)
             break
           }
         } catch {
@@ -85,7 +74,6 @@ export async function GET(
     }
 
     if (!bytes || !foundKey) {
-      console.error(`[Upload Access] File ${fileId} not found in any admin's storage`)
       return notFoundResponse()
     }
 
