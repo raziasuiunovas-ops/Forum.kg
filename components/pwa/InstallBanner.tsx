@@ -82,11 +82,23 @@ export function InstallBanner() {
 
   const install = async () => {
     if (!deferredPrompt) return
-    await deferredPrompt.prompt()
-    const { outcome } = await deferredPrompt.userChoice
-    if (outcome === 'accepted') dismiss(true)
-    setDeferredPrompt(null)
+    try {
+      await deferredPrompt.prompt()
+      const { outcome } = await deferredPrompt.userChoice
+      if (outcome === 'accepted') {
+        dismiss(true)
+      }
+      setDeferredPrompt(null)
+    } catch (err) {
+      console.error('Install prompt failed:', err)
+    }
   }
+
+  const handleInstallClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    install()
+  }, [deferredPrompt])
 
   if (!visible || !platform) return null
 
@@ -134,8 +146,10 @@ export function InstallBanner() {
           {/* Action button */}
           {platform !== 'ios' && (
             <button
-              onClick={install}
-              className="flex shrink-0 items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:brightness-110 active:scale-95"
+              type="button"
+              onClick={handleInstallClick}
+              className="flex shrink-0 items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:brightness-110 active:scale-95 touch-manipulation"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
             >
               <Download className="h-4 w-4" />
               Установить
@@ -151,9 +165,11 @@ export function InstallBanner() {
 
           {/* Close */}
           <button
-            onClick={() => dismiss(true)}
+            type="button"
+            onClick={handleClose}
             aria-label="Закрыть"
-            className="shrink-0 rounded-full p-2 text-slate-400 transition hover:bg-slate-100 active:scale-95"
+            className="shrink-0 rounded-full p-2 text-slate-400 transition hover:bg-slate-100 active:scale-95 touch-manipulation"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             <X className="h-5 w-5" />
           </button>
