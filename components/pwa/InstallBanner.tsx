@@ -18,9 +18,20 @@ export function InstallBanner() {
 
   const dismiss = useCallback((permanent = false) => {
     setExiting(true)
-    if (permanent) localStorage.setItem('pwa-dismissed', String(Date.now()))
-    setTimeout(() => { setVisible(false); setExiting(false) }, 350)
+    if (permanent) {
+      localStorage.setItem('pwa-dismissed', String(Date.now()))
+    }
+    setTimeout(() => { 
+      setVisible(false)
+      setExiting(false) 
+    }, 350)
   }, [])
+
+  const handleClose = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    dismiss(true)
+  }, [dismiss])
 
   useEffect(() => {
     // Already installed as PWA — never show
