@@ -1,11 +1,47 @@
 'use client'
 
-import { useState } from 'react'
-import { Bell, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Bell, Loader2, CheckCircle2, AlertCircle, Info } from 'lucide-react'
 
 export function TestNotificationsClient({ locale }: { locale: string }) {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [diagnostics, setDiagnostics] = useState<any>(null)
+
+  useEffect(() => {
+    // Check browser support and permissions
+    const checkSupport = async () => {
+      const diag: any = {
+        hasNotifications: 'Notification' in window,
+        hasServiceWorker: 'serviceWorker' in navigator,
+        hasPushManager: 'serviceWorker' in navigator && 'pushManager' in ServiceWorkerRegistration.prototype,
+        permission: 'Notification' in window ? Notification.permission : 'unsupported',
+        isHTTPS: window.location.protocol === 'https:' || window.location.hostname === 'localhost',
+        swRegistered: false,
+        pushSubscription: null,
+      }
+
+      if ('serviceWorker' in navigator) {
+        try {
+          const reg = await navigator.serviceWorker.getRegistration()
+          diag.swRegistered = !!reg
+          if (reg) {
+            const sub = await reg.pushManager.getSubscription()
+            diag.pushSubscription = !!sub
+            if (sub) {
+              diag.endpoint = sub.endpoint.substring(0, 50) + '...'
+            }
+          }
+        } catch (e) {
+          diag.swError = String(e)
+        }
+      }
+
+      setDiagnostics(diag)
+    }
+
+    checkSupport()
+  }, [])
 
   const testNotification = async () => {
     setLoading(true)
@@ -21,18 +57,69 @@ export function TestNotificationsClient({ locale }: { locale: string }) {
       if (response.ok) {
         setResult({
           type: 'success',
-          message: 'Уведомление отправлено! Проверьте телефон/компьютер.',
+          message: 'Уведомление отправлено! Проверьте телефон/компьютер через 2-3 секунды.',
         })
       } else {
         setResult({
           type: 'error',
-          message: data.error || 'Не удалось отправить уведомление',
+          message: data.error || data.details || 'Не удалось отправить уведомление',
         })
       }
     } catch (error) {
       setResult({
         type: 'error',
-        message: 'Ошибка сети. Проверьте подключение.',
+        message: 'Ошибка сети: ' + (error instanceof Error ? error.message : 'Unknown'),
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const testBrowserNotification = () => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('🧪 Тест браузера', {
+        body: 'Это тест через browser API (не через сервер)',
+        icon: '/icons/icon-192.png',
+      })
+      setResult({
+        type: 'success',
+        message: 'Локальное уведомление отправлено. Если видите его - браузер работает нормально.'
+      })
+    } else {
+      setResult({
+        type: 'error',
+        message: 'Разрешение не предоставлено или браузер не поддерживает уведомления'
+      })
+    }
+  }
+
+  const testServiceWorkerNotification = async () => {
+    setLoading(true)
+    setResult(null)
+    
+    try {
+      if (!('serviceWorker' in navigator)) {
+        throw new Error('Service Worker не поддерживается')
+      }
+
+      const registration = await navigator.serviceWorker.ready
+      
+      await registration.showNotification('🔧 Тест Service Worker', {
+        body: 'Это тест через Service Worker (не через сервер)',
+        icon: '/icons/icon-192.png',
+        badge: '/icons/icon-192.png',
+        tag: 'sw-test',
+        requireInteraction: false,
+      })
+
+      setResult({
+        type: 'success',
+        message: 'Service Worker уведомление отправлено. Если видите его - SW работает нормально.'
+      })
+    } catch (error) {
+      setResult({
+        type: 'error',
+        message: 'Ошибка SW: ' + (error instanceof Error ? error.message : 'Unknown')
       })
     } finally {
       setLoading(false)
@@ -41,6 +128,67 @@ export function TestNotificationsClient({ locale }: { locale: string }) {
 
   return (
     <div className="mt-8 space-y-6">
+      {/* Diagnostics */}
+      {diagnostics && (
+        <div className="rounded-2xl bg-slate-50 p-6">
+          <h2 className="flex items-center gap-2 font-bold text-slate-900">
+            <Info className="h-5 w-5" />
+            Диагностика системы
+          </h2>
+          <div className="mt-4 space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span>Поддержка уведомлений:</span>
+              <span className={diagnostics.hasNotifications ? 'text-green-600 font-semibold' : 'text-red-600'}>
+                {diagnostics.hasNotifications ? '✅ Да' : '❌ Нет'}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>Service Worker:</span>
+              <span className={diagnostics.hasServiceWorker ? 'text-green-600 font-semibold' : 'text-red-600'}>
+                {diagnostics.hasServiceWorker ? '✅ Да' : '❌ Нет'}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>Push Manager:</span>
+              <span className={diagnostics.hasPushManager ? 'text-green-600 font-semibold' : 'text-red-600'}>
+                {diagnostics.hasPushManager ? '✅ Да' : '❌ Нет'}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>Разрешение:</span>
+              <span className={diagnostics.permission === 'granted' ? 'text-green-600 font-semibold' : 'text-amber-600'}>
+                {diagnostics.permission === 'granted' ? '✅ Разрешено' : 
+                 diagnostics.permission === 'denied' ? '❌ Запрещено' : 
+                 '⏳ Не запрошено'}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>HTTPS:</span>
+              <span className={diagnostics.isHTTPS ? 'text-green-600 font-semibold' : 'text-red-600'}>
+                {diagnostics.isHTTPS ? '✅ Да' : '❌ Нет'}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>SW зарегистрирован:</span>
+              <span className={diagnostics.swRegistered ? 'text-green-600 font-semibold' : 'text-amber-600'}>
+                {diagnostics.swRegistered ? '✅ Да' : '❌ Нет'}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>Push подписка:</span>
+              <span className={diagnostics.pushSubscription ? 'text-green-600 font-semibold' : 'text-amber-600'}>
+                {diagnostics.pushSubscription ? '✅ Есть' : '❌ Нет'}
+              </span>
+            </div>
+            {diagnostics.endpoint && (
+              <div className="mt-2 text-xs text-slate-500">
+                <strong>Endpoint:</strong> {diagnostics.endpoint}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Instructions */}
       <div className="rounded-2xl bg-blue-50 p-6">
         <h2 className="font-bold text-blue-900">📋 Как протестировать:</h2>
@@ -64,8 +212,8 @@ export function TestNotificationsClient({ locale }: { locale: string }) {
         </ol>
       </div>
 
-      {/* Test button */}
-      <div className="rounded-2xl bg-surface p-6 text-center">
+      {/* Test buttons */}
+      <div className="rounded-2xl bg-surface p-6 text-center space-y-4">
         <button
           onClick={testNotification}
           disabled={loading}
@@ -79,14 +227,37 @@ export function TestNotificationsClient({ locale }: { locale: string }) {
           ) : (
             <>
               <Bell className="h-5 w-5" />
-              Отправить тестовое уведомление
+              Отправить через сервер (Push API)
             </>
           )}
         </button>
 
-        <p className="mt-3 text-xs text-slate-500">
-          Уведомление придёт на все ваши устройства где включены уведомления
-        </p>
+        <button
+          onClick={testBrowserNotification}
+          className="inline-flex h-12 items-center gap-2 rounded-full bg-blue-500 px-6 text-sm font-bold text-white transition hover:bg-blue-600"
+        >
+          <Bell className="h-4 w-4" />
+          Тест: Browser API
+        </button>
+
+        <button
+          onClick={testServiceWorkerNotification}
+          disabled={loading}
+          className="inline-flex h-12 items-center gap-2 rounded-full bg-purple-500 px-6 text-sm font-bold text-white transition hover:bg-purple-600 disabled:opacity-60"
+        >
+          {loading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Bell className="h-4 w-4" />
+          )}
+          Тест: Service Worker
+        </button>
+
+        <div className="text-xs text-slate-500 space-y-1">
+          <p><strong>Push API:</strong> настоящий тест через сервер + web-push</p>
+          <p><strong>Browser API:</strong> локальный тест браузера</p>
+          <p><strong>Service Worker:</strong> тест через SW (без сервера)</p>
+        </div>
       </div>
 
       {/* Result */}
@@ -123,6 +294,7 @@ export function TestNotificationsClient({ locale }: { locale: string }) {
           <li>• <strong>Desktop:</strong> Работает во всех браузерах</li>
           <li>• Если уведомление не пришло — проверьте что разрешили их в браузере</li>
           <li>• Уведомления приходят даже когда браузер закрыт!</li>
+          <li>• <strong>Локальный тест:</strong> Вторая кнопка тестирует браузер напрямую</li>
         </ul>
       </div>
 

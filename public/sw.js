@@ -56,14 +56,24 @@ self.addEventListener('fetch', (event) => {
 // ── Push notifications ──
 
 self.addEventListener('push', (event) => {
-  if (!event.data) return
+  console.log('[SW] Push event received:', event)
+  
+  if (!event.data) {
+    console.log('[SW] No data in push event')
+    return
+  }
 
   let data = { title: 'FORUM.KG', body: 'Новое уведомление', icon: '/icons/icon-192.png', url: '/ru' }
   try {
-    data = { ...data, ...event.data.json() }
-  } catch {
+    const parsed = event.data.json()
+    console.log('[SW] Parsed push data:', parsed)
+    data = { ...data, ...parsed }
+  } catch (e) {
+    console.log('[SW] Failed to parse JSON, using text:', e)
     data.body = event.data.text()
   }
+
+  console.log('[SW] Showing notification:', data)
 
   event.waitUntil(
     self.registration.showNotification(data.title, {
@@ -72,6 +82,12 @@ self.addEventListener('push', (event) => {
       badge: '/icons/icon-192.png',
       data: { url: data.url || '/ru' },
       vibrate: [100, 50, 100],
+      requireInteraction: false,
+      tag: 'forum-kg-push',
+    }).then(() => {
+      console.log('[SW] Notification shown successfully')
+    }).catch((err) => {
+      console.error('[SW] Failed to show notification:', err)
     })
   )
 })

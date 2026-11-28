@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Bell, BellOff, Loader2, CheckCircle2 } from 'lucide-react'
+import { Bell, BellOff, Loader2, CheckCircle2, Ticket, Clock, Sparkles, Smartphone, Lock, Zap } from 'lucide-react'
 
 export function NotificationsTab({ locale, userId }: { locale: string; userId?: string }) {
   const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>('default')
@@ -210,12 +210,12 @@ export function NotificationsTab({ locale, userId }: { locale: string; userId?: 
         <h3 className="font-bold text-ink">Какие уведомления вы получите</h3>
         <ul className="mt-4 space-y-3">
           {[
-            { icon: '🎫', text: 'Билет оплачен — сразу после успешной оплаты' },
-            { icon: '⏰', text: 'Напоминание о форуме — за день до начала' },
-            { icon: '🆕', text: 'Новые форумы — когда открывается регистрация' },
+            { icon: Ticket, text: 'Билет оплачен — сразу после успешной оплаты' },
+            { icon: Clock, text: 'Напоминание о форуме — за день до начала' },
+            { icon: Sparkles, text: 'Новые форумы — когда открывается регистрация' },
           ].map((item, i) => (
             <li key={i} className="flex items-start gap-3 text-sm text-slate-600 max-w-full">
-              <span className="mt-0.5 shrink-0 text-lg">{item.icon}</span>
+              <item.icon className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
               <span className="break-words flex-1">{item.text}</span>
             </li>
           ))}
@@ -235,15 +235,15 @@ export function NotificationsTab({ locale, userId }: { locale: string; userId?: 
             </p>
             <ul className="mt-3 space-y-1.5 text-xs text-slate-600">
               <li className="flex items-center gap-2">
-                <span className="shrink-0">📱</span>
+                <Smartphone className="h-4 w-4 shrink-0 text-primary" />
                 <span className="break-words">Работает на Android и iPhone iOS 16.4+</span>
               </li>
               <li className="flex items-center gap-2">
-                <span className="shrink-0">🔒</span>
+                <Lock className="h-4 w-4 shrink-0 text-primary" />
                 <span className="break-words">Безопасно — стандартная технология браузеров</span>
               </li>
               <li className="flex items-center gap-2">
-                <span className="shrink-0">⚡</span>
+                <Zap className="h-4 w-4 shrink-0 text-primary" />
                 <span className="break-words">Мгновенная доставка без задержек</span>
               </li>
             </ul>
