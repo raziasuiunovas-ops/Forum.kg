@@ -23,12 +23,11 @@ export async function GET(
   const match = FILE_ID_PATTERN.exec(fileId)
   if (!match) return notFoundResponse()
 
-  const fileUrl = `/api/v1/uploads/${fileId}`
-  
   // Check if this file is used in any published event (public access)
+  // bannerUrl can be relative "/api/v1/uploads/xxx" or absolute "https://domain/api/v1/uploads/xxx"
   const publishedEvent = await prisma.forum.findFirst({
     where: {
-      bannerUrl: fileUrl,
+      bannerUrl: { endsWith: `uploads/${fileId}` },
       status: ForumStatus.PUBLISHED,
     },
     select: { id: true, createdById: true },
